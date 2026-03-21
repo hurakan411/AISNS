@@ -88,16 +88,15 @@ struct PostCard: View {
                     .padding(.horizontal, 20)
                     .lineSpacing(6)
                 
-                // Image Placeholder
-                AsyncImage(url: URL(string: Theme.fallbackImg)) { img in
-                    img.resizable().scaledToFill()
-                } placeholder: {
-                    Rectangle().fill(Color.gray.opacity(0.2))
+                if let data = post.imageData, let uiImage = UIImage(data: data) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(height: 180)
+                        .clipped()
+                        .cornerRadius(20)
+                        .padding(.horizontal, 16)
                 }
-                .frame(height: 180)
-                .clipped()
-                .cornerRadius(20)
-                .padding(.horizontal, 16)
                 
                 HStack(spacing: 24) {
                     HStack(spacing: 8) {

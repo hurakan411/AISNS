@@ -1,6 +1,6 @@
 import os
 import random
-from typing import List
+from typing import List, Optional, Any
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from pydantic import BaseModel
@@ -35,6 +35,7 @@ class PostRequest(BaseModel):
     content: str
     followers: int
     is_hater_enabled: bool = True
+    image_base64: Optional[str] = None
 
 class ReplySchema(BaseModel):
     author_name: str
@@ -60,7 +61,7 @@ HATER_AVATARS = [
 
 
 # -------- 4. バックグラウンドタスク (AI ドラマエンジン) --------
-async def generate_ai_replies(post_id: str, content: str, followers: int, is_hater_enabled: bool):
+async def generate_ai_replies(post_id: str, content: str, followers: int, is_hater_enabled: bool, image_base64: Optional[str] = None):
     """
     OpenAIを利用してリプライを一括生成し、完了し次第DB(Supabase)へバルクインサートする
     """
@@ -79,8 +80,8 @@ async def generate_ai_replies(post_id: str, content: str, followers: int, is_hat
 
     # ランクごとのパラメータ定義（上限・下限を持たせる）
     rank_params = {
-        1: {"min": 1, "max": 3, "haters": 0},
-        2: {"min": 2, "max": 5, "haters": 0},
+        1: {"min": 2, "max": 4, "haters": 0},
+        2: {"min": 3, "max": 5, "haters": 0},
         3: {"min": 3, "max": 5, "haters": 0},
         4: {"min": 4, "max": 6, "haters": 1},
         5: {"min": 4, "max": 7, "haters": 2},
@@ -161,12 +162,22 @@ async def generate_ai_replies(post_id: str, content: str, followers: int, is_hat
     """
 
     try:
+        user_message_content: List[dict[str, Any]] = [{"type": "text", "text": f"ユーザーの投稿: {content}"}]
+        # もし画像Base64が渡されていれば、OpenAIのVision形式ペイロードに追加
+        if image_base64:
+            # プレフィックスがない場合は補足する
+            prefix = "" if image_base64.startswith("data:image") else "data:image/jpeg;base64,"
+            user_message_content.append({
+                "type": "image_url",
+                "image_url": {"url": f"{prefix}{image_base64}"}
+            })
+
         # OpenAI API Structured Outputs を使って確実にJSONスキーマで返却させる
         completion = await openai_client.beta.chat.completions.parse(
             model="gpt-5.4-mini",
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"ユーザーの投稿: {content}"}
+                {"role": "user", "content": user_message_content}
             ],
             response_format=GenerateRepliesResponse,
         )
@@ -226,7 +237,7 @@ async def create_post(request: PostRequest, background_tasks: BackgroundTasks):
         post_id = post_res.data[0]["id"]
         
         # AI処理を待たずにレスポンスを返す（AI生成はバックグラウンドで処理）
-        background_tasks.add_task(generate_ai_replies, post_id, request.content, request.followers, request.is_hater_enabled)
+        background_tasks.add_task(generate_ai_replies, post_id, request.content, request.followers, request.is_hater_enabled, request.image_base64)
         
         return {
             "status": "success", 

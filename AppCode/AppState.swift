@@ -13,6 +13,7 @@ struct Reply: Identifiable, Equatable {
 struct PostModel: Identifiable {
     let id = UUID()
     let content: String
+    var imageData: Data?
     var likes: Int
     var replies: [Reply]
     let time: String
@@ -97,8 +98,8 @@ class AppState: ObservableObject {
         return thresholds[currentRank]
     }
     
-    func submitPost(text: String) {
-        let newPost = PostModel(content: text, likes: 0, replies: [], time: "今")
+    func submitPost(text: String, imageData: Data? = nil) {
+        let newPost = PostModel(content: text, imageData: imageData, likes: 0, replies: [], time: "今")
         posts.insert(newPost, at: 0)
         if posts.count > 10 { posts.removeLast() }
         
@@ -149,7 +150,7 @@ class AppState: ObservableObject {
         }
 
         // 実APIへ生成リクエスト
-        requestAiReplies(content: text, followers: self.followers)
+        requestAiReplies(content: text, imageData: imageData, followers: self.followers)
     }
     
     // API関連
@@ -180,7 +181,7 @@ class AppState: ObservableObject {
         URLSession.shared.dataTask(with: request).resume()
     }
 
-    private func requestAiReplies(content: String, followers: Int) {
+    private func requestAiReplies(content: String, imageData: Data?, followers: Int) {
         pendingReplies = []
         
         guard let url = URL(string: apiUrl) else { return }
@@ -188,12 +189,17 @@ class AppState: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "user_id": testUserId,
             "content": content,
             "followers": followers,
             "is_hater_enabled": isHaterEnabled
         ]
+        
+        if let data = imageData {
+            body["image_base64"] = data.base64EncodedString()
+        }
+        
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         
         URLSession.shared.dataTask(with: request) { data, response, error in
