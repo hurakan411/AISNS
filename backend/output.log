@@ -1,0 +1,6 @@
+------- バックエンド（AI & DB）動作テスト -------
+👤 テスト用ユーザー確認OK
+
+🚀 FastAPIへ投稿リクエストを送信しています...
+❌ FastAPIリクエストエラー: [Errno 61] Connection refused
+💡 uvicornサーバーが起動していない可能性があります。

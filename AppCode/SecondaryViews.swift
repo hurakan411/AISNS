@@ -41,6 +41,9 @@ struct StatsView: View {
             }
             .padding(.bottom, 40)
         }
+        .refreshable {
+            appState.fetchUser()
+        }
     }
 }
 
@@ -130,6 +133,9 @@ struct ProfileView: View {
                 .padding(.top, 16)
             }
             .padding(.bottom, 40)
+        }
+        .refreshable {
+            appState.fetchUser()
         }
     }
 }

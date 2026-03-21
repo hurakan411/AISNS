@@ -35,6 +35,9 @@ struct FeedView: View {
                 }
             }
         }
+        .refreshable {
+            appState.fetchUser()
+        }
     }
 }
 

@@ -10,5 +10,6 @@
 | [02_Functional_Requirements.md](./02_Functional_Requirements.md) | 投稿・ホームなど「画面別の機能要件」や、コアとなる「AIリプライ一括生成・アンチ防衛（ドラマ）シナリオ」 |
 | [04_UI_UX_Design.md](./04_UI_UX_Design.md) | カラーパレット、スタイリング、アニメーションなどのデザイン要件 |
 | [05_Architecture_and_TechStack.md](./05_Architecture_and_TechStack.md) | 言語、インフラなどの技術スタックと、パフォーマンス等の非機能要件 |
+| [06_Database_Schema.md](./06_Database_Schema.md) | DBのER図とテーブル定義（Users, Posts, Repliesの3主軸）、データフローモデル |
 
 ※ アプリはiPhone用 (iOSネイティブ) としてSwiftUIを用いて開発されます。AI連携・バックエンドとしてはPython / Supabaseなどを活用します。
