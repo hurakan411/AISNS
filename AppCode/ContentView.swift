@@ -62,7 +62,7 @@ struct ContentView: View {
             HStack(spacing: 0) {
                 NavBtn(icon: "house.fill", label: "ホーム", isActive: activeTab == .home) { withAnimation { activeTab = .home } }
                 Spacer()
-                NavBtn(icon: "plus.app.fill", label: "", isActive: activeTab == .post, isCenter: true) { withAnimation { activeTab = .post } }
+                NavBtn(icon: "plus.app.fill", label: "投稿", isActive: activeTab == .post, isCenter: true) { withAnimation { activeTab = .post } }
                 Spacer()
                 NavBtn(icon: "chart.bar.fill", label: "統計", isActive: activeTab == .stats) { withAnimation { activeTab = .stats } }
                 Spacer()
@@ -107,18 +107,15 @@ struct NavBtn: View {
         Button(action: action) {
             VStack(spacing: 4) {
                 Image(systemName: icon)
-                    .font(.system(size: isCenter ? 32 : 24))
+                    .font(.system(size: 24))
                     .foregroundColor(isActive ? Theme.hotPink : .gray.opacity(0.5))
                     .neonShadow(color: isActive ? Theme.hotPink : .clear, radius: isActive ? 8 : 0)
                 
-                if !isCenter {
-                    Text(label)
-                        .font(.system(size: 9, weight: .black))
-                        .foregroundColor(isActive ? Theme.hotPink : .gray.opacity(0.5))
-                        .textCase(.uppercase)
-                }
+                Text(label)
+                    .font(.system(size: 9, weight: .black))
+                    .foregroundColor(isActive ? Theme.hotPink : .gray.opacity(0.5))
+                    .textCase(.uppercase)
             }
-            .offset(y: isCenter ? -10 : 0)
             .scaleEffect(isActive ? 1.05 : 1.0)
         }
     }

@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct StatsView: View {
     @EnvironmentObject var appState: AppState
@@ -19,6 +20,16 @@ struct StatsView: View {
                 }
                 .padding(.horizontal, 24)
                 
+                HStack(spacing: 16) {
+                    StatCard(title: "累計投稿数", value: "\(appState.totalPosts)", color: .green)
+                    let totalLikes = appState.posts.reduce(0) { $0 + $1.likes }
+                    StatCard(title: "累計いいね", value: "\(totalLikes)", color: .orange)
+                    let totalReplies = appState.posts.reduce(0) { $0 + $1.replies.count }
+                    StatCard(title: "累計リプライ", value: "\(totalReplies)", color: .purple)
+                }
+                .padding(.horizontal, 24)
+                
+
                 VStack(alignment: .leading, spacing: 12) {
                     Text("ランクステータス").font(.headline).foregroundColor(.gray).padding(.horizontal, 24)
                     Text(appState.rankName).font(.title3).fontWeight(.bold).foregroundColor(Theme.cyan).padding(.horizontal, 24)
@@ -68,15 +79,18 @@ struct StatCard: View {
                 .neonShadow(color: color, radius: 8)
                 .multilineTextAlignment(.center)
         }
-        .frame(maxWidth: .infinity, minHeight: 140)
+        .frame(maxWidth: .infinity, minHeight: 120)
         .background(color.opacity(0.1))
-        .cornerRadius(32)
-        .overlay(RoundedRectangle(cornerRadius: 32).stroke(Color.white.opacity(0.05), lineWidth: 1))
+        .cornerRadius(24)
+        .overlay(RoundedRectangle(cornerRadius: 24).stroke(Color.white.opacity(0.05), lineWidth: 1))
     }
 }
 
 struct ProfileView: View {
     @EnvironmentObject var appState: AppState
+    @State private var selectedItem: PhotosPickerItem? = nil
+    @State private var isEditingName = false
+    @State private var isEditingBio = false
     
     var body: some View {
         ScrollView {
@@ -87,50 +101,123 @@ struct ProfileView: View {
                         .fill(LinearGradient(gradient: Gradient(colors: [Color.indigo.opacity(0.5), Color.purple.opacity(0.5), .black]), startPoint: .topLeading, endPoint: .bottomTrailing))
                         .frame(height: 180)
                     
-                    AsyncImage(url: URL(string: Theme.myAvatar)) { img in
-                        img.resizable().scaledToFill()
-                    } placeholder: {
-                        Circle().fill(Color.gray)
+                    PhotosPicker(selection: $selectedItem, matching: .images, photoLibrary: .shared()) {
+                        ZStack {
+                            if let data = appState.userAvatarData, let uiImage = UIImage(data: data) {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .scaledToFill()
+                            } else {
+                                AsyncImage(url: URL(string: Theme.myAvatar)) { img in
+                                    img.resizable().scaledToFill()
+                                } placeholder: {
+                                    Circle().fill(Color.gray)
+                                }
+                            }
+                        }
+                        .frame(width: 90, height: 90)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.black, lineWidth: 6))
+                        .overlay(
+                            Image(systemName: "camera.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(.white)
+                                .background(Circle().fill(Theme.hotPink))
+                                .offset(x: 30, y: 30)
+                        )
                     }
-                    .frame(width: 90, height: 90)
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(Color.black, lineWidth: 6))
                     .offset(x: 24, y: 45)
+                    .onChange(of: selectedItem) { newItem in
+                        Task {
+                            if let data = try? await newItem?.loadTransferable(type: Data.self) {
+                                DispatchQueue.main.async {
+                                    appState.userAvatarData = data
+                                }
+                            }
+                        }
+                    }
                 }
                 .padding(.bottom, 40)
                 
-                VStack(alignment: .leading, spacing: 32) {
-                    Text("みずき（あなた）")
-                        .font(.system(size: 32, weight: .black))
-                        .foregroundColor(.white)
-                    
+                VStack(alignment: .leading, spacing: 16) {
                     HStack {
-                        VStack(alignment: .center, spacing: 8) {
-                            Text("\(appState.followers)")
-                                .font(.system(size: 32, weight: .black, design: .monospaced))
-                                .foregroundColor(Theme.hotPink)
-                            Text("FOLLOWERS")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.gray)
-                                .tracking(2)
+                        if isEditingName {
+                            TextField("ユーザー名", text: $appState.userName, onCommit: { isEditingName = false })
+                                .font(.system(size: 28, weight: .black))
+                                .foregroundColor(.white)
+                                .padding(8)
+                                .background(Color.white.opacity(0.1))
+                                .cornerRadius(8)
+                        } else {
+                            Text(appState.userName)
+                                .font(.system(size: 28, weight: .black))
+                                .foregroundColor(.white)
                         }
                         Spacer()
-                        VStack(alignment: .center, spacing: 8) {
-                            Text("\(appState.totalPosts)")
-                                .font(.system(size: 32, weight: .black, design: .monospaced))
-                                .foregroundColor(Theme.cyan)
-                            Text("POSTS")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.gray)
-                                .tracking(2)
+                        Button(action: { withAnimation { isEditingName.toggle() } }) {
+                            Image(systemName: isEditingName ? "checkmark.circle.fill" : "pencil.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(Theme.hotPink)
                         }
                     }
-                    .padding(.vertical, 32)
-                    .overlay(Rectangle().frame(height: 1).foregroundColor(Color.white.opacity(0.1)), alignment: .top)
-                    .overlay(Rectangle().frame(height: 1).foregroundColor(Color.white.opacity(0.1)), alignment: .bottom)
+                    
+                    HStack(alignment: .top) {
+                        if isEditingBio {
+                            TextEditor(text: $appState.userBio)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.white)
+                                .padding(8)
+                                .background(Color.white.opacity(0.1))
+                                .cornerRadius(8)
+                                .frame(minHeight: 80)
+                        } else {
+                            Text(appState.userBio)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.gray)
+                                .lineSpacing(6)
+                        }
+                        
+                        Spacer()
+                        
+                        Button(action: { withAnimation { isEditingBio.toggle() } }) {
+                            Image(systemName: isEditingBio ? "checkmark.circle.fill" : "pencil.circle.fill")
+                                .font(.title3)
+                                .foregroundColor(.gray)
+                        }
+                        .padding(.top, 4)
+                    }
+                    
+
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+                
+                Divider()
+                    .background(Color.white.opacity(0.1))
+                    .padding(.vertical, 24)
+                
+                // Settings Section
+                VStack(alignment: .leading, spacing: 20) {
+                    Text("SETTINGS")
+                        .font(.system(size: 14, weight: .black))
+                        .foregroundColor(.gray)
+                        .tracking(2)
+                    
+                    Toggle(isOn: $appState.isHaterEnabled) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("アンチ・炎上の発生")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.white)
+                            Text("高ランク到達時のアンチ登場をON/OFFします")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    .toggleStyle(SwitchToggleStyle(tint: Theme.hotPink))
                 }
                 .padding(.horizontal, 32)
-                .padding(.top, 16)
+                .padding(.top, 32)
             }
             .padding(.bottom, 40)
         }

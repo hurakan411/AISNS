@@ -23,9 +23,32 @@ class AppState: ObservableObject {
     @Published var totalPosts: Int = 0
     @Published var posts: [PostModel] = []
     
+    @Published var userName: String = UserDefaults.standard.string(forKey: "userName") ?? "みずき（あなた）" {
+        didSet { UserDefaults.standard.set(userName, forKey: "userName") }
+    }
+    @Published var userAvatarData: Data? = UserDefaults.standard.data(forKey: "userAvatarData") {
+        didSet { UserDefaults.standard.set(userAvatarData, forKey: "userAvatarData") }
+    }
+    @Published var userBio: String = UserDefaults.standard.string(forKey: "userBio") ?? "今日も息してるだけでえらい。全肯定SNS「ZEN-KOTEI」で承認欲求の海に溺れるアカウント。" {
+        didSet { UserDefaults.standard.set(userBio, forKey: "userBio") }
+    }
+    
+    @Published var isHaterEnabled: Bool = UserDefaults.standard.object(forKey: "isHaterEnabled") as? Bool ?? true {
+        didSet {
+            UserDefaults.standard.set(isHaterEnabled, forKey: "isHaterEnabled")
+        }
+    }
+    
     private var likeTimer: AnyCancellable?
     private var replyTimer: AnyCancellable?
     private var pendingReplies: [Reply] = []
+    
+    // === 演出の調整パラメーター ===
+    // 何分かけて「いいね」と「返信」を増やすか（秒数）。例: 5分 = 300.0
+    let buzzDurationSeconds: Double = 300.0
+    // いいね数がパラパラ上がるUIの間隔（秒数）。滑らかさ重視なら0.5程度
+    let buzzUpdateInterval: Double = 0.5
+    // ========================
     
     let avatars = [
         "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop",
@@ -102,11 +125,12 @@ class AppState: ObservableObject {
         
         let initialLikes = self.posts.first?.likes ?? 0
         let initialFollowers = self.followers
-        let totalTicks = 45
+        // 指定した合計時間とUI更新間隔から「全何回のアップデートで目標値に到達するか」を算出
+        let totalTicks = Int(buzzDurationSeconds / buzzUpdateInterval)
         var increments = 0
         
         likeTimer?.cancel()
-        likeTimer = Timer.publish(every: 0.06, on: .main, in: .common).autoconnect().sink { [weak self] _ in
+        likeTimer = Timer.publish(every: buzzUpdateInterval, on: .main, in: .common).autoconnect().sink { [weak self] _ in
             guard let self = self else { return }
             increments += 1
             
@@ -167,7 +191,8 @@ class AppState: ObservableObject {
         let body: [String: Any] = [
             "user_id": testUserId,
             "content": content,
-            "followers": followers
+            "followers": followers,
+            "is_hater_enabled": isHaterEnabled
         ]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         
@@ -220,15 +245,27 @@ class AppState: ObservableObject {
     
     private func startReplyDrainTimer() {
         replyTimer?.cancel()
-        replyTimer = Timer.publish(every: 1.2, on: .main, in: .common).autoconnect().sink { [weak self] _ in
-            guard let self = self else { return }
-            if !self.pendingReplies.isEmpty, !self.posts.isEmpty {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                    self.posts[0].replies.append(self.pendingReplies.removeFirst())
+        
+        let count = pendingReplies.count
+        guard count > 0 else { return }
+        
+        func drainNext() {
+            guard !self.pendingReplies.isEmpty, !self.posts.isEmpty else { return }
+            
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                self.posts[0].replies.append(self.pendingReplies.removeFirst())
+            }
+            
+            if !self.pendingReplies.isEmpty {
+                // 返信ひとつにつき、10秒〜1分（60秒）のランダムな間隔で次を表示する
+                let randomInterval = Double.random(in: 10.0...60.0)
+                DispatchQueue.main.asyncAfter(deadline: .now() + randomInterval) {
+                    drainNext()
                 }
-            } else {
-                self.replyTimer?.cancel()
             }
         }
+        
+        // 例外的に、1件目は待たずにすぐ表示する
+        drainNext()
     }
 }

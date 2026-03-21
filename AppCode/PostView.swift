@@ -39,14 +39,23 @@ struct PostView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     HStack(alignment: .top, spacing: 16) {
-                        AsyncImage(url: URL(string: Theme.myAvatar)) { img in
-                            img.resizable().scaledToFill()
-                        } placeholder: {
-                            Circle().fill(Color.purple)
+                        if let data = appState.userAvatarData, let uiImage = UIImage(data: data) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 50, height: 50)
+                                .clipShape(Circle())
+                                .overlay(Circle().stroke(Color.purple, lineWidth: 2))
+                        } else {
+                            AsyncImage(url: URL(string: Theme.myAvatar)) { img in
+                                img.resizable().scaledToFill()
+                            } placeholder: {
+                                Circle().fill(Color.purple)
+                            }
+                            .frame(width: 50, height: 50)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.purple, lineWidth: 2))
                         }
-                        .frame(width: 50, height: 50)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.purple, lineWidth: 2))
                         
                         if #available(iOS 16.0, *) {
                             TextEditor(text: $text)

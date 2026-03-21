@@ -42,24 +42,34 @@ struct FeedView: View {
 }
 
 struct PostCard: View {
+    @EnvironmentObject var appState: AppState
     let post: PostModel
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Main Post Area
             VStack(alignment: .leading, spacing: 16) {
-                HStack(spacing: 12) {
-                    AsyncImage(url: URL(string: Theme.myAvatar)) { image in
-                        image.resizable().scaledToFill()
-                    } placeholder: {
-                        Circle().fill(Color.purple)
+                HStack(alignment: .top, spacing: 12) {
+                    if let data = appState.userAvatarData, let uiImage = UIImage(data: data) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 44, height: 44)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.purple, lineWidth: 2))
+                    } else {
+                        AsyncImage(url: URL(string: Theme.myAvatar)) { image in
+                            image.resizable().scaledToFill()
+                        } placeholder: {
+                            Circle().fill(Color.purple)
+                        }
+                        .frame(width: 44, height: 44)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.purple, lineWidth: 2))
                     }
-                    .frame(width: 44, height: 44)
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(Color.purple, lineWidth: 2))
                     
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("みずき（あなた）")
+                        Text(appState.userName)
                             .font(.system(size: 15, weight: .bold))
                             .foregroundColor(.white)
                         Text(post.time)
@@ -145,6 +155,7 @@ struct ReplyRow: View {
             .clipShape(Circle())
             .overlay(Circle().stroke(reply.isHater ? Color.red : Color.gray.opacity(0.3), lineWidth: reply.isHater ? 2 : 1))
             .shadow(color: reply.isHater ? Color.red.opacity(0.5) : .clear, radius: reply.isHater ? 6 : 0)
+            .padding(.top, 16) // テキストのpadding(16)と高さを完全に揃えるため、アバターも同じだけ下げる
             
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .center) {
