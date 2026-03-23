@@ -1,8 +1,8 @@
 import SwiftUI
 import Combine
 
-struct Reply: Identifiable, Equatable {
-    let id = UUID()
+struct Reply: Identifiable, Equatable, Codable {
+    var id: UUID = UUID()
     let authorName: String
     let text: String
     let img: String
@@ -10,25 +10,52 @@ struct Reply: Identifiable, Equatable {
     let isDefender: Bool
 }
 
-struct PostModel: Identifiable {
-    let id = UUID()
+struct PostModel: Identifiable, Codable {
+    var id: UUID = UUID()
     let content: String
     var imageData: Data?
     var likes: Int
     var replies: [Reply]
     let time: String
+    var supabaseId: String?
+}
+
+/// JSONSerialization 経由の辞書で Bool が NSNumber や文字列になる場合があるため統一して解釈する
+private func parseJSONBool(_ value: Any?) -> Bool {
+    switch value {
+    case let b as Bool:
+        return b
+    case let i as Int:
+        return i != 0
+    case let n as NSNumber:
+        return n.boolValue
+    case let s as String:
+        let lower = s.lowercased()
+        return lower == "true" || lower == "1" || lower == "yes"
+    default:
+        return false
+    }
+}
+
+private func jsonReplyBool(_ r: [String: Any], snake: String, camel: String) -> Bool {
+    if r[snake] != nil {
+        return parseJSONBool(r[snake])
+    }
+    return parseJSONBool(r[camel])
 }
 
 class AppState: ObservableObject {
     @Published var followers: Int = 0
     @Published var totalPosts: Int = 0
-    @Published var posts: [PostModel] = []
+    @Published var posts: [PostModel] = [] {
+        didSet { savePosts() }
+    }
     
     @Published var userName: String = UserDefaults.standard.string(forKey: "userName") ?? "みずき（あなた）" {
         didSet { UserDefaults.standard.set(userName, forKey: "userName") }
     }
-    @Published var userAvatarData: Data? = UserDefaults.standard.data(forKey: "userAvatarData") {
-        didSet { UserDefaults.standard.set(userAvatarData, forKey: "userAvatarData") }
+    @Published var userAvatarData: Data? = nil {
+        didSet { saveAvatar() }
     }
     @Published var userBio: String = UserDefaults.standard.string(forKey: "userBio") ?? "今日も息してるだけでえらい。全肯定SNS「ZEN-KOTEI」で承認欲求の海に溺れるアカウント。" {
         didSet { UserDefaults.standard.set(userBio, forKey: "userBio") }
@@ -43,6 +70,14 @@ class AppState: ObservableObject {
     private var likeTimer: AnyCancellable?
     private var replyTimer: AnyCancellable?
     private var pendingReplies: [Reply] = []
+    
+    // リプライ連動でいいね・フォロワーを増やすための一時変数
+    private var buzzTargetLikes: Int = 0
+    private var buzzTargetFollowers: Int = 0
+    private var buzzInitialLikes: Int = 0
+    private var buzzInitialFollowers: Int = 0
+    private var buzzTotalReplies: Int = 0
+    private var buzzCurrentReply: Int = 0
     
     // === 演出の調整パラメーター ===
     // 何分かけて「いいね」と「返信」を増やすか（秒数）。例: 5分 = 300.0
@@ -59,8 +94,63 @@ class AppState: ObservableObject {
         "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop"
     ]
     let haterAvatar = "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=32&h=32&fit=crop"
+    private var postsURL: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("posts_v1.json")
+    }
+    
+    private var avatarURL: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("user_avatar.dat")
+    }
+
     init() { 
+        loadAvatar()
+        loadPosts()
+        registerUser()
         fetchUser()
+        fetchFeed()
+    }
+    
+    private func registerUser() {
+        guard let url = URL(string: "\(userApiUrl)") else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: Any] = ["user_id": userId]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        URLSession.shared.dataTask(with: request) { data, _, error in
+            if let data = data, let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                print("User registration: \(json["status"] as? String ?? "unknown")")
+            }
+        }.resume()
+    }
+    
+    private func savePosts() {
+        if let data = try? JSONEncoder().encode(posts) {
+            try? data.write(to: postsURL)
+        }
+    }
+    
+    private func loadPosts() {
+        if let data = try? Data(contentsOf: postsURL),
+           let decoded = try? JSONDecoder().decode([PostModel].self, from: data) {
+            self.posts = decoded
+        }
+    }
+    
+    private func saveAvatar() {
+        if let data = userAvatarData {
+            try? data.write(to: avatarURL)
+        } else {
+            try? FileManager.default.removeItem(at: avatarURL)
+        }
+    }
+    
+    private func loadAvatar() {
+        if let data = try? Data(contentsOf: avatarURL) {
+            self.userAvatarData = data
+        } else if let fallback = UserDefaults.standard.data(forKey: "userAvatarData") {
+            self.userAvatarData = fallback // backward compatible
+        }
     }
     
     var currentRank: Int {
@@ -124,42 +214,73 @@ class AppState: ObservableObject {
         // いいねの数はフォロワーの獲得数に対して「3倍〜7倍」のランダムな値で派手に増やす
         let totalLikes = Int(Double(totalFollowers) * Double.random(in: 3.0...7.0))
         
-        let initialLikes = self.posts.first?.likes ?? 0
-        let initialFollowers = self.followers
-        // 指定した合計時間とUI更新間隔から「全何回のアップデートで目標値に到達するか」を算出
-        let totalTicks = Int(buzzDurationSeconds / buzzUpdateInterval)
-        var increments = 0
-        
-        likeTimer?.cancel()
-        likeTimer = Timer.publish(every: buzzUpdateInterval, on: .main, in: .common).autoconnect().sink { [weak self] _ in
-            guard let self = self else { return }
-            increments += 1
-            
-            let currentLikesTarget = initialLikes + Int(Double(totalLikes) * Double(increments) / Double(totalTicks))
-            let currentFollowersTarget = initialFollowers + Int(Double(totalFollowers) * Double(increments) / Double(totalTicks))
-            
-            if !self.posts.isEmpty {
-                self.posts[0].likes = currentLikesTarget
-            }
-            self.followers = currentFollowersTarget
-            
-            if increments >= totalTicks { 
-                self.likeTimer?.cancel() 
-                self.syncUser()
-            }
-        }
+        // リプライ表示と連動して増やすため、目標値を保存しておく
+        buzzInitialLikes = self.posts.first?.likes ?? 0
+        buzzInitialFollowers = self.followers
+        buzzTargetLikes = totalLikes
+        buzzTargetFollowers = totalFollowers
+        buzzCurrentReply = 0
 
         // 実APIへ生成リクエスト
         requestAiReplies(content: text, imageData: imageData, followers: self.followers)
+        savePosts()
     }
     
     // API関連
-    private let testUserId = "11111111-1111-1111-1111-111111111111"
+    let userId: String = {
+        if let stored = UserDefaults.standard.string(forKey: "userId") {
+            return stored
+        } else {
+            let newId = UUID().uuidString.lowercased()
+            UserDefaults.standard.set(newId, forKey: "userId")
+            return newId
+        }
+    }()
     private let apiUrl = "http://127.0.0.1:8000/api/posts"
     private let userApiUrl = "http://127.0.0.1:8000/api/users"
     
+    func fetchFeed() {
+        guard let url = URL(string: "\(userApiUrl)/\(userId)/feed") else { return }
+        URLSession.shared.dataTask(with: url) { [weak self] data, _, error in
+            guard let self = self, let data = data, error == nil else { return }
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let fetchedPosts = json["posts"] as? [[String: Any]] {
+                
+                DispatchQueue.main.async {
+                    var updatedPosts = self.posts
+                    for p in fetchedPosts {
+                        let sid = p["id"] as? String ?? ""
+                        // 既に受信済み（またはローカルで作成した投稿）か判定
+                        if !updatedPosts.contains(where: { $0.supabaseId == sid }) {
+                            let content = p["content"] as? String ?? ""
+                            // let createdAt = p["created_at"] as? String // 必要に応じてパース
+                            let time = "過去の投稿"
+                            
+                            var repModels: [Reply] = []
+                            if let repliesArr = p["replies"] as? [[String: Any]] {
+                                for r in repliesArr {
+                                    let author = r["author_name"] as? String ?? "名無し"
+                                    let c = r["content"] as? String ?? ""
+                                    let hater = jsonReplyBool(r, snake: "is_hater", camel: "isHater")
+                                    let defender = jsonReplyBool(r, snake: "is_defender", camel: "isDefender")
+                                    let img = r["author_img"] as? String ?? self.avatars[0]
+                                    repModels.append(Reply(authorName: author, text: c, img: img, isHater: hater, isDefender: defender))
+                                }
+                            }
+                            
+                            // 新規取得した投稿を末尾に追加 (新しい順に返ってくる想定ですが、既存の後ろに繋げる)
+                            let newPost = PostModel(content: content, imageData: nil, likes: repModels.count*(Int.random(in: 10...30)), replies: repModels, time: time, supabaseId: sid)
+                            updatedPosts.append(newPost)
+                        }
+                    }
+                    self.posts = updatedPosts
+                }
+            }
+        }.resume()
+    }
+    
     func fetchUser() {
-        guard let url = URL(string: "\(userApiUrl)/\(testUserId)") else { return }
+        guard let url = URL(string: "\(userApiUrl)/\(userId)") else { return }
         URLSession.shared.dataTask(with: url) { data, _, _ in
             guard let data = data else { return }
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Int] {
@@ -172,7 +293,7 @@ class AppState: ObservableObject {
     }
 
     private func syncUser() {
-        guard let url = URL(string: "\(userApiUrl)/\(testUserId)") else { return }
+        guard let url = URL(string: "\(userApiUrl)/\(userId)") else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -190,7 +311,7 @@ class AppState: ObservableObject {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         var body: [String: Any] = [
-            "user_id": testUserId,
+            "user_id": userId,
             "content": content,
             "followers": followers,
             "is_hater_enabled": isHaterEnabled
@@ -206,7 +327,12 @@ class AppState: ObservableObject {
             guard let data = data, error == nil else { return }
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let postId = json["post_id"] as? String {
-                self.pollForReplies(postId: postId)
+                DispatchQueue.main.async {
+                    if !self.posts.isEmpty {
+                        self.posts[0].supabaseId = postId
+                    }
+                    self.pollForReplies(postId: postId)
+                }
             }
         }.resume()
     }
@@ -229,8 +355,8 @@ class AppState: ObservableObject {
                             for r in repliesJson {
                                 let author = r["author_name"] as? String ?? "名無し"
                                 let content = r["content"] as? String ?? ""
-                                let isHater = r["is_hater"] as? Bool ?? false
-                                let isDefender = r["is_defender"] as? Bool ?? false
+                                let isHater = jsonReplyBool(r, snake: "is_hater", camel: "isHater")
+                                let isDefender = jsonReplyBool(r, snake: "is_defender", camel: "isDefender")
                                 let img = r["author_img"] as? String ?? self.avatars[0]
                                 pending.append(Reply(authorName: author, text: content, img: img, isHater: isHater, isDefender: isDefender))
                             }
@@ -251,9 +377,33 @@ class AppState: ObservableObject {
     
     private func startReplyDrainTimer() {
         replyTimer?.cancel()
+        likeTimer?.cancel()
         
         let count = pendingReplies.count
         guard count > 0 else { return }
+        
+        buzzTotalReplies = count
+        buzzCurrentReply = 0
+        
+        // リプライの推定所要時間を計算（1件目は即時、残りは10〜30秒 → 平均20秒）
+        let estimatedDuration = Double(max(count - 1, 1)) * 20.0
+        let totalTicks = Int(estimatedDuration / buzzUpdateInterval)
+        var tickCount = 0
+        
+        // 0.5秒ごとにいいね・フォロワーをチロチロ増やすタイマーを開始
+        likeTimer = Timer.publish(every: buzzUpdateInterval, on: .main, in: .common).autoconnect().sink { [weak self] _ in
+            guard let self = self else { return }
+            tickCount += 1
+            
+            let progress = min(Double(tickCount) / Double(totalTicks), 1.0)
+            let newLikes = self.buzzInitialLikes + Int(Double(self.buzzTargetLikes) * progress)
+            let newFollowers = self.buzzInitialFollowers + Int(Double(self.buzzTargetFollowers) * progress)
+            
+            if !self.posts.isEmpty {
+                self.posts[0].likes = newLikes
+            }
+            self.followers = newFollowers
+        }
         
         func drainNext() {
             guard !self.pendingReplies.isEmpty, !self.posts.isEmpty else { return }
@@ -262,16 +412,21 @@ class AppState: ObservableObject {
                 self.posts[0].replies.append(self.pendingReplies.removeFirst())
             }
             
-            if !self.pendingReplies.isEmpty {
-                // 返信ひとつにつき、10秒〜1分（60秒）のランダムな間隔で次を表示する
-                let randomInterval = Double.random(in: 10.0...60.0)
+            if self.pendingReplies.isEmpty {
+                // 最後のリプライ → タイマー停止、目標値にピッタリ合わせてDB同期
+                self.likeTimer?.cancel()
+                self.posts[0].likes = self.buzzInitialLikes + self.buzzTargetLikes
+                self.followers = self.buzzInitialFollowers + self.buzzTargetFollowers
+                self.syncUser()
+            } else {
+                let randomInterval = Double.random(in: 10.0...30.0)
                 DispatchQueue.main.asyncAfter(deadline: .now() + randomInterval) {
                     drainNext()
                 }
             }
         }
         
-        // 例外的に、1件目は待たずにすぐ表示する
+        // 1件目は待たずにすぐ表示する
         drainNext()
     }
 }

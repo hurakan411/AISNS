@@ -161,6 +161,10 @@ struct ProfileView: View {
                         }
                     }
                     
+                    Text("ID: \(appState.userId)")
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .foregroundColor(.gray.opacity(0.5))
+                    
                     HStack(alignment: .top) {
                         if isEditingBio {
                             TextEditor(text: $appState.userBio)

@@ -27,9 +27,11 @@ struct FeedView: View {
                         }
                     }
                     .padding(.top, 120)
-                } else if let latestPost = appState.posts.first {
+                } else {
                     VStack(spacing: 40) {
-                        PostCard(post: latestPost)
+                        ForEach(appState.posts) { post in
+                            PostCard(post: post)
+                        }
                     }
                     .padding(.vertical, 24)
                 }
@@ -145,10 +147,16 @@ struct ReplyRow: View {
     
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
-            AsyncImage(url: URL(string: reply.img)) { img in
-                img.resizable().scaledToFill()
-            } placeholder: {
-                Circle().fill(reply.isHater ? Color.gray : Color.purple)
+            AsyncImage(url: URL(string: reply.img)) { phase in
+                if let image = phase.image {
+                    image.resizable().scaledToFill()
+                } else if phase.error != nil {
+                    Image(systemName: "person.circle.fill")
+                        .resizable()
+                        .foregroundColor(reply.isHater ? .gray : Theme.hotPink)
+                } else {
+                    Circle().fill(reply.isHater ? Color.gray : Color.purple)
+                }
             }
             .frame(width: 36, height: 36)
             .clipShape(Circle())
@@ -162,7 +170,15 @@ struct ReplyRow: View {
                         .font(.system(size: 12, weight: .black))
                         .foregroundColor(reply.isHater ? .red : reply.isDefender ? .green : Theme.hotPink)
                     
-                    if reply.isDefender {
+                    if reply.isHater {
+                        Text("HATER")
+                            .font(.system(size: 8, weight: .black))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Color.red.opacity(0.2))
+                            .foregroundColor(.red)
+                            .cornerRadius(10)
+                    } else if reply.isDefender {
                         Text("GUARDIAN")
                             .font(.system(size: 8, weight: .black))
                             .padding(.horizontal, 6)

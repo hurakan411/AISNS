@@ -26,10 +26,7 @@ struct ContentView: View {
                             .neonShadow(color: Theme.hotPink, radius: 4)
                             
                         Spacer()
-                        HStack(spacing: 6) {
-                            Circle().fill(Theme.hotPink).frame(width: 6, height: 6).neonShadow().animatePulse()
-                            Text("LIVE SYNCED").font(.system(size: 10, weight: .black)).foregroundColor(.gray).tracking(1)
-                        }
+
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 12)

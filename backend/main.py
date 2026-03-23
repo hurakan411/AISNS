@@ -1,6 +1,7 @@
 import os
 import random
-from typing import List, Optional, Any
+import requests
+from typing import List, Optional, Any, Tuple
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from pydantic import BaseModel
@@ -48,16 +49,112 @@ class GenerateRepliesResponse(BaseModel):
 
 
 # -------- 3. リソース (モックアバター) --------
-AVATARS = [
-    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop",
-    "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop",
-    "https://images.unsplash.com/photo-1554151228-14d9def656e4?w=150&h=150&fit=crop",
-    "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=150&h=150&fit=crop"
-]
-HATER_AVATARS = [
-    "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=150&h=150&fit=crop",
-    "https://images.unsplash.com/photo-1594322436404-5a0526db4d13?w=150&h=150&fit=crop"
-]
+# picsum.photosのseed URLを使用して多様なジャンルの画像を100種類用意
+AVATARS = [f"https://picsum.photos/seed/user{i}/150/150" for i in range(1, 101)]
+
+# アンチ用は別のシード名で20種類
+HATER_AVATARS = [f"https://picsum.photos/seed/hater{i}/150/150" for i in range(1, 21)]
+
+def resolve_avatar_url(seed_url: str) -> str:
+    """picsum.photosのseed URLからリダイレクトを解決し、最終的な直接画像URLを返す"""
+    try:
+        resp = requests.get(seed_url, allow_redirects=True, timeout=5, stream=True)
+        final_url = resp.url  # リダイレクト後の最終URL (fastly.picsum.photos/id/xxx/...)
+        resp.close()  # 画像データは不要なので即座に閉じる
+        return final_url
+    except Exception:
+        return seed_url  # 失敗時はそのまま返す（フォールバック）
+
+
+def build_length_plan_shuffled(n: int) -> List[str]:
+    """
+    短文:約30字 / 中文:約60字 / 長文:約100字 を目安に、件数比率 3:4:3 になるようラベルを割り当て、順序だけシャッフルする。
+    """
+    if n <= 0:
+        return []
+    n_short = max(0, round(n * 0.3))
+    n_long = max(0, round(n * 0.3))
+    n_mid = n - n_short - n_long
+    while n_mid < 0:
+        if n_short > 0:
+            n_short -= 1
+            n_mid += 1
+        elif n_long > 0:
+            n_long -= 1
+            n_mid += 1
+        else:
+            break
+    while n_short + n_mid + n_long < n:
+        n_mid += 1
+    while n_short + n_mid + n_long > n:
+        if n_mid > 0:
+            n_mid -= 1
+        elif n_short > 0:
+            n_short -= 1
+        else:
+            n_long -= 1
+    labels = ["短文"] * n_short + ["中文"] * n_mid + ["長文"] * n_long
+    random.shuffle(labels)
+    return labels
+
+
+LENGTH_BAND = {
+    "短文": "20〜45字（句読点・絵文字を含む日本語の文字数。目安30字前後）",
+    "中文": "50〜85字（目安60字前後）",
+    "長文": "90〜130字（目安100字前後）",
+}
+
+
+def extract_normal_and_hater_defender_pairs(
+    all_replies: List[ReplySchema],
+) -> Tuple[List[ReplySchema], List[List[ReplySchema]]]:
+    """
+    アンチ→擁護が**連続**で返ってきたペアを優先して抽出する。
+    残りのアンチ・擁護は出現順のリストをインデックスで対応付ける（従来の zip と同等だが、連続ペアを先に取る）。
+    フロントでは通常リプライだけシャッフルし、アンチ+擁護の塊は順序を保ったまま挿入する。
+    """
+    n = len(all_replies)
+    consumed = [False] * n
+    normal: List[ReplySchema] = []
+    pairs: List[List[ReplySchema]] = []
+
+    i = 0
+    while i < n:
+        if consumed[i]:
+            i += 1
+            continue
+        r = all_replies[i]
+        if r.is_hater and i + 1 < n and all_replies[i + 1].is_defender:
+            pairs.append([r, all_replies[i + 1]])
+            consumed[i] = True
+            consumed[i + 1] = True
+            i += 2
+            continue
+        if not r.is_hater and not r.is_defender:
+            normal.append(r)
+            consumed[i] = True
+        i += 1
+
+    orphan_haters: List[ReplySchema] = []
+    orphan_defenders: List[ReplySchema] = []
+    for idx in range(n):
+        if consumed[idx]:
+            continue
+        r = all_replies[idx]
+        if r.is_hater:
+            orphan_haters.append(r)
+        elif r.is_defender:
+            orphan_defenders.append(r)
+
+    for hi, h in enumerate(orphan_haters):
+        pair = [h]
+        if hi < len(orphan_defenders):
+            pair.append(orphan_defenders[hi])
+        pairs.append(pair)
+    if len(orphan_defenders) > len(orphan_haters):
+        normal.extend(orphan_defenders[len(orphan_haters) :])
+
+    return normal, pairs
 
 
 # -------- 4. バックグラウンドタスク (AI ドラマエンジン) --------
@@ -80,85 +177,148 @@ async def generate_ai_replies(post_id: str, content: str, followers: int, is_hat
 
     # ランクごとのパラメータ定義（上限・下限を持たせる）
     rank_params = {
-        1: {"min": 2, "max": 4, "haters": 0},
-        2: {"min": 3, "max": 5, "haters": 0},
-        3: {"min": 3, "max": 5, "haters": 0},
-        4: {"min": 4, "max": 6, "haters": 1},
-        5: {"min": 4, "max": 7, "haters": 2},
-        6: {"min": 5, "max": 8, "haters": 2},
-        7: {"min": 5, "max": 9, "haters": 2},
-        8: {"min": 6, "max": 10, "haters": 3},
-        9: {"min": 7, "max": 11, "haters": 3},
-        10: {"min": 8, "max": 12, "haters": 4}
-    }
+        1: {"min": 3, "max": 5, "haters": 0},   # 2*1.3=2.6, 4*1.3=5.2
+        2: {"min": 4, "max": 7, "haters": 0},   # 3*1.3=3.9, 5*1.3=6.5
+        3: {"min": 4, "max": 7, "haters": 0},   
+        4: {"min": 5, "max": 8, "haters": 1},   # 4*1.3=5.2, 6*1.3=7.8 / hatersは据え置き
+        5: {"min": 5, "max": 9, "haters": 1},   # 4*1.3=5.2, 7*1.3=9.1 / 2*1.3=2.6 -> 3
+        6: {"min": 7, "max": 10, "haters": 1},  # 5*1.3=6.5, 8*1.3=10.4
+        7: {"min": 7, "max": 12, "haters": 2},  # 5*1.3=6.5, 9*1.3=11.7
+        8: {"min": 8, "max": 13, "haters": 2},  # 6*1.3=7.8, 10*1.3=13.0 / 3*1.3=3.9 -> 4
+        9: {"min": 9, "max": 14, "haters": 2},  # 7*1.3=9.1, 11*1.3=14.3
+        10: {"min": 10, "max": 16, "haters": 3} # 8*1.3=10.4, 12*1.3=15.6 / 4*1.3=5.2 -> 5
+        }
     
     params = rank_params.get(rank, rank_params[10])
     total_replies = random.randint(params["min"], params["max"])
-    hater_count = params["haters"] if is_hater_enabled else 0
     
-    # ランクごとの長さ・トーン指示（全ランクで短文〜長文を織り交ぜる）
-    if rank == 1:
-        length_and_tone = "【文字数とリアクション方法】\n「短文（30字程度）」を大半（9割）とし、ごく稀に「中文（60字）」や「長文（100字）」を織り交ぜてバリエーションを出してください。\n単なる感嘆詞だけでなく、ユーザーの投稿の【具体的な単語や文脈】を拾って「〇〇最高じゃん」「〇〇えぐい！」のように生々しい若者言葉で反応すること。"
-    elif rank <= 3:
-        length_and_tone = "【文字数とリアクション方法】\n「短文（30字）」と「中文（60字）」を中心にしつつ、一部のファンに「長文（100字）」を織り交ぜてリアル感を出してください。\nユーザーの投稿の【具体的な内容やテーマ】を文に混ぜ込み、「〇〇するなんてマジですごい！」「私も〇〇やりたい！」など親しみやすい称賛を展開すること。"
-    elif rank <= 7:
-        length_and_tone = "【文字数とリアクション方法】\n「短文（30字）」「中文（60字）」「長文（100字）」をバランスよく（1:1:1程度で）織り交ぜ、多様なファン層を表現してください。\nユーザーの投稿の【細かなニュアンスや単語】を拾い上げ、オタク構文や強めの言葉を用いたリアルで熱量の高いタイムラインを作ること。"
+    # アンチ数を確率で決定（上限はrank_paramsの定義通り）
+    max_haters = params["haters"] if is_hater_enabled else 0
+    if max_haters > 0 and random.random() < 0.4:  # 50%の確率でアンチが出現
+        hater_count = random.randint(1, max_haters)  # 1〜上限のランダム
     else:
-        length_and_tone = "【文字数とリアクション方法】\n「長文（100字以上）」の信者による重い語りを中心（7割）としつつも、必ず「短文（30字）」や「中文（60字）」も織り交ぜてカオスな宗教的空間を演出すること。\nユーザーの投稿の【具体的な行動や文言】を神の啓示かのように過大評価し、痛切な長文と熱狂的な短文が入り乱れるようにしてください。"
+        hater_count = 0
+    
+    length_labels = build_length_plan_shuffled(total_replies)
+    length_plan_lines = "\n".join(
+        f"    - replies配列の **{i}件目**（JSONではインデックス {i-1}）の content は **{LENGTH_BAND[lab]}** に必ず収める（{lab}）"
+        for i, lab in enumerate(length_labels, start=1)
+    )
+    length_and_tone = f"""【文字数（厳守）】
+全{total_replies}件の返信について、**短文:中文:長文 = 3:4:3 の件数**になるようラベルを割り当て、順序はランダムにシャッフル済みです。
+**下の「各返信の文字数帯」に従い、replies[i].content の文字数が帯から外れないようにしてください。**（各 content 生成後に文字数を数え、帯外なら短くするか長くして調整すること）
+
+{length_plan_lines}
+
+※ 「短文」「中文」「長文」は上の**件数比率**に対応するラベルです。ユーザーの投稿の語句・文脈を拾い、各ペルソナの口調で書くこと。"""
     
     # アンチに関する動的指示（GUARDIANタグの厳格制御含む）
     if hater_count == 0:
-        hater_instruction = "【配役とフラグ】\n今回はアンチが発生しないため、全員を純粋な肯定ファンとしてください。（全員必ず is_hater=false, is_defender=false に設定すること。擁護者フラグは絶対に立てないでください）"
+        hater_instruction = "【配役とフラグ】\n今回はアンチが発生しないため、全員を通常のフォロワーとしてください。（全員必ず is_hater=false, is_defender=false に設定すること。擁護者フラグは絶対に立てないでください）"
     else:
+        hater_base = f"""【批判者（アンチ）の設定】
+総返信のうち、{hater_count}件を批判者（is_hater=true, is_defender=false）にしてください。
+批判者は以下を**必ず満たす**こと。読者が「キツい」「批判だな」と感じるレベルまで、**ネガティブに寄せる**（ただし暴言・差別・脅迫・特定の人格への罵倒は禁止）：
+
+・ **投稿の内容・論点・言い回し・見せ方・承認欲求の出し方**のいずれかに、**はっきりした否定や難癖**をつける（例：「それ自慢？」だけで終わらせず、**なぜ刺さらないか**を一文以上で言う）
+・ **冷笑・皮肉・上から目線のダメ出し**（「この投稿いる？」「誰得？」「ちょっと考え直した方がいい」「自意識過剰で見える」「根拠が弱い」など）
+・ **共感やフォローに見せかけた否定**は禁止。批判者は「肯定」や「わかる」で始めない。
+・ **弱い表現**（「〜かも」「ちょっとだけ気になる」だけで終わる）は避け、**自分の立場としての否定的な結論**を書く。
+・ 投稿に書かれた**単語・事実**を1つ以上引用し、それに対してツッコむ（抽象的な悪口だけにしない）。
+
+※ 禁止：暴言・差別・脅迫・スラング連発。許容：嫌味・皮肉・冷笑的・突き放した・ネット民っぽい辛口。"""
+
         if rank == 10:
-            hater_instruction = f"【配役とドラマ設定】\n総返信のうち、{hater_count}件だけを明確なアンチ（is_hater=true, is_defender=false）にしてください。\nただし、アンチの1人は信者の圧倒的なリプ群を見て、最後に「改心して擁護（is_defender=true）へ変わる」という奇跡のドラマ展開を起こさせてください。\n普通のファンは is_hater=false, is_defender=false です。"
+            hater_instruction = f"{hater_base}\nただし、アンチの1人は他のフォロワーの反応を見て、最後に「改心して擁護（is_defender=true）へ変わる」展開を入れてください。\n普通のフォロワーは is_hater=false, is_defender=false です。"
         else:
-            hater_instruction = f"【配役とドラマ設定】\n総返信の中盤に必ず {hater_count} 件だけ、理不尽なアンチ（is_hater=true, is_defender=false）を配置してください。\nそしてアンチの直後には、必ずアンチを完全論破してユーザーを守る「擁護者（is_hater=false, is_defender=true）」を登場させてください。\nそれ以外のファンは is_hater=false, is_defender=false とすること。"
+            hater_instruction = f"""{hater_base}
+【アンチと擁護の1対1対応（内容・必須）】
+- **アンチ k 件目**に対する**擁護 k 件目**は、同じ論点を相手にすること。擁護者の content には必ず含める：(1) アンチの主張の言い換え、または「〇〇って言ってるけど」「さっきのコメント」など**アンチの発言を指す表現**、(2) その論点への**反論**、(3) ユーザーを擁護する文。
+- 擁護者は「投稿への一般的なファン」ではなく、**アンチのコメントへの反論**として書く。称賛だけ・同意だけで終わらせない。
+アンチの直後には、必ずアンチに反論してユーザーを擁護する人（is_hater=false, is_defender=true）を登場させてください。
+それ以外のフォロワーは is_hater=false, is_defender=false とすること。"""
+
+    # キャラクターリストを毎回シャッフルしてからプロンプトに埋め込む（AIが番号順に選ぶのを防止）
+    character_pool = [
+        "17歳・女子高校生（友達とのLINEノリで話す。「まじで」「やば」など短い感嘆詞が多く、絵文字をよく使う）",
+        "21歳・男子大学生（サークルやバイトの話題に敏感。軽い口調で共感してくれる。「わかる」「それな」が口癖）",
+        "24歳・新卒OL（社会人1年目。仕事の疲れから深夜にSNSを見て癒されている。丁寧だけど親しみやすい口調）",
+        "28歳・男性フリーランスデザイナー（クリエイティブな視点で褒める。「構図がいい」「センスある」など具体的に褒める）",
+        "32歳・女性・2児のママ（育児の合間にSNSを見る。温かく応援してくれる。「わかるー！」「うちもそう！」と共感型）",
+        "19歳・男性・専門学生（ゲームやアニメが好きだが普通の子。「すげー」「マジか」などシンプルな反応）",
+        "35歳・男性会社員（営業職。仕事帰りの電車でSNSを見る。落ち着いた口調で的確に褒める）",
+        "26歳・女性看護師（夜勤明けにSNSを流し見。優しい言葉をかけてくれる。「無理しないでね」と気遣いも）",
+        "45歳・男性・中小企業の部長（少しおじさんっぽい文体。句読点が多め。でも言ってることは温かい）",
+        "22歳・女性・美容系インフルエンサー志望（写真や見た目を具体的に褒める。「かわいい！」「映えてる！」が多い）",
+        "30歳・男性エンジニア（論理的に「これがすごい理由」を分析して褒めてくれる。少し理屈っぽいが悪意はない）",
+        "40歳・女性・パート主婦（近所のおばさん的な温かさ。「えらいねぇ」「すごいわぁ」と素朴に褒める）",
+        "16歳・男子高校生（部活帰りにスマホを見る。「かっけぇ」「やべぇ」などストレートな感想）",
+        "27歳・女性・カフェ店員（おしゃれなものが好き。「雰囲気いいね」「素敵」など柔らかい表現）",
+        "50歳・男性・自営業（人生経験からの深い共感。「若い頃の自分を思い出す」など味のあるコメント）",
+        "23歳・女性・大学院生（知的だが堅すぎない。「興味深い」「面白い視点」など少しアカデミックな褒め方）",
+        "38歳・男性・トラック運転手（休憩中にSNSを見る。飾らない言葉で素直に感想を言う。「いいじゃん」がシンプル）",
+        "20歳・女性・アパレル店員（トレンドに敏感。「おしゃれ！」「真似したい！」とポジティブ）",
+        "33歳・男性・公務員（真面目な性格が文章に出る。丁寧語ベースだが心からの称賛が伝わる）",
+        "29歳・女性・ヨガインストラクター（ポジティブなエネルギーに溢れる。「素敵なエネルギー感じる！」など前向き）",
+    ]
+    random.shuffle(character_pool)
+    characters_text = "\n".join([f"    {i+1}. {c}" for i, c in enumerate(character_pool)])
+
+    pairing_json_rules = ""
+    if hater_count > 0:
+        pairing_json_rules = """
+    【replies JSON の並び順（必須・表示とペア整合のため）】
+    - **is_hater=true の行の直後の1件は、必ずそのアンチに対応する is_defender=true** とする。**アンチ行と擁護行の間に他の返信を挟まない。**
+    - 通常コメント（is_hater=false かつ is_defender=false）は、アンチ→擁護のペアの前後に混ぜてよい。
+    - 複数アンチがある場合は、(アンチ1→擁護1)、(アンチ2→擁護2) のように、**各擁護が直前のアンチに対応する**ように並べる。
+    """
 
     system_prompt = f"""
-    あなたは絶対肯定SNS「ZEN-KOTEI」の仮想フォロワーエンジンです。
+    あなたはSNS「ZEN-KOTEI」の仮想フォロワーエンジンです。
     ユーザーの承認ランクは「Lv.{rank}」（フォロワー: {followers}）です。
     ユーザーの投稿に対して、以下の条件に沿った架空のフォロワーからの返信を **きっちり {total_replies} 件**（多くても少なくてもダメ）JSONで作成してください。
 
-    【文字数の定義】
-    本システムにおける文字数は以下のように定義します。
-    ・ 短文: 30字程度
-    ・ 中文: 60字程度
-    ・ 長文: 100字程度
+    【文字数の定義（上の「各返信の文字数帯」と一致）】
+    ・ 短文: {LENGTH_BAND["短文"]}
+    ・ 中文: {LENGTH_BAND["中文"]}
+    ・ 長文: {LENGTH_BAND["長文"]}
 
     {length_and_tone}
+{pairing_json_rules}
+    【返信トーンの自然さ】
+    **is_hater=false かつ is_defender=false の通常返信**について：全件が「すごい！」「最高！」のような褒め一辺倒にならないようにし、実際のSNSのようにバラつかせる。
 
-    【キャラクターダイバーシティ（多様性）の強制】
-    生成される複数の返信は、すべて**全く異なる極端なペルソナ（性格・属性）**を持たせて人間味を持たせてください。以下のような20種類のキャラ属性から被らないようにランダムに選び、全員が似たような構文になることを防ぐこと。また、一部のキャラクターはSNSらしく**絵文字や顔文字（(´；ω；`)など）を積極的に活用**してください。
-    1. 限界オタク風（早口、推し文化の語彙、勢いが異常。ｷﾀ━(ﾟ∀ﾟ)━!や( ；∀；)などの古典的な顔文字を使う）
-    2. 陽キャ・ギャル風（感嘆詞多め「えぐい」「それな」、語彙力が低いがノリが良い。✨や🥺など絵文字を多用する）
-    3. 後方腕組み古参ファン（謎の上から目線で分析するが、実はべた褒めしている。(￣ー￣)や(´-ω-`)などを添える）
-    4. ピュアな中高生ファン（純粋な憧れ、丁寧語で素直な感動を必死に伝える。😭や✨、(*´ω｀*)をたくさん使う）
-    5. おじさん構文（奇妙な距離感、(^o^)や(^^)などの顔文字や、❗❓などの色付き絵文字、カタカナ表記を無駄に多用する）
-    6. 意識高い系（横文字多用「アグリー」「最適解」、謎の論理的称賛）
-    7. 海外ファン風（少し不自然な翻訳日本語風、「WOW」「OMG」の使用。🌎や🔥の絵文字を使う）
-    8. メンヘラ風（少し病み気味で重すぎる愛、自虐を交えつつ神格化する。🔪や🩸、(´；ω；`)を使う）
-    9. 体育会系（「押忍！」「リスペクトっす！」など熱血で礼儀正しいノリ。💪や🔥、(｀・ω・´)ゞを多用する）
-    10. ポエマー風（「君の存在は宇宙の〜」など、無駄に詩的で情緒的・大袈裟な表現。🌌や🥀を使う）
-    11. パトロン風（「口座教えなさい」「スパチャ10万投げたい」と金にものを言わせる。💸や💴を多用）
-    12. ツンデレ風（「別にそこまで凄くないし！…でも画像保存した」と照れ隠しする。💦や😡、(///∇///)を使う）
-    13. オカン風（「あんたすごいじゃない！ちゃんと体調気をつけてご飯食べてるの？」と心配する。👵や🍙を使う）
-    14. VTuberガチ恋勢（「助かる」「結婚してくれ」「僕だけのものになって」など過激な愛。💍や😍を多用）
-    15. デキるプロデューサー風（「うん、光るモノがあるね。うちの事務所来ない？」と業界人ぶる。🕶や🤝を使う）
-    16. キッズ風（「神すぎワロタwww チャンネル登録しました！」「ヒカキンよりすごい」と小学生気取り。🎮や💩を使う）
-    17. 関西のおばちゃん風（「ええやん！なんやあんた天才ちゃうか！飴ちゃんあげるわ」と馴れ馴れしい。🍬や🫶を使う）
-    18. 厨二病風（「フッ…私が認めただけのことはある」「世界の理が崩れるぞ」と無駄にカッコつける。✝や👁、(≖_≖)を使う）
-    19. ネットの職人風（「これは芸術点高い」「技術的な完成度がヤバい」と謎の専門家視点。(；ﾟДﾟ)や(｀・ω・´)を使う）
-    20. 過激派の宗教信者（「教祖様！一生ついていきます！」「我々の神ここにあり」とカルト的な崇拝。🙏や👼を多用）
+    ・ **共感・肯定型**（3〜4割）: 「わかる」「いいね」「自分もそう思う」など自然な同意
+    ・ **中立・感想型**（3〜4割）: 「へー、そうなんだ」「面白いね」「なるほど」など、素直な感想や軽い反応
+    ・ **質問・興味型**（1〜2割）: 「どこで？」「それってどうやるの？」など
+    ・ **雑談・脱線型**（1割程度）: 投稿をきっかけに自分の話をする
+
+    **is_hater=true の返信には上記の配分は適用しない。** 必ず【批判者（アンチ）の設定】に従い、肯定・共感で始めず批判トーンにすること。
+    **is_defender=true** は擁護のみ（**直前のアンチ発言への反論**＋ユーザーへの肩入れ。投稿への無関係な称賛だけにしない）。
+
+    投稿が「頑張った報告」「成果報告」の場合は、通常返信では褒め・称賛を多めに。日常系は中立・質問を多めに。
+    **全体として、友達のタイムラインを見ているような自然なリアクション**を目指す（ただし批判者・擁護者は展開ルール優先）。
+
+    【絵文字・顔文字（日本のSNSらしさ・多彩に）】
+    実際のX・LINE・Instagramのリプでは、絵文字や顔文字が**それなりに**混ざります。**全件に必須ではない**が、今回の全{total_replies}件のうち**おおよそ半数前後（目安4〜6割）**の返信には、絵文字・顔文字・語尾表現の**いずれかを1つ以上**入れてください。残りはプレーンテキストのみでもよい。
+    ・ **種類を返信ごとに変える**：同じ絵文字（例: 😂だけ）を何件も繰り返さない。**Unicode絵文字**はカテゴリを混ぜる（例: 顔系 😭🤣🥹😮‍💨、手・反応 👏🙌👍✌️💪、ハート・記号 💖✨🫶🌟、炎上・皮肉 🔥💀🙄😮‍💨、涙・笑 💦🤭🫠、動物・食 🐶🍣☕、旗・記号 🇯🇵🎉）。
+    ・ **顔文字は多様に**：(笑)、(^_^)、(´･ω･`)、(´；ω；`)、( ꒪⌓꒪)、(๑•̀ㅂ•́)و、(*´▽`*)、(・ω・)、(￣▽￣)、(´-ω-`)、(｀・ω・´)、(๑˃̵ᴗ˂̵)、( ꒪Д꒪)ノ、＿|￣|○、orz、ｗｗｗ／ww／笑／草／〜！／っていうか など、**2ch・ニコニコ・LINE・Xの混じり**を意識する。
+    ・ ペルソナに合わせる：若年層は絵文字・顔文字のバリエーション多め／年配は「笑」「^^」「(笑)」や句読点・「〜ですね」＋軽い絵文字（🙂👍）でもよい。
+    ・ **is_hater=true** は皮肉・呆れ・煽り系（🙄😅💢🤡👎🍵、（笑））も。**is_defender=true** は励まし・共感（🥺💪🫂👏、(*´ω`*)）も。
+    ・ 同じ記号の連打や、文全体が絵文字だらけになるのは避け、自然な分量（だいたい1〜4個程度）に留める。
+
+    【ペルソナダイバーシティ（多様性）の強制】
+    生成される複数の返信は、すべて**異なるペルソナ（年齢・性別・職業）**を持つ、現実のSNSにいそうな普通の人間として作成してください。以下のペルソナリストの**上から順番に**1件ずつ使用してください（リストは毎回ランダムにシャッフルされています）。それぞれのペルソナの年齢や職業にふさわしい自然な口調・語彙で書くこと。
+    **is_hater=true の行**は、割り当てペルソナの口調（若者言葉・丁寧語など）を保ちつつ、内容だけ**批判・皮肉・否定**に振ること（説明文の「褒める」「共感」は無視してよい）。
+{characters_text}
 
     【生成における最重要ルール（AI定型文の絶対禁止）】
     「最高すぎます」「素晴らしいですね」「お疲れ様です」「頑張って」などのAIが書きがちな無難な定型文は**絶対に使用しないでください**。
-    X(旧Twitter)やTikTokのリアルの人間が書き込むような生々しい感情表現、痛烈なネット口調を徹底してください。
+    X(旧Twitter)やInstagramで実際の人間が書き込むような、その人の年齢や立場がにじみ出る自然なコメントを徹底してください。
 
     【展開ルール】
-    1. 前半はユーザーへの「肯定・共感」を連発すること。
-    2. {hater_instruction}
-    3. ユーザー名（author_name）は、「限界オタクの〇〇」「通りすがりの社畜」「古参ファン」など、キャラ付けされたユニークな名前にすること。
+    1. {hater_instruction}
+    2. ユーザー名（author_name）は、SNSでよくある適当なニックネームやハンドルネームにすること（例：「ゆき」「たけし」「miku_23」「ren」など）。ペルソナの職業や属性を名前に含めなくてよい。
     """
 
     try:
@@ -189,10 +349,20 @@ async def generate_ai_replies(post_id: str, content: str, followers: int, is_hat
             for rep in parsed_data.replies: print(rep)
             return
             
-        # SupabaseへInsertするデータの配列を作成
+        # リプライの並び替え：通常だけシャッフルし、アンチ→擁護はペアのまま挿入（連続ペア優先で抽出）
+        all_replies = list(parsed_data.replies)
+        normal, pairs = extract_normal_and_hater_defender_pairs(all_replies)
+        random.shuffle(normal)
+        for pair in pairs:
+            insert_pos = random.randint(0, len(normal))
+            for j, item in enumerate(pair):
+                normal.insert(insert_pos + j, item)
+        ordered_replies = normal
+        
         replies_to_insert = []
-        for index, rep in enumerate(parsed_data.replies):
-            avatar = random.choice(HATER_AVATARS) if rep.is_hater else random.choice(AVATARS)
+        for index, rep in enumerate(ordered_replies):
+            seed_url = random.choice(HATER_AVATARS) if rep.is_hater else random.choice(AVATARS)
+            avatar = resolve_avatar_url(seed_url)
             replies_to_insert.append({
                 "post_id": post_id,
                 "author_name": rep.author_name,
@@ -272,6 +442,32 @@ class UserUpdateRequest(BaseModel):
     total_followers: int
     total_posts: int
 
+@app.post("/api/users")
+def register_user(request: dict):
+    """
+    初回起動時にアプリ側で生成したUUIDを受け取り、usersテーブルに登録する。
+    既に存在する場合は何もしない（upsert）。
+    """
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase not configured")
+    
+    user_id = request.get("user_id", "")
+    if not user_id:
+        raise HTTPException(status_code=400, detail="user_id is required")
+    
+    # 既存チェック
+    existing = supabase.table("users").select("id").eq("id", user_id).execute()
+    if existing.data:
+        return {"status": "existing", "user_id": user_id}
+    
+    # 新規作成
+    supabase.table("users").insert({
+        "id": user_id,
+        "total_followers": 0,
+        "total_posts": 0
+    }).execute()
+    return {"status": "created", "user_id": user_id}
+
 @app.get("/api/users/{user_id}")
 def get_user_status(user_id: str):
     """
@@ -283,6 +479,41 @@ def get_user_status(user_id: str):
     if not res.data:
         raise HTTPException(status_code=404, detail="User not found")
     return res.data[0]
+
+@app.get("/api/users/{user_id}/feed")
+def get_user_feed(user_id: str):
+    """
+    ユーザーの全投稿と、それに紐づくリプライを一括で取得するAPI
+    (最新の投稿が上に来るように新しい順で取得)
+    """
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase not configured")
+        
+    # Postsを新しい順に取得 (最新50件)
+    posts_res = supabase.table("posts").select("*").eq("user_id", user_id).order("created_at", desc=True).limit(50).execute()
+    posts_data = posts_res.data
+    
+    # 関連するRepliesを一括取得
+    post_ids = [str(p["id"]) for p in posts_data]
+    if post_ids:
+        replies_res = supabase.table("replies").select("*").in_("post_id", post_ids).order("display_order").execute()
+        replies_data = replies_res.data
+    else:
+        replies_data = []
+        
+    # 投稿IDごとにリプライをまとめる
+    replies_by_post = {}
+    for r in replies_data:
+        pid = str(r["post_id"])
+        if pid not in replies_by_post:
+            replies_by_post[pid] = []
+        replies_by_post[pid].append(r)
+        
+    # 結合して返す
+    for p in posts_data:
+        p["replies"] = replies_by_post.get(str(p["id"]), [])
+        
+    return {"status": "success", "posts": posts_data}
 
 @app.put("/api/users/{user_id}")
 def update_user_status(user_id: str, request: UserUpdateRequest):
