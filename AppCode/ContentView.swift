@@ -9,11 +9,21 @@ struct ContentView: View {
     @State private var activeTab: Tab = .home
     
     var body: some View {
+        if !appState.onboardingStatusReady {
+            Theme.bgDeepBlack.ignoresSafeArea()
+        } else if !appState.hasCompletedOnboarding {
+            OnboardingView()
+                .environmentObject(appState)
+        } else {
+            mainContent
+        }
+    }
+    
+    private var mainContent: some View {
         ZStack {
             Theme.bgDeepBlack.ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Status Bar Header
                 if activeTab != .post && activeTab != .profile {
                     HStack(spacing: 12) {
                         Text("ZEN-KOTEI")
@@ -34,14 +44,13 @@ struct ContentView: View {
                     .zIndex(1)
                 }
                 
-                // Maint Content
                 ZStack {
                     switch activeTab {
                     case .home:
                         FeedView { activeTab = .post }
                             .transition(.opacity)
                     case .post:
-                        PostView { activeTab = .home }
+                        PostView(onCancel: { activeTab = .home })
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     case .stats:
                         StatsView()

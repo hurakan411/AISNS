@@ -17,7 +17,6 @@ struct PostModel: Identifiable, Codable {
     var likes: Int
     var replies: [Reply]
     let time: String
-    var supabaseId: String?
 }
 
 /// JSONSerialization 経由の辞書で Bool が NSNumber や文字列になる場合があるため統一して解釈する
@@ -48,8 +47,15 @@ class AppState: ObservableObject {
     @Published var followers: Int = 0
     @Published var totalPosts: Int = 0
     @Published var posts: [PostModel] = [] {
-        didSet { savePosts() }
+        didSet { if !isInOnboarding { savePosts() } }
     }
+    
+    @Published var hasCompletedOnboarding: Bool = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
+        didSet { UserDefaults.standard.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding") }
+    }
+    @Published var onboardingStatusReady: Bool = false
+    @Published var isInOnboarding: Bool = false
+    @Published var onboardingExpectedReplies: Int = 0
     
     @Published var userName: String = UserDefaults.standard.string(forKey: "userName") ?? "みずき（あなた）" {
         didSet { UserDefaults.standard.set(userName, forKey: "userName") }
@@ -107,7 +113,6 @@ class AppState: ObservableObject {
         loadPosts()
         registerUser()
         fetchUser()
-        fetchFeed()
     }
     
     private func registerUser() {
@@ -117,15 +122,29 @@ class AppState: ObservableObject {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let body: [String: Any] = ["user_id": userId]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        URLSession.shared.dataTask(with: request) { data, _, error in
-            if let data = data, let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                print("User registration: \(json["status"] as? String ?? "unknown")")
+        URLSession.shared.dataTask(with: request) { [weak self] data, _, error in
+            guard let self = self, let data = data else {
+                DispatchQueue.main.async { self?.onboardingStatusReady = true }
+                return
+            }
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                let dbFlag = parseJSONBool(json["has_completed_onboarding"])
+                DispatchQueue.main.async {
+                    if self.hasCompletedOnboarding != dbFlag {
+                        self.hasCompletedOnboarding = dbFlag
+                    }
+                    self.onboardingStatusReady = true
+                }
+            } else {
+                DispatchQueue.main.async { self.onboardingStatusReady = true }
             }
         }.resume()
     }
     
     private func savePosts() {
-        if let data = try? JSONEncoder().encode(posts) {
+        let trimmed = Array(posts.prefix(5))
+        if posts.count > 5 { posts = trimmed }
+        if let data = try? JSONEncoder().encode(trimmed) {
             try? data.write(to: postsURL)
         }
     }
@@ -188,10 +207,50 @@ class AppState: ObservableObject {
         return thresholds[currentRank]
     }
     
+    func submitOnboardingPost(text: String) {
+        isInOnboarding = true
+        let newPost = PostModel(content: text, imageData: nil, likes: 0, replies: [], time: "今")
+        posts = [newPost]
+        
+        let targetFollowers = Int.random(in: 150000...300000)
+        let targetLikes = Int(Double(targetFollowers) * Double.random(in: 5.0...10.0))
+        
+        buzzInitialLikes = 0
+        buzzInitialFollowers = 0
+        buzzTargetLikes = targetLikes
+        buzzTargetFollowers = targetFollowers
+        buzzCurrentReply = 0
+        
+        var ticks = 0
+        let maxTicks = 200
+        likeTimer = Timer.publish(every: 0.3, on: .main, in: .common).autoconnect().sink { [weak self] _ in
+            guard let self = self else { return }
+            ticks += 1
+            let p = min(Double(ticks) / Double(maxTicks), 0.95)
+            if !self.posts.isEmpty {
+                self.posts[0].likes = Int(Double(targetLikes) * p)
+            }
+            self.followers = Int(Double(targetFollowers) * p)
+        }
+        
+        requestAiReplies(content: text, imageData: nil, followers: 20_000_000)
+    }
+    
+    func completeOnboarding() {
+        likeTimer?.cancel()
+        replyTimer?.cancel()
+        pendingReplies = []
+        isInOnboarding = false
+        posts = []
+        followers = 0
+        totalPosts = 0
+        hasCompletedOnboarding = true
+        syncUser(includeOnboarding: true)
+    }
+    
     func submitPost(text: String, imageData: Data? = nil) {
         let newPost = PostModel(content: text, imageData: imageData, likes: 0, replies: [], time: "今")
         posts.insert(newPost, at: 0)
-        if posts.count > 10 { posts.removeLast() }
         
         let rank = currentRank
         totalPosts += 1
@@ -239,65 +298,33 @@ class AppState: ObservableObject {
     private let apiUrl = "http://127.0.0.1:8000/api/posts"
     private let userApiUrl = "http://127.0.0.1:8000/api/users"
     
-    func fetchFeed() {
-        guard let url = URL(string: "\(userApiUrl)/\(userId)/feed") else { return }
-        URLSession.shared.dataTask(with: url) { [weak self] data, _, error in
-            guard let self = self, let data = data, error == nil else { return }
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let fetchedPosts = json["posts"] as? [[String: Any]] {
-                
-                DispatchQueue.main.async {
-                    var updatedPosts = self.posts
-                    for p in fetchedPosts {
-                        let sid = p["id"] as? String ?? ""
-                        // 既に受信済み（またはローカルで作成した投稿）か判定
-                        if !updatedPosts.contains(where: { $0.supabaseId == sid }) {
-                            let content = p["content"] as? String ?? ""
-                            // let createdAt = p["created_at"] as? String // 必要に応じてパース
-                            let time = "過去の投稿"
-                            
-                            var repModels: [Reply] = []
-                            if let repliesArr = p["replies"] as? [[String: Any]] {
-                                for r in repliesArr {
-                                    let author = r["author_name"] as? String ?? "名無し"
-                                    let c = r["content"] as? String ?? ""
-                                    let hater = jsonReplyBool(r, snake: "is_hater", camel: "isHater")
-                                    let defender = jsonReplyBool(r, snake: "is_defender", camel: "isDefender")
-                                    let img = r["author_img"] as? String ?? self.avatars[0]
-                                    repModels.append(Reply(authorName: author, text: c, img: img, isHater: hater, isDefender: defender))
-                                }
-                            }
-                            
-                            // 新規取得した投稿を末尾に追加 (新しい順に返ってくる想定ですが、既存の後ろに繋げる)
-                            let newPost = PostModel(content: content, imageData: nil, likes: repModels.count*(Int.random(in: 10...30)), replies: repModels, time: time, supabaseId: sid)
-                            updatedPosts.append(newPost)
-                        }
-                    }
-                    self.posts = updatedPosts
-                }
-            }
-        }.resume()
-    }
-    
     func fetchUser() {
         guard let url = URL(string: "\(userApiUrl)/\(userId)") else { return }
-        URLSession.shared.dataTask(with: url) { data, _, _ in
-            guard let data = data else { return }
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Int] {
+        URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
+            guard let self = self, let data = data else { return }
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
                 DispatchQueue.main.async {
-                    self.followers = json["total_followers"] ?? 0
-                    self.totalPosts = json["total_posts"] ?? 0
+                    self.followers = json["total_followers"] as? Int ?? 0
+                    self.totalPosts = json["total_posts"] as? Int ?? 0
+                    let dbFlag = parseJSONBool(json["has_completed_onboarding"])
+                    if self.hasCompletedOnboarding != dbFlag {
+                        self.hasCompletedOnboarding = dbFlag
+                    }
                 }
             }
         }.resume()
     }
 
-    private func syncUser() {
+    private func syncUser(includeOnboarding: Bool = false) {
+        guard !isInOnboarding || includeOnboarding else { return }
         guard let url = URL(string: "\(userApiUrl)/\(userId)") else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let body: [String: Any] = ["total_followers": self.followers, "total_posts": self.totalPosts]
+        var body: [String: Any] = ["total_followers": self.followers, "total_posts": self.totalPosts]
+        if includeOnboarding {
+            body["has_completed_onboarding"] = self.hasCompletedOnboarding
+        }
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         URLSession.shared.dataTask(with: request).resume()
     }
@@ -309,12 +336,14 @@ class AppState: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 120
         
         var body: [String: Any] = [
             "user_id": userId,
             "content": content,
             "followers": followers,
-            "is_hater_enabled": isHaterEnabled
+            "is_hater_enabled": isHaterEnabled,
+            "is_onboarding": isInOnboarding
         ]
         
         if let data = imageData {
@@ -323,56 +352,26 @@ class AppState: ObservableObject {
         
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            guard let data = data, error == nil else { return }
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            guard let self = self, let data = data, error == nil else { return }
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let postId = json["post_id"] as? String {
+               let status = json["status"] as? String, status == "success",
+               let repliesJson = json["replies"] as? [[String: Any]] {
                 DispatchQueue.main.async {
-                    if !self.posts.isEmpty {
-                        self.posts[0].supabaseId = postId
+                    var pending: [Reply] = []
+                    for r in repliesJson {
+                        let author = r["author_name"] as? String ?? "名無し"
+                        let content = r["content"] as? String ?? ""
+                        let isHater = jsonReplyBool(r, snake: "is_hater", camel: "isHater")
+                        let isDefender = jsonReplyBool(r, snake: "is_defender", camel: "isDefender")
+                        let img = r["author_img"] as? String ?? self.avatars[0]
+                        pending.append(Reply(authorName: author, text: content, img: img, isHater: isHater, isDefender: isDefender))
                     }
-                    self.pollForReplies(postId: postId)
+                    self.pendingReplies = pending
+                    self.startReplyDrainTimer()
                 }
             }
         }.resume()
-    }
-    
-    private func pollForReplies(postId: String) {
-        guard let url = URL(string: "\(apiUrl)/\(postId)") else { return }
-        
-        func check() {
-            URLSession.shared.dataTask(with: url) { data, response, error in
-                guard let data = data, error == nil else {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) { check() }
-                    return
-                }
-                
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let status = json["status"] as? String {
-                    if status == "completed", let repliesJson = json["replies"] as? [[String: Any]] {
-                        DispatchQueue.main.async {
-                            var pending: [Reply] = []
-                            for r in repliesJson {
-                                let author = r["author_name"] as? String ?? "名無し"
-                                let content = r["content"] as? String ?? ""
-                                let isHater = jsonReplyBool(r, snake: "is_hater", camel: "isHater")
-                                let isDefender = jsonReplyBool(r, snake: "is_defender", camel: "isDefender")
-                                let img = r["author_img"] as? String ?? self.avatars[0]
-                                pending.append(Reply(authorName: author, text: content, img: img, isHater: isHater, isDefender: isDefender))
-                            }
-                            self.pendingReplies = pending
-                            self.startReplyDrainTimer()
-                        }
-                    } else if status == "failed" {
-                        print("AI Engine failed")
-                    } else {
-                        // generating状態 -> 再度ポーリング
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { check() }
-                    }
-                }
-            }.resume()
-        }
-        check()
     }
     
     private func startReplyDrainTimer() {
@@ -384,6 +383,7 @@ class AppState: ObservableObject {
         
         buzzTotalReplies = count
         buzzCurrentReply = 0
+        if isInOnboarding { onboardingExpectedReplies = count }
         
         // リプライの推定所要時間を計算（1件目は即時、残りは10〜30秒 → 平均20秒）
         let estimatedDuration = Double(max(count - 1, 1)) * 20.0
@@ -408,8 +408,15 @@ class AppState: ObservableObject {
         func drainNext() {
             guard !self.pendingReplies.isEmpty, !self.posts.isEmpty else { return }
             
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                self.posts[0].replies.append(self.pendingReplies.removeFirst())
+            let reply = self.pendingReplies.removeFirst()
+            if self.isInOnboarding {
+                withAnimation(.easeIn(duration: 0.3)) {
+                    self.posts[0].replies.insert(reply, at: 0)
+                }
+            } else {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                    self.posts[0].replies.append(reply)
+                }
             }
             
             if self.pendingReplies.isEmpty {
@@ -419,7 +426,7 @@ class AppState: ObservableObject {
                 self.followers = self.buzzInitialFollowers + self.buzzTargetFollowers
                 self.syncUser()
             } else {
-                let randomInterval = Double.random(in: 10.0...30.0)
+                let randomInterval = self.isInOnboarding ? Double.random(in: 1.5...4.0) : Double.random(in: 5.0...15.0)
                 DispatchQueue.main.asyncAfter(deadline: .now() + randomInterval) {
                     drainNext()
                 }

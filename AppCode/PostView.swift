@@ -8,20 +8,30 @@ struct PostView: View {
     @State private var selectedItem: PhotosPickerItem? = nil
     @State private var attachedImageData: Data? = nil
     var onCancel: () -> Void
+    var onOnboardingSubmit: ((String) -> Void)? = nil
+    var isOnboarding: Bool = false
     
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Button(action: onCancel) {
-                    Text("閉じる").font(.system(size: 15, weight: .bold)).foregroundColor(.gray)
+                if isOnboarding {
+                    Text("").frame(width: 50)
+                } else {
+                    Button(action: onCancel) {
+                        Text("閉じる").font(.system(size: 15, weight: .bold)).foregroundColor(.gray)
+                    }
                 }
                 Spacer()
                 Text("NEW POST").font(.system(size: 16, weight: .black)).foregroundColor(Theme.hotPink).tracking(2)
                 Spacer()
                 Button(action: {
                     if !text.isEmpty {
-                        appState.submitPost(text: text, imageData: attachedImageData)
-                        onCancel()
+                        if isOnboarding {
+                            onOnboardingSubmit?(text)
+                        } else {
+                            appState.submitPost(text: text, imageData: attachedImageData)
+                            onCancel()
+                        }
                     }
                 }) {
                     Text("投稿")
@@ -142,6 +152,17 @@ struct PostView: View {
                     }
                 }
             }
+
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 11))
+                    .foregroundColor(.orange.opacity(0.7))
+                Text("個人情報（本名・住所・電話番号など）は入力しないでください")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.gray)
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 12)
         }
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {

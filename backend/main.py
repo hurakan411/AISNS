@@ -3,7 +3,7 @@ import random
 import requests
 from typing import List, Optional, Any, Tuple
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from openai import AsyncOpenAI
 from supabase import create_client, Client
@@ -36,6 +36,7 @@ class PostRequest(BaseModel):
     content: str
     followers: int
     is_hater_enabled: bool = True
+    is_onboarding: bool = False
     image_base64: Optional[str] = None
 
 class ReplySchema(BaseModel):
@@ -157,10 +158,10 @@ def extract_normal_and_hater_defender_pairs(
     return normal, pairs
 
 
-# -------- 4. バックグラウンドタスク (AI ドラマエンジン) --------
-async def generate_ai_replies(post_id: str, content: str, followers: int, is_hater_enabled: bool, image_base64: Optional[str] = None):
+# -------- 4. AI ドラマエンジン --------
+async def generate_ai_replies(content: str, followers: int, is_hater_enabled: bool, is_onboarding: bool = False, image_base64: Optional[str] = None) -> List[dict]:
     """
-    OpenAIを利用してリプライを一括生成し、完了し次第DB(Supabase)へバルクインサートする
+    OpenAIを利用してリプライを一括生成し、レスポンス用の辞書リストを返す
     """
     
     # フォロワー数からランクを推論
@@ -193,11 +194,14 @@ async def generate_ai_replies(post_id: str, content: str, followers: int, is_hat
     total_replies = random.randint(params["min"], params["max"])
     
     # アンチ数を確率で決定（上限はrank_paramsの定義通り）
-    max_haters = params["haters"] if is_hater_enabled else 0
-    if max_haters > 0 and random.random() < 0.4:  # 50%の確率でアンチが出現
-        hater_count = random.randint(1, max_haters)  # 1〜上限のランダム
+    if is_onboarding:
+        hater_count = 1
     else:
-        hater_count = 0
+        max_haters = params["haters"] if is_hater_enabled else 0
+        if max_haters > 0 and random.random() < 0.4:
+            hater_count = random.randint(1, max_haters)
+        else:
+            hater_count = 0
     
     length_labels = build_length_plan_shuffled(total_replies)
     length_plan_lines = "\n".join(
@@ -212,6 +216,9 @@ async def generate_ai_replies(post_id: str, content: str, followers: int, is_hat
 
 ※ 「短文」「中文」「長文」は上の**件数比率**に対応するラベルです。ユーザーの投稿の語句・文脈を拾い、各ペルソナの口調で書くこと。"""
     
+    # オンボーディング時の擁護者数
+    defender_count = 2 if is_onboarding else hater_count
+
     # アンチに関する動的指示（GUARDIANタグの厳格制御含む）
     if hater_count == 0:
         hater_instruction = "【配役とフラグ】\n今回はアンチが発生しないため、全員を通常のフォロワーとしてください。（全員必ず is_hater=false, is_defender=false に設定すること。擁護者フラグは絶対に立てないでください）"
@@ -228,14 +235,26 @@ async def generate_ai_replies(post_id: str, content: str, followers: int, is_hat
 
 ※ 禁止：暴言・差別・脅迫・スラング連発。許容：嫌味・皮肉・冷笑的・突き放した・ネット民っぽい辛口。"""
 
-        if rank == 10:
+        if is_onboarding:
+            hater_instruction = f"""{hater_base}
+【オンボーディング専用：アンチ→擁護→改心の3段展開（必須）】
+以下の3件を**この順番で連続して** replies 配列に含めてください：
+
+1. **アンチの返信**（is_hater=true, is_defender=false）: 投稿内容を具体的に批判する。author_name を覚えておくこと。
+2. **擁護者の返信**（is_hater=false, is_defender=true）: アンチの主張を引用し、**直接反論**してユーザーを擁護する。アンチとは別の author_name にすること。
+3. **アンチの改心した返信**（is_hater=false, is_defender=true）: **1と同じ author_name** で、擁護者の反論を受けて態度を改め、「確かにそうかも」「言い過ぎたわ」のようにユーザーを認める内容にする。
+
+- 上記3件は replies 配列内で**必ず連続**させること（間に通常コメントを挟まない）。
+- それ以外のフォロワーは is_hater=false, is_defender=false とすること。"""
+        elif rank == 10:
             hater_instruction = f"{hater_base}\nただし、アンチの1人は他のフォロワーの反応を見て、最後に「改心して擁護（is_defender=true）へ変わる」展開を入れてください。\n普通のフォロワーは is_hater=false, is_defender=false です。"
         else:
             hater_instruction = f"""{hater_base}
-【アンチと擁護の1対1対応（内容・必須）】
-- **アンチ k 件目**に対する**擁護 k 件目**は、同じ論点を相手にすること。擁護者の content には必ず含める：(1) アンチの主張の言い換え、または「〇〇って言ってるけど」「さっきのコメント」など**アンチの発言を指す表現**、(2) その論点への**反論**、(3) ユーザーを擁護する文。
+【アンチと擁護の対応（内容・必須）】
+- アンチ {hater_count} 件に対し、擁護者は **{defender_count} 名**必須（is_hater=false, is_defender=true）。
+- 各擁護者はアンチの論点に**直接反論**すること。擁護者の content には必ず含める：(1) アンチの主張の言い換え、または「〇〇って言ってるけど」「さっきのコメント」など**アンチの発言を指す表現**、(2) その論点への**反論**、(3) ユーザーを擁護する文。
 - 擁護者は「投稿への一般的なファン」ではなく、**アンチのコメントへの反論**として書く。称賛だけ・同意だけで終わらせない。
-アンチの直後には、必ずアンチに反論してユーザーを擁護する人（is_hater=false, is_defender=true）を登場させてください。
+アンチの直後には、必ずアンチに反論してユーザーを擁護する人（is_hater=false, is_defender=true）を **{defender_count} 名**連続で登場させてください。
 それ以外のフォロワーは is_hater=false, is_defender=false とすること。"""
 
     # キャラクターリストを毎回シャッフルしてからプロンプトに埋め込む（AIが番号順に選ぶのを防止）
@@ -266,7 +285,21 @@ async def generate_ai_replies(post_id: str, content: str, followers: int, is_hat
 
     pairing_json_rules = ""
     if hater_count > 0:
-        pairing_json_rules = """
+        if is_onboarding:
+            pairing_json_rules = """
+    【replies JSON の並び順（オンボーディング専用・必須）】
+    - replies 配列内に**アンチ(is_hater=true) → 擁護者(is_defender=true) → 改心したアンチ(is_defender=true, 同じauthor_name)** の3件を**連続して**配置する。
+    - この3件の間に通常コメントを挟まない。
+    - 通常コメント（is_hater=false かつ is_defender=false）は、この3件ブロックの前後に配置してよい。
+    """
+        elif defender_count > hater_count:
+            pairing_json_rules = f"""
+    【replies JSON の並び順（必須・表示とペア整合のため）】
+    - **is_hater=true の行の直後に、そのアンチに対応する is_defender=true を {defender_count} 件連続**で配置する。**アンチ行と擁護行の間に他の返信を挟まない。**
+    - 通常コメント（is_hater=false かつ is_defender=false）は、アンチ→擁護ブロックの前後に混ぜてよい。
+    """
+        else:
+            pairing_json_rules = """
     【replies JSON の並び順（必須・表示とペア整合のため）】
     - **is_hater=true の行の直後の1件は、必ずそのアンチに対応する is_defender=true** とする。**アンチ行と擁護行の間に他の返信を挟まない。**
     - 通常コメント（is_hater=false かつ is_defender=false）は、アンチ→擁護のペアの前後に混ぜてよい。
@@ -312,9 +345,21 @@ async def generate_ai_replies(post_id: str, content: str, followers: int, is_hat
     **is_hater=true の行**は、割り当てペルソナの口調（若者言葉・丁寧語など）を保ちつつ、内容だけ**批判・皮肉・否定**に振ること（説明文の「褒める」「共感」は無視してよい）。
 {characters_text}
 
-    【生成における最重要ルール（AI定型文の絶対禁止）】
+    【最重要ルール1: 投稿内容への具体的言及（必須）】
+    **全返信は、ユーザーの投稿に書かれた具体的なキーワード・主張・感情・状況のいずれかに直接反応すること。**
+    - 投稿の中の**単語やフレーズを引用・言い換え**て、それに対するリアクションを書く。
+    - 「いいね」「すごい」「最高」など、**どの投稿にも使い回せる汎用的な反応だけで終わらせることは厳禁**。
+    - 投稿が「今日カレー食べた」なら「カレー」「何カレー？」に言及する。「仕事疲れた」なら「仕事」の何が疲れたかに触れる。**投稿の内容を読んでいなければ書けない返信**にすること。
+
+    【最重要ルール2: AI定型文の絶対禁止】
     「最高すぎます」「素晴らしいですね」「お疲れ様です」「頑張って」などのAIが書きがちな無難な定型文は**絶対に使用しないでください**。
     X(旧Twitter)やInstagramで実際の人間が書き込むような、その人の年齢や立場がにじみ出る自然なコメントを徹底してください。
+
+    【最重要ルール3: 返信内容の重複禁止】
+    **各返信の content は、他のすべての返信と意味的に重複しないこと。**
+    - 同じ感想・同じ褒め方・同じ批判・同じ質問の繰り返しは厳禁。
+    - 似たニュアンスの返信が2つ以上存在してはならない。
+    - 各返信はそれぞれ**異なる視点・異なる論点・異なる感情**で書くこと。
 
     【展開ルール】
     1. {hater_instruction}
@@ -349,98 +394,65 @@ async def generate_ai_replies(post_id: str, content: str, followers: int, is_hat
             for rep in parsed_data.replies: print(rep)
             return
             
-        # リプライの並び替え：通常だけシャッフルし、アンチ→擁護はペアのまま挿入（連続ペア優先で抽出）
         all_replies = list(parsed_data.replies)
-        normal, pairs = extract_normal_and_hater_defender_pairs(all_replies)
-        random.shuffle(normal)
-        for pair in pairs:
-            insert_pos = random.randint(0, len(normal))
-            for j, item in enumerate(pair):
-                normal.insert(insert_pos + j, item)
-        ordered_replies = normal
+        if is_onboarding:
+            ordered_replies = all_replies
+        else:
+            normal, pairs = extract_normal_and_hater_defender_pairs(all_replies)
+            random.shuffle(normal)
+            for pair in pairs:
+                insert_pos = random.randint(0, len(normal))
+                for j, item in enumerate(pair):
+                    normal.insert(insert_pos + j, item)
+            ordered_replies = normal
         
-        replies_to_insert = []
+        result = []
+        author_avatar_map: dict[str, str] = {}
         for index, rep in enumerate(ordered_replies):
-            seed_url = random.choice(HATER_AVATARS) if rep.is_hater else random.choice(AVATARS)
-            avatar = resolve_avatar_url(seed_url)
-            replies_to_insert.append({
-                "post_id": post_id,
+            if rep.author_name in author_avatar_map:
+                avatar = author_avatar_map[rep.author_name]
+            else:
+                seed_url = random.choice(HATER_AVATARS) if rep.is_hater else random.choice(AVATARS)
+                avatar = resolve_avatar_url(seed_url)
+                author_avatar_map[rep.author_name] = avatar
+            result.append({
                 "author_name": rep.author_name,
                 "author_img": avatar,
                 "content": rep.content,
                 "is_hater": rep.is_hater,
                 "is_defender": rep.is_defender,
-                "display_order": index + 1
             })
             
-        # 1. Repliesをバルクインサートする
-        supabase.table("replies").insert(replies_to_insert).execute()
-        
-        # 2. 完了フラグとしてPostのステータスを更新する (フロントはこれを検知してアニメーションを開始する)
-        supabase.table("posts").update({"status": "completed"}).eq("id", post_id).execute()
-        print(f"✅ Post {post_id} : AI Replies completed and inserted.")
+        print(f"✅ AI Replies generated: {len(result)} replies")
+        return result
         
     except Exception as e:
         print(f"❌ AI Generation Error: {e}")
-        if supabase:
-            supabase.table("posts").update({"status": "failed"}).eq("id", post_id).execute()
+        raise
 
 
 # -------- 5. ルーティング (API Endpoints) --------
 @app.post("/api/posts")
-async def create_post(request: PostRequest, background_tasks: BackgroundTasks):
+async def create_post(request: PostRequest):
     """
-    1. フロントエンドからのリクエストを受け取り、postsテーブルに行を作成。
-    2. 生成された投稿IDを使って、バックグラウンド処理（AIリプライ生成）を非同期キックする。
+    AI返信を生成し、結果を直接レスポンスで返す。DB保存は行わない。
     """
-    if not supabase:
-        raise HTTPException(status_code=500, detail=".envのSupabase設定が完了していません。")
-        
     try:
-        # Postsテーブルに行をInsert
-        post_res = supabase.table("posts").insert({
-            "user_id": request.user_id,
-            "content": request.content,
-            "status": "generating"
-        }).execute()
-        
-        post_id = post_res.data[0]["id"]
-        
-        # AI処理を待たずにレスポンスを返す（AI生成はバックグラウンドで処理）
-        background_tasks.add_task(generate_ai_replies, post_id, request.content, request.followers, request.is_hater_enabled, request.image_base64)
-        
-        return {
-            "status": "success", 
-            "post_id": post_id, 
-            "message": "AIが圧倒的肯定を準備中です..."
-        }
-        
+        replies = await generate_ai_replies(
+            content=request.content,
+            followers=request.followers,
+            is_hater_enabled=request.is_hater_enabled,
+            is_onboarding=request.is_onboarding,
+            image_base64=request.image_base64,
+        )
+        return {"status": "success", "replies": replies}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/posts/{post_id}")
-def get_post_status(post_id: str):
-    """
-    Check generation status. If completed, return the generated replies array.
-    """
-    if not supabase:
-        raise HTTPException(status_code=500, detail="Supabase not configured")
-        
-    post_res = supabase.table("posts").select("status").eq("id", post_id).execute()
-    if not post_res.data:
-        raise HTTPException(status_code=404, detail="Post not found")
-        
-    status = post_res.data[0]["status"]
-    
-    if status == "completed":
-        replies_res = supabase.table("replies").select("*").eq("post_id", post_id).order("display_order").execute()
-        return {"status": status, "replies": replies_res.data}
-    else:
-        return {"status": status, "replies": []}
 
 class UserUpdateRequest(BaseModel):
     total_followers: int
     total_posts: int
+    has_completed_onboarding: Optional[bool] = None
 
 @app.post("/api/users")
 def register_user(request: dict):
@@ -455,18 +467,21 @@ def register_user(request: dict):
     if not user_id:
         raise HTTPException(status_code=400, detail="user_id is required")
     
-    # 既存チェック
-    existing = supabase.table("users").select("id").eq("id", user_id).execute()
+    existing = supabase.table("users").select("id, has_completed_onboarding").eq("id", user_id).execute()
     if existing.data:
-        return {"status": "existing", "user_id": user_id}
+        return {
+            "status": "existing",
+            "user_id": user_id,
+            "has_completed_onboarding": existing.data[0].get("has_completed_onboarding", False)
+        }
     
-    # 新規作成
     supabase.table("users").insert({
         "id": user_id,
         "total_followers": 0,
-        "total_posts": 0
+        "total_posts": 0,
+        "has_completed_onboarding": False
     }).execute()
-    return {"status": "created", "user_id": user_id}
+    return {"status": "created", "user_id": user_id, "has_completed_onboarding": False}
 
 @app.get("/api/users/{user_id}")
 def get_user_status(user_id: str):
@@ -475,45 +490,10 @@ def get_user_status(user_id: str):
     """
     if not supabase:
         raise HTTPException(status_code=500, detail="Supabase not configured")
-    res = supabase.table("users").select("total_followers, total_posts").eq("id", user_id).execute()
+    res = supabase.table("users").select("total_followers, total_posts, has_completed_onboarding").eq("id", user_id).execute()
     if not res.data:
         raise HTTPException(status_code=404, detail="User not found")
     return res.data[0]
-
-@app.get("/api/users/{user_id}/feed")
-def get_user_feed(user_id: str):
-    """
-    ユーザーの全投稿と、それに紐づくリプライを一括で取得するAPI
-    (最新の投稿が上に来るように新しい順で取得)
-    """
-    if not supabase:
-        raise HTTPException(status_code=500, detail="Supabase not configured")
-        
-    # Postsを新しい順に取得 (最新50件)
-    posts_res = supabase.table("posts").select("*").eq("user_id", user_id).order("created_at", desc=True).limit(50).execute()
-    posts_data = posts_res.data
-    
-    # 関連するRepliesを一括取得
-    post_ids = [str(p["id"]) for p in posts_data]
-    if post_ids:
-        replies_res = supabase.table("replies").select("*").in_("post_id", post_ids).order("display_order").execute()
-        replies_data = replies_res.data
-    else:
-        replies_data = []
-        
-    # 投稿IDごとにリプライをまとめる
-    replies_by_post = {}
-    for r in replies_data:
-        pid = str(r["post_id"])
-        if pid not in replies_by_post:
-            replies_by_post[pid] = []
-        replies_by_post[pid].append(r)
-        
-    # 結合して返す
-    for p in posts_data:
-        p["replies"] = replies_by_post.get(str(p["id"]), [])
-        
-    return {"status": "success", "posts": posts_data}
 
 @app.put("/api/users/{user_id}")
 def update_user_status(user_id: str, request: UserUpdateRequest):
@@ -522,10 +502,13 @@ def update_user_status(user_id: str, request: UserUpdateRequest):
     """
     if not supabase:
         raise HTTPException(status_code=500, detail="Supabase not configured")
-    supabase.table("users").update({
+    update_data: dict = {
         "total_followers": request.total_followers,
         "total_posts": request.total_posts
-    }).eq("id", user_id).execute()
+    }
+    if request.has_completed_onboarding is not None:
+        update_data["has_completed_onboarding"] = request.has_completed_onboarding
+    supabase.table("users").update(update_data).eq("id", user_id).execute()
     return {"status": "success"}
 
 @app.get("/")
