@@ -120,9 +120,18 @@ struct PostCard: View {
             .overlay(RoundedRectangle(cornerRadius: 28).stroke(Color.white.opacity(0.08), lineWidth: 1))
             .padding(.horizontal, 16)
             
-            // Replies
-            if !post.replies.isEmpty {
+            if !post.replies.isEmpty || (appState.posts.first?.id == post.id && appState.hasPendingReplies) {
                 VStack(spacing: 12) {
+                    if appState.posts.first?.id == post.id && appState.hasPendingReplies {
+                        HStack {
+                            Spacer()
+                            LottieAnimationUIView(name: "Loading Pink Dots")
+                                .frame(height: 70)
+                                .frame(maxWidth: 140)
+                            Spacer()
+                        }
+                    }
+
                     ForEach(post.replies) { reply in
                         ReplyRow(reply: reply)
                     }

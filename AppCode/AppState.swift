@@ -75,7 +75,10 @@ class AppState: ObservableObject {
     
     private var likeTimer: AnyCancellable?
     private var replyTimer: AnyCancellable?
-    private var pendingReplies: [Reply] = []
+    @Published var hasPendingReplies: Bool = false
+    private var pendingReplies: [Reply] = [] {
+        didSet { hasPendingReplies = !pendingReplies.isEmpty }
+    }
     
     // リプライ連動でいいね・フォロワーを増やすための一時変数
     private var buzzTargetLikes: Int = 0
@@ -409,14 +412,11 @@ class AppState: ObservableObject {
             guard !self.pendingReplies.isEmpty, !self.posts.isEmpty else { return }
             
             let reply = self.pendingReplies.removeFirst()
-            if self.isInOnboarding {
-                withAnimation(.easeIn(duration: 0.3)) {
-                    self.posts[0].replies.insert(reply, at: 0)
-                }
-            } else {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                    self.posts[0].replies.append(reply)
-                }
+            let animation: Animation = self.isInOnboarding
+                ? .easeIn(duration: 0.3)
+                : .spring(response: 0.4, dampingFraction: 0.7)
+            withAnimation(animation) {
+                self.posts[0].replies.insert(reply, at: 0)
             }
             
             if self.pendingReplies.isEmpty {

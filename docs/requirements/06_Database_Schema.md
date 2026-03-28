@@ -1,67 +1,73 @@
 # 6. データベース設計 (Supabase / PostgreSQL)
 
-「ZEN-KOTEI」アプリは、**中央集権的なDB（Supabase）** を利用してユーザーのプロフィール、ステータス、投稿データ、およびAIによって生成された擬似リプライを管理します。
+「ZEN-KOTEI」アプリは、**Supabase（PostgreSQL）** をユーザー管理専用のデータストアとして利用します。投稿データ・リプライデータはDBに保存せず、フロントエンドのローカルストレージで管理します。
 
-## 6.1 ER図（エンティティ関係）概要
-本システムは非常にシンプルでスケーラブルな3つの主軸テーブルで構成されます。
+## 6.1 テーブル構成
 
-1. **`users`** (ユーザー情報とステータス)
-2. **`posts`** (ユーザーの投稿)
-3. **`replies`** (投稿に紐づくAI生成リプライ)
+本システムは **`users` テーブルのみ** で構成されます。
+
+> **設計方針**: 投稿（posts）と返信（replies）はユーザー間での共有が不要なため、DB保存のメリットが薄い。APIレスポンスとして直接返却し、ローカルで最大5件のみ保持する軽量設計を採用。
 
 ---
 
 ## 6.2 テーブル定義
 
-### 1. `users` テーブル
-ユーザーの基本情報や、アプリのコア進行度である「フォロワー数」「総投稿数」を記録します。認証(Auth)テーブルと紐づきます。
+### `users` テーブル
+ユーザーの基本情報や、アプリのコア進行度である「フォロワー数」「総投稿数」「オンボーディング完了状態」を記録します。
 
 | カラム名 | データ型 | 制約 / 初期値 | 説明 |
 | :--- | :--- | :--- | :--- |
-| `id` | `UUID` | Primary Key | Supabase Authの `auth.users.id` に依存 |
+| `id` | `UUID` | Primary Key | アプリ初回起動時に端末上で自動生成されるUUID |
 | `display_name` | `TEXT` | `NOT NULL`, Default: `みずき（あなた）` | アプリ上で表示されるユーザー名 |
 | `avatar_url` | `TEXT` | `NULL`可 | プロフィール画像のURL |
 | `total_posts` | `INT` | `DEFAULT 0` | 累積投稿数 |
 | `total_followers` | `INT` | `DEFAULT 0` | 累計フォロワー数（ランクに直結） |
-| `created_at` | `TIMESTAMPTZ`| `DEFAULT now()` | アカウント作成日時 |
+| `has_completed_onboarding` | `BOOLEAN` | `DEFAULT false` | オンボーディング完了フラグ |
+| `created_at` | `TIMESTAMPTZ` | `DEFAULT now()` | アカウント作成日時 |
 
-> **💡 設計ポイント**: 
-> 「承認ランク」は `total_followers` からクライアント側やAPI側で動的に計算可能なため、DBで直接マスタデータとして持たず、バグやデータの非同期を防ぎます。
+> **設計ポイント**:
+> - 「承認ランク」は `total_followers` からクライアント側やAPI側で動的に計算するため、DBカラムとしては持たない。
+> - `has_completed_onboarding` はDBをSource of Truthとし、アプリ起動時にDBから取得して同期。UserDefaultsにもキャッシュするが、DBの値を優先する。
+> - `display_name` と `avatar_url` はDB上に存在するが、現在の実装ではローカル（UserDefaults/ファイル）で管理しており、DBとの同期は行っていない。
 
-### 2. `posts` テーブル
-「シングルポスト／タイムライン」の基盤となるユーザーの投稿データです。
+### 廃止済みテーブル
+以下のテーブルは設計変更により廃止されました。既存環境では `DROP TABLE` で削除済み。
 
-| カラム名 | データ型 | 制約 / 初期値 | 説明 |
-| :--- | :--- | :--- | :--- |
-| `id` | `UUID` | Primary Key, `DEFAULT uuid_generate_v4()` | 投稿の一意のID |
-| `user_id` | `UUID` | Foreign Key (`users.id`), `NOT NULL` | 投稿者のID |
-| `content` | `TEXT` | `NOT NULL` | 投稿のテキスト本文 |
-| `image_url` | `TEXT` | `NULL`可 | 添付画像（Supabase StorageのURLなど） |
-| `likes_count`| `INT` | `DEFAULT 0` | 最終的に獲得した「いいね」の数 |
-| `status` | `TEXT` | `DEFAULT 'generating'` | AI生成ステータス。`generating`, `completed`, `failed`。このステータスでフロントの表示制御を行う |
-| `created_at` | `TIMESTAMPTZ`| `DEFAULT now()` | 投稿日時 |
-
-### 3. `replies` テーブル
-OpenAIのAPIによって一括生成され、各 `post` に連なる仮想フォロワーやアンチからのコメント群を保存します。
-
-| カラム名 | データ型 | 制約 / 初期値 | 説明 |
-| :--- | :--- | :--- | :--- |
-| `id` | `UUID` | Primary Key, `DEFAULT uuid_generate_v4()` | リプライの一意のID |
-| `post_id` | `UUID` | Foreign Key (`posts.id`) `ON DELETE CASCADE` | 紐づく投稿のID |
-| `author_name`| `TEXT` | `NOT NULL` | AIが生成したリプライ主の名前（例："ひまり🌻", "匿名"など） |
-| `author_img` | `TEXT` | `NOT NULL` | アバター画像URL |
-| `content` | `TEXT` | `NOT NULL` | リプライ本文 |
-| `is_hater` | `BOOLEAN` | `DEFAULT false` | このリプライがアンチ(Hater)からのものかどうか |
-| `is_defender`| `BOOLEAN` | `DEFAULT false` | アンチから守護してくれたGuardianからのものかどうか |
-| `display_order`| `INT` | `NOT NULL` | アプリ側で遅延表示（1.2秒おき）させる際の並び順 |
-| `created_at` | `TIMESTAMPTZ`| `DEFAULT now()` | レコード保存日時 |
+- **`posts` テーブル**: 投稿データはローカルJSONファイルで管理するため不要。
+- **`replies` テーブル**: リプライはAPIレスポンスとして直接返却し、ローカルの投稿データに含めて保存するため不要。
 
 ---
 
 ## 6.3 データフロー構成（フロントエンド ⇆ API ⇆ DB）
-1. フロントエンド（SwiftUI）が投稿ボタンを押下し、**バックエンド（Python / FastAPI等）** へリクエストを送信。
-2. バックエンドはひとまず `posts` テーブルに行を作成。
-3. バックエンドで **OpenAI API** をコールし、投稿文脈と現在のランクに応じたJSONデータ（リプライ群）を一括生成。
-4. 生成された配列データを `replies` テーブルに `display_order` を振って一括Insert (バルクインサート)。
-5. `posts` テーブルの `status` を `completed` に変更。
-6. SwiftUIは DBの Subscribe（リアルタイムリスナー）などを通じてレコードを検知し、アニメーション付きで描写を開始。
+
+```
+[投稿フロー]
+1. SwiftUI → POST /api/posts (投稿テキスト + フォロワー数 + 設定)
+2. FastAPI → OpenAI API (リプライ一括生成)
+3. FastAPI → SwiftUI (レスポンスボディでリプライ配列を返却)
+4. SwiftUI → ローカルJSONファイルに保存 (最大5件)
+5. SwiftUI → リプライを5〜15秒間隔で順次表示 + いいね/フォロワー漸増
+6. SwiftUI → PUT /api/users/{id} (フォロワー数・投稿数をDBに同期)
+
+[初回起動フロー]
+1. SwiftUI → POST /api/users (UUID送信、upsert)
+2. API → has_completed_onboarding を返却
+3. false の場合 → オンボーディング開始
+4. 完了時 → PUT /api/users/{id} (has_completed_onboarding=true)
+
+[アプリ起動フロー]
+1. SwiftUI → GET /api/users/{id} (フォロワー数・投稿数・オンボーディングフラグ取得)
+2. SwiftUI → ローカルJSONから投稿データ読み込み
+```
+
+## 6.4 ローカルストレージ設計
+
+| データ | 保存先 | 保持上限 | 備考 |
+| :--- | :--- | :--- | :--- |
+| 投稿＋返信 | `Documents/posts_v1.json` | 5件 | 超過分は自動削除 |
+| ユーザーアバター | `Documents/user_avatar.dat` | 1件 | バイナリ画像データ |
+| ユーザー名 | `UserDefaults` | - | `userName` キー |
+| 自己紹介文 | `UserDefaults` | - | `userBio` キー |
+| ユーザーID | `UserDefaults` | - | `userId` キー (UUID) |
+| アンチ設定 | `UserDefaults` | - | `isHaterEnabled` キー |
+| オンボーディング | `UserDefaults` + DB | - | DBがSource of Truth |

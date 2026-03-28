@@ -22,5 +22,12 @@ DerivedData
 *.app
 ZEN_KOTEI
 
+# Python
+__pycache__/
+*.pyc
+backend/venv/
+backend/*.log
+
 # Other
 .DS_Store
+.env

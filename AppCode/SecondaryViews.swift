@@ -218,9 +218,16 @@ struct ProfileView: View {
             VStack(spacing: 0) {
                 // Header Image
                 ZStack(alignment: .bottomLeading) {
-                    Rectangle()
-                        .fill(LinearGradient(gradient: Gradient(colors: [Color.indigo.opacity(0.5), Color.purple.opacity(0.5), .black]), startPoint: .topLeading, endPoint: .bottomTrailing))
-                        .frame(height: 180)
+                    ZStack(alignment: .bottom) {
+                        Rectangle()
+                            .fill(LinearGradient(gradient: Gradient(colors: [Color.indigo.opacity(0.5), Color.purple.opacity(0.5), .black]), startPoint: .topLeading, endPoint: .bottomTrailing))
+                        LottieAnimationUIView(name: "Technology isometric ai robot brain (1)")
+                            .frame(height: 120)
+                            .opacity(0.4)
+                            .padding(.bottom, 5)
+                    }
+                    .frame(height: 180)
+                    .clipped()
                     
                     PhotosPicker(selection: $selectedItem, matching: .images, photoLibrary: .shared()) {
                         ZStack {
