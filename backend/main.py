@@ -4,6 +4,7 @@ import requests
 from typing import List, Optional, Any, Tuple
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from openai import AsyncOpenAI
 from supabase import create_client, Client
@@ -12,6 +13,14 @@ from supabase import create_client, Client
 load_dotenv()
 
 app = FastAPI(title="ZEN-KOTEI Logic Engine")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")

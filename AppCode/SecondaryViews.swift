@@ -347,6 +347,18 @@ struct ProfileView: View {
                         }
                     }
                     .toggleStyle(SwitchToggleStyle(tint: Theme.hotPink))
+                    
+                    Toggle(isOn: $appState.useRemoteApi) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("リモートAPI（Render.com）")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.white)
+                            Text(appState.useRemoteApi ? "本番サーバーに接続中" : "ローカルサーバーに接続中")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(appState.useRemoteApi ? .green : .orange)
+                        }
+                    }
+                    .toggleStyle(SwitchToggleStyle(tint: Theme.cyan))
                 }
                 .padding(.horizontal, 32)
                 .padding(.top, 32)

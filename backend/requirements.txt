@@ -1,6 +1,7 @@
 fastapi
-uvicorn
+uvicorn[standard]
 openai>=1.40.0
 supabase
 pydantic
 python-dotenv
+requests

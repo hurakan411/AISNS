@@ -289,6 +289,17 @@ class AppState: ObservableObject {
     }
     
     // API関連
+    static let localBaseUrl = "http://127.0.0.1:8000"
+    static let remoteBaseUrl = "https://zen-kotei-api.onrender.com"
+    
+    @Published var useRemoteApi: Bool = UserDefaults.standard.bool(forKey: "useRemoteApi") {
+        didSet { UserDefaults.standard.set(useRemoteApi, forKey: "useRemoteApi") }
+    }
+    
+    private var baseUrl: String { useRemoteApi ? Self.remoteBaseUrl : Self.localBaseUrl }
+    private var apiUrl: String { "\(baseUrl)/api/posts" }
+    private var userApiUrl: String { "\(baseUrl)/api/users" }
+    
     let userId: String = {
         if let stored = UserDefaults.standard.string(forKey: "userId") {
             return stored
@@ -298,8 +309,6 @@ class AppState: ObservableObject {
             return newId
         }
     }()
-    private let apiUrl = "http://127.0.0.1:8000/api/posts"
-    private let userApiUrl = "http://127.0.0.1:8000/api/users"
     
     func fetchUser() {
         guard let url = URL(string: "\(userApiUrl)/\(userId)") else { return }
