@@ -25,3 +25,38 @@ INFO:     127.0.0.1:51976 - "POST /api/posts HTTP/1.1" 200 OK
 INFO:     127.0.0.1:51994 - "PUT /api/users/221d144f-260d-4fdf-a174-ee640e2ca8e2 HTTP/1.1" 200 OK
 INFO:     127.0.0.1:52005 - "POST /api/users HTTP/1.1" 200 OK
 INFO:     127.0.0.1:52005 - "GET /api/users/221d144f-260d-4fdf-a174-ee640e2ca8e2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52140 - "POST /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52140 - "GET /api/users/221d144f-260d-4fdf-a174-ee640e2ca8e2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58296 - "POST /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58296 - "GET /api/users/221d144f-260d-4fdf-a174-ee640e2ca8e2 HTTP/1.1" 200 OK
+✅ AI Replies generated: 14 replies
+INFO:     127.0.0.1:58376 - "POST /api/posts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58426 - "PUT /api/users/221d144f-260d-4fdf-a174-ee640e2ca8e2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58534 - "POST /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58534 - "GET /api/users/4852d48f-4f40-4945-9fbd-2f6d1b8f38c9 HTTP/1.1" 200 OK
+✅ AI Replies generated: 13 replies
+INFO:     127.0.0.1:58543 - "POST /api/posts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58598 - "PUT /api/users/4852d48f-4f40-4945-9fbd-2f6d1b8f38c9 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58598 - "GET /api/users/4852d48f-4f40-4945-9fbd-2f6d1b8f38c9 HTTP/1.1" 200 OK
+✅ AI Replies generated: 4 replies
+INFO:     127.0.0.1:58604 - "POST /api/posts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58614 - "PUT /api/users/4852d48f-4f40-4945-9fbd-2f6d1b8f38c9 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58620 - "GET /api/users/4852d48f-4f40-4945-9fbd-2f6d1b8f38c9 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58620 - "GET /api/users/4852d48f-4f40-4945-9fbd-2f6d1b8f38c9 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58665 - "POST /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58665 - "GET /api/users/4b407662-01bd-489b-b925-4afe94c479eb HTTP/1.1" 200 OK
+✅ AI Replies generated: 11 replies
+INFO:     127.0.0.1:58677 - "POST /api/posts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58713 - "PUT /api/users/4b407662-01bd-489b-b925-4afe94c479eb HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59203 - "POST /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59203 - "GET /api/users/eb66fcd0-0ed9-4051-9113-054eec623b87 HTTP/1.1" 200 OK
+✅ AI Replies generated: 10 replies
+INFO:     127.0.0.1:59465 - "POST /api/posts HTTP/1.1" 200 OK
+WARNING:  StatReload detected changes in 'main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [73986]
+INFO:     Started server process [15548]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.

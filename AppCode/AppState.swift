@@ -64,13 +64,13 @@ class AppState: ObservableObject {
     private var prefetchedOnboardingReplies: [Reply] = []
     @Published var prefetchedOnboardingText: String = ""
     
-    @Published var userName: String = UserDefaults.standard.string(forKey: "userName") ?? "みずき（あなた）" {
+    @Published var userName: String = UserDefaults.standard.string(forKey: "userName") ?? "あなた" {
         didSet { UserDefaults.standard.set(userName, forKey: "userName") }
     }
     @Published var userAvatarData: Data? = nil {
         didSet { saveAvatar() }
     }
-    @Published var userBio: String = UserDefaults.standard.string(forKey: "userBio") ?? "今日も息してるだけでえらい。全肯定SNS「ZEN-KOTEI」で承認欲求の海に溺れるアカウント。" {
+    @Published var userBio: String = UserDefaults.standard.string(forKey: "userBio") ?? "今日も息してるだけでえらい。UPME! | AI SNSで承認欲求の海に溺れるアカウント。" {
         didSet { UserDefaults.standard.set(userBio, forKey: "userBio") }
     }
     
@@ -119,6 +119,19 @@ class AppState: ObservableObject {
     }
 
     init() { 
+        let bio = UserDefaults.standard.string(forKey: "userBio") ?? ""
+        if bio.contains("ZEN-KOTEI") || bio.contains("全肯定") {
+            let newBio = "今日も息してるだけでえらい。UPME! | AI SNSで承認欲求の海に溺れるアカウント。"
+            UserDefaults.standard.set(newBio, forKey: "userBio")
+            self.userBio = newBio
+        }
+        
+        let savedName = UserDefaults.standard.string(forKey: "userName") ?? ""
+        if savedName == "みずき（あなた）" {
+            UserDefaults.standard.set("あなた", forKey: "userName")
+            self.userName = "あなた"
+        }
+        
         loadAvatar()
         loadPosts()
         registerUser() // 完了後に fetchUser() を呼ぶ（直列化でレースコンディション回避）
@@ -283,9 +296,9 @@ class AppState: ObservableObject {
         replyTimer?.cancel()
         pendingReplies = []
         isInOnboarding = false
-        posts = []
+        // posts = [] // オンボの投稿と返信を残す
         followers = 0
-        totalPosts = 0
+        totalPosts = 1
         hasCompletedOnboarding = true
         syncUser(includeOnboarding: true)
     }
@@ -328,7 +341,7 @@ class AppState: ObservableObject {
     }
     
     // API関連 — ローカル/リモート切り替えはここを変更するだけ
-    private static let useRemote = false
+    private static let useRemote = true
     private static let baseUrl = useRemote
         ? "https://aisns-1.onrender.com"
         : "http://127.0.0.1:8000"

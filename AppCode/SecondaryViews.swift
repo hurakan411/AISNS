@@ -9,7 +9,7 @@ struct StatsView: View {
             VStack(alignment: .leading, spacing: 32) {
                 HStack(spacing: 12) {
                     Image(systemName: "chart.line.uptrend.xyaxis").font(.largeTitle).foregroundColor(Theme.cyan)
-                    Text("アルゴリズム解析").font(.title).fontWeight(.black).foregroundColor(.white)
+                    Text("統計").font(.title).fontWeight(.black).foregroundColor(.white)
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 24)

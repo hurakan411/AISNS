@@ -7,34 +7,34 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		7618EAD436074A9F957EE328 /* ZEN_KOTEIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A02DA3ED7EB4E9A9678417B /* ZEN_KOTEIApp.swift */; };
-		5ABC075934814A25B8723777 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64E52FB6E7A34377A3ACF664 /* AppState.swift */; };
-		3B02D31439904229838973F9 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9DB664272BB4D1E8098979F /* ContentView.swift */; };
-		EBEAB8ED130D48049C060815 /* FeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42F591A2378E46F9B89E408C /* FeedView.swift */; };
-		1C771121EAF546A88F19E9DE /* PostView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DA65D7295CA448E93A20D5C /* PostView.swift */; };
 		143B2E14DCAA4229B3348DBE /* SecondaryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C51046D075014E4CBF8EACBA /* SecondaryViews.swift */; };
+		1C771121EAF546A88F19E9DE /* PostView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DA65D7295CA448E93A20D5C /* PostView.swift */; };
+		3B02D31439904229838973F9 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9DB664272BB4D1E8098979F /* ContentView.swift */; };
 		4473766EDC7C4CCBB6FC4DB3 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9327DAFDB9248029C821B10 /* Theme.swift */; };
-		B7E2A19F5C3D4A88A1D0F62E /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3F84DB1E7274C0E9A5B3F17 /* OnboardingView.swift */; };
+		5ABC075934814A25B8723777 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64E52FB6E7A34377A3ACF664 /* AppState.swift */; };
+		7618EAD436074A9F957EE328 /* UPMEApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A02DA3ED7EB4E9A9678417B /* UPMEApp.swift */; };
 		B1B1B1B1B1B1B1B1B1B1B1B1 /* LottieView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1A1 /* LottieView.swift */; };
 		B2B2B2B2B2B2B2B2B2B2B2B2 /* Loading Pink Dots.json in Resources */ = {isa = PBXBuildFile; fileRef = A2A2A2A2A2A2A2A2A2A2A2A2 /* Loading Pink Dots.json */; };
 		B3B3B3B3B3B3B3B3B3B3B3B3 /* Technology isometric ai robot brain (1).json in Resources */ = {isa = PBXBuildFile; fileRef = A3A3A3A3A3A3A3A3A3A3A3A3 /* Technology isometric ai robot brain (1).json */; };
 		B4B4B4B4B4B4B4B4B4B4B4B4 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = D1D1D1D1D1D1D1D1D1D1D1D1 /* Lottie */; };
+		B7E2A19F5C3D4A88A1D0F62E /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3F84DB1E7274C0E9A5B3F17 /* OnboardingView.swift */; };
 		C5C5C5C5C5C5C5C5C5C5C5C5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F5F5F5F5F5F5F5F5F5F5F5F5 /* Assets.xcassets */; };
+		EBEAB8ED130D48049C060815 /* FeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42F591A2378E46F9B89E408C /* FeedView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		34CB6FF724D9490C9E88CFB5 /* ZEN_KOTEI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ZEN_KOTEI.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		4A02DA3ED7EB4E9A9678417B /* ZEN_KOTEIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZEN_KOTEIApp.swift; sourceTree = "<group>"; };
-		64E52FB6E7A34377A3ACF664 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
-		D9DB664272BB4D1E8098979F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		34CB6FF724D9490C9E88CFB5 /* UPME.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UPME.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		42F591A2378E46F9B89E408C /* FeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedView.swift; sourceTree = "<group>"; };
+		4A02DA3ED7EB4E9A9678417B /* UPMEApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UPMEApp.swift; sourceTree = "<group>"; };
+		64E52FB6E7A34377A3ACF664 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		9DA65D7295CA448E93A20D5C /* PostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostView.swift; sourceTree = "<group>"; };
-		C51046D075014E4CBF8EACBA /* SecondaryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecondaryViews.swift; sourceTree = "<group>"; };
-		A9327DAFDB9248029C821B10 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
-		C3F84DB1E7274C0E9A5B3F17 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1A1 /* LottieView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LottieView.swift; sourceTree = "<group>"; };
 		A2A2A2A2A2A2A2A2A2A2A2A2 /* Loading Pink Dots.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "Loading Pink Dots.json"; sourceTree = "<group>"; };
 		A3A3A3A3A3A3A3A3A3A3A3A3 /* Technology isometric ai robot brain (1).json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "Technology isometric ai robot brain (1).json"; sourceTree = "<group>"; };
+		A9327DAFDB9248029C821B10 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		C3F84DB1E7274C0E9A5B3F17 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		C51046D075014E4CBF8EACBA /* SecondaryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecondaryViews.swift; sourceTree = "<group>"; };
+		D9DB664272BB4D1E8098979F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		F5F5F5F5F5F5F5F5F5F5F5F5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -63,7 +63,7 @@
 		DEB955EE31E5460895F13E93 /* AppCode */ = {
 			isa = PBXGroup;
 			children = (
-				4A02DA3ED7EB4E9A9678417B /* ZEN_KOTEIApp.swift */,
+				4A02DA3ED7EB4E9A9678417B /* UPMEApp.swift */,
 				64E52FB6E7A34377A3ACF664 /* AppState.swift */,
 				D9DB664272BB4D1E8098979F /* ContentView.swift */,
 				42F591A2378E46F9B89E408C /* FeedView.swift */,
@@ -88,7 +88,7 @@
 		F8D779AB790C4F09B060A5F3 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				34CB6FF724D9490C9E88CFB5 /* ZEN_KOTEI.app */,
+				34CB6FF724D9490C9E88CFB5 /* UPME.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -96,9 +96,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		FAC2589AAB3145C69EDD5C8D /* ZEN_KOTEI */ = {
+		FAC2589AAB3145C69EDD5C8D /* UPME */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 8E572B458ABC4AF2AFFD9C1C /* Build configuration list for PBXNativeTarget "ZEN_KOTEI" */;
+			buildConfigurationList = 8E572B458ABC4AF2AFFD9C1C /* Build configuration list for PBXNativeTarget "UPME" */;
 			buildPhases = (
 				50F435E2EAFB43C49B5897A1 /* Sources */,
 				5782CA9775D646769D5A191A /* Frameworks */,
@@ -108,12 +108,12 @@
 			);
 			dependencies = (
 			);
-			name = ZEN_KOTEI;
+			name = UPME;
 			packageProductDependencies = (
 				D1D1D1D1D1D1D1D1D1D1D1D1 /* Lottie */,
 			);
-			productName = ZEN_KOTEI;
-			productReference = 34CB6FF724D9490C9E88CFB5 /* ZEN_KOTEI.app */;
+			productName = UPME;
+			productReference = 34CB6FF724D9490C9E88CFB5 /* UPME.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -131,7 +131,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 3D62F95B88354DB4B49D0EC3 /* Build configuration list for PBXProject "ZEN_KOTEI" */;
+			buildConfigurationList = 3D62F95B88354DB4B49D0EC3 /* Build configuration list for PBXProject "UPME" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -147,7 +147,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				FAC2589AAB3145C69EDD5C8D /* ZEN_KOTEI */,
+				FAC2589AAB3145C69EDD5C8D /* UPME */,
 			);
 		};
 /* End PBXProject section */
@@ -170,7 +170,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7618EAD436074A9F957EE328 /* ZEN_KOTEIApp.swift in Sources */,
+				7618EAD436074A9F957EE328 /* UPMEApp.swift in Sources */,
 				5ABC075934814A25B8723777 /* AppState.swift in Sources */,
 				3B02D31439904229838973F9 /* ContentView.swift in Sources */,
 				EBEAB8ED130D48049C060815 /* FeedView.swift in Sources */,
@@ -304,40 +304,13 @@
 			};
 			name = Release;
 		};
-		E474A9E5AB234D8A8DB6EB3C /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "UPME! | AI SNS";
-				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.example.ZEN-KOTEI";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Debug;
-		};
 		D10E03B5DCCB4C29A9232479 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 9927M765H2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "UPME! | AI SNS";
@@ -350,7 +323,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.example.ZEN-KOTEI";
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.UPME;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -358,10 +331,37 @@
 			};
 			name = Release;
 		};
+		E474A9E5AB234D8A8DB6EB3C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9927M765H2;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "UPME! | AI SNS";
+				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.UPME;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		3D62F95B88354DB4B49D0EC3 /* Build configuration list for PBXProject "ZEN_KOTEI" */ = {
+		3D62F95B88354DB4B49D0EC3 /* Build configuration list for PBXProject "UPME" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				169B9F6EA89144229C2F7DE9 /* Debug */,
@@ -370,7 +370,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		8E572B458ABC4AF2AFFD9C1C /* Build configuration list for PBXNativeTarget "ZEN_KOTEI" */ = {
+		8E572B458ABC4AF2AFFD9C1C /* Build configuration list for PBXNativeTarget "UPME" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				E474A9E5AB234D8A8DB6EB3C /* Debug */,
