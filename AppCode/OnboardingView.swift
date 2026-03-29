@@ -53,8 +53,14 @@ struct OnboardingView: View {
                 ritualView
                     .transition(.opacity)
             case .realCompose:
-                realComposeView
-                    .transition(.opacity)
+                FakeComposeTypingView(
+                    fullText: appState.prefetchedOnboardingText.isEmpty ? fakeText : appState.prefetchedOnboardingText,
+                    onCompletion: {
+                        appState.submitOnboardingPost(text: appState.prefetchedOnboardingText.isEmpty ? fakeText : appState.prefetchedOnboardingText)
+                        withAnimation(.easeInOut(duration: 0.6)) { phase = .burst }
+                    }
+                )
+                .transition(.opacity)
             case .burst:
                 burstView
                     .transition(.opacity)
@@ -104,6 +110,8 @@ struct OnboardingView: View {
 
                 Button(action: {
                     guard !fakeText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                    // バックグラウンドでAIリクエスト開始（プリフェッチ）
+                    appState.prefetchOnboardingReplies(text: fakeText)
                     withAnimation(.easeInOut(duration: 0.5)) { phase = .microReaction }
                 }) {
                     Text("投稿する")
@@ -249,12 +257,12 @@ struct OnboardingView: View {
             }
 
             if ritualLogoVisible {
-                Text("ZEN-KOTEI")
+                Text("UPME! | AI SNS")
                     .font(.system(size: 36, weight: .black, design: .rounded)).italic()
                     .foregroundColor(.clear)
                     .background(
                         LinearGradient(gradient: Gradient(colors: [Theme.hotPink, .purple, Theme.cyan]), startPoint: .leading, endPoint: .trailing)
-                            .mask(Text("ZEN-KOTEI").font(.system(size: 36, weight: .black, design: .rounded)).italic())
+                            .mask(Text("UPME! | AI SNS").font(.system(size: 36, weight: .black, design: .rounded)).italic())
                     )
                     .neonShadow(color: Theme.hotPink, radius: 16)
                     .transition(.opacity.combined(with: .scale(scale: 0.7)))
@@ -279,40 +287,45 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Phase 5: Real Compose
-
-    private var realComposeView: some View {
-        PostView(
-            onCancel: {},
-            onOnboardingSubmit: { text in
-                appState.submitOnboardingPost(text: text)
-                withAnimation(.easeInOut(duration: 0.6)) { phase = .burst }
-            },
-            isOnboarding: true
-        )
-    }
-
-    // MARK: - Phase 6: Burst (Rank 10 explosion)
+    // MARK: - Phase 6: Burst（本物のFeedView風）
 
     private var burstView: some View {
         ZStack(alignment: .bottom) {
-            ScrollView {
-                VStack(spacing: 0) {
-                    if let post = appState.posts.first {
-                        PostCard(post: post)
-                    }
+            VStack(spacing: 0) {
+                // ヘッダー（本物のFeedViewと同じ）
+                HStack(spacing: 12) {
+                    Text("UPME! | AI SNS")
+                        .font(.system(size: 20, weight: .black, design: .rounded)).italic()
+                        .foregroundColor(.clear)
+                        .background(
+                            LinearGradient(gradient: Gradient(colors: [Theme.hotPink, .purple, Theme.cyan]), startPoint: .leading, endPoint: .trailing)
+                                .mask(Text("UPME! | AI SNS").font(.system(size: 20, weight: .black, design: .rounded)).italic())
+                        )
+                        .neonShadow(color: Theme.hotPink, radius: 4)
+                    Spacer()
                 }
-                .padding(.vertical, 24)
-                .padding(.bottom, 100)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .background(Theme.bgDeepBlack)
+                
+                ScrollView {
+                    VStack(spacing: 0) {
+                        if let post = appState.posts.first {
+                            PostCard(post: post)
+                        }
+                    }
+                    .padding(.vertical, 24)
+                    .padding(.bottom, 100)
+                }
             }
-
+            
             if showStartButton {
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.5)) {
                         appState.completeOnboarding()
                     }
                 }) {
-                    Text("ZEN-KOTEIを始める")
+                    Text("UPME! | AI SNSを始める")
                         .font(.system(size: 16, weight: .black))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -328,6 +341,7 @@ struct OnboardingView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
+        .background(Theme.bgDeepBlack.ignoresSafeArea())
         .onAppear { scheduleBurstStartButton() }
     }
 
@@ -343,5 +357,120 @@ struct OnboardingView: View {
             }
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { checkOrWait() }
+    }
+}
+
+// MARK: - Dedicated View for Typewriting Effect
+struct FakeComposeTypingView: View {
+    @EnvironmentObject var appState: AppState
+    let fullText: String
+    let onCompletion: () -> Void
+    
+    @State private var typedText: String = ""
+    @State private var typingDone: Bool = false
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Text("").frame(width: 50)
+                Spacer()
+                Text("NEW POST").font(.system(size: 16, weight: .black)).foregroundColor(Theme.hotPink).tracking(2)
+                Spacer()
+                Text("投稿")
+                    .font(.system(size: 14, weight: .black))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 10)
+                    .background(typedText.isEmpty ? Color.gray.opacity(0.2) : Theme.hotPink)
+                    .cornerRadius(20)
+                    .neonShadow(color: typedText.isEmpty ? .clear : Theme.hotPink, radius: 8)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+            .background(Theme.bgDeepBlack)
+            
+            ScrollView {
+                VStack(spacing: 24) {
+                    HStack(alignment: .top, spacing: 16) {
+                        if let data = appState.userAvatarData, let uiImage = UIImage(data: data) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 50, height: 50)
+                                .clipShape(Circle())
+                                .overlay(Circle().stroke(Color.purple, lineWidth: 2))
+                        } else {
+                            AsyncImage(url: URL(string: Theme.myAvatar)) { img in
+                                img.resizable().scaledToFill()
+                            } placeholder: {
+                                Circle().fill(Color.purple)
+                            }
+                            .frame(width: 50, height: 50)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.purple, lineWidth: 2))
+                        }
+                        
+                        Text(typedText + (typingDone ? "" : "|"))
+                            .foregroundColor(.white)
+                            .font(.system(size: 22, weight: .bold))
+                            .frame(minHeight: 180, alignment: .topLeading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 16)
+                }
+            }
+            
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 11))
+                    .foregroundColor(.orange.opacity(0.7))
+                Text("個人情報（本名・住所・電話番号など）は入力しないでください")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.gray)
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 12)
+        }
+        .background(Theme.bgDeepBlack.ignoresSafeArea())
+        .onAppear {
+            startTyping()
+        }
+    }
+    
+    private func startTyping() {
+        // 全文字の文字配列を取得
+        let chars = Array(fullText)
+        let startTime = Date()
+        
+        // 空の場合はすぐに完了とする
+        guard !chars.isEmpty else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                onCompletion()
+            }
+            return
+        }
+        
+        for (i, char) in chars.enumerated() {
+            // 全体で最低2.0秒はかける（文字数が多い場合は最大4.0秒などを目安に）
+            let targetTotalSeconds = Swift.min(Swift.max(2.0, Double(chars.count) * 0.08), 4.5)
+            let delayPerChar = targetTotalSeconds / Double(chars.count)
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + (delayPerChar * Double(i))) {
+                typedText.append(char)
+                let isLast = (i == chars.count - 1)
+                if isLast {
+                    typingDone = true
+                    
+                    let elapsed = Date().timeIntervalSince(startTime)
+                    let waitMore = max(3.0 - elapsed, 0.8)
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + waitMore) {
+                        onCompletion()
+                    }
+                }
+            }
+        }
     }
 }

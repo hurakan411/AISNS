@@ -120,9 +120,10 @@ struct PostCard: View {
             .overlay(RoundedRectangle(cornerRadius: 28).stroke(Color.white.opacity(0.08), lineWidth: 1))
             .padding(.horizontal, 16)
             
-            if !post.replies.isEmpty || (appState.posts.first?.id == post.id && appState.hasPendingReplies) {
+            if !post.replies.isEmpty || (appState.posts.first?.id == post.id && (appState.hasPendingReplies || appState.isRequestingReplies)) {
                 VStack(spacing: 12) {
-                    if appState.posts.first?.id == post.id && appState.hasPendingReplies {
+                    // 返信0件かつリクエスト中、またはまだ保留返信がある間はLoading Dots表示
+                    if appState.posts.first?.id == post.id && (appState.hasPendingReplies || (post.replies.isEmpty && appState.isRequestingReplies)) {
                         HStack {
                             Spacer()
                             LottieAnimationUIView(name: "Loading Pink Dots")

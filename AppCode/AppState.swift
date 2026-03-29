@@ -44,6 +44,7 @@ private func jsonReplyBool(_ r: [String: Any], snake: String, camel: String) -> 
 }
 
 class AppState: ObservableObject {
+    @Published var debugText: String = "---"
     @Published var followers: Int = 0
     @Published var totalPosts: Int = 0
     @Published var posts: [PostModel] = [] {
@@ -56,6 +57,12 @@ class AppState: ObservableObject {
     @Published var onboardingStatusReady: Bool = false
     @Published var isInOnboarding: Bool = false
     @Published var onboardingExpectedReplies: Int = 0
+    @Published var isRequestingReplies: Bool = false
+    @Published var onboardingFirstReplyReceived: Bool = false
+    
+    // オンボーディング用プリフェッチ
+    private var prefetchedOnboardingReplies: [Reply] = []
+    @Published var prefetchedOnboardingText: String = ""
     
     @Published var userName: String = UserDefaults.standard.string(forKey: "userName") ?? "みずき（あなた）" {
         didSet { UserDefaults.standard.set(userName, forKey: "userName") }
@@ -114,8 +121,7 @@ class AppState: ObservableObject {
     init() { 
         loadAvatar()
         loadPosts()
-        registerUser()
-        fetchUser()
+        registerUser() // 完了後に fetchUser() を呼ぶ（直列化でレースコンディション回避）
     }
     
     private func registerUser() {
@@ -123,23 +129,31 @@ class AppState: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.cachePolicy = .reloadIgnoringLocalCacheData
         let body: [String: Any] = ["user_id": userId]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        URLSession.shared.dataTask(with: request) { [weak self] data, _, error in
-            guard let self = self, let data = data else {
-                DispatchQueue.main.async { self?.onboardingStatusReady = true }
-                return
-            }
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                let dbFlag = parseJSONBool(json["has_completed_onboarding"])
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            guard let self = self else { return }
+            let httpStatus = (response as? HTTPURLResponse)?.statusCode ?? 0
+            
+            // ネットワークエラーまたは HTTPエラー → サーバーの真値が不明なので安全側に倒す
+            guard error == nil, (200..<300).contains(httpStatus), let data = data,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
                 DispatchQueue.main.async {
-                    if self.hasCompletedOnboarding != dbFlag {
-                        self.hasCompletedOnboarding = dbFlag
-                    }
+                    // サーバーに確認できなかった場合、UserDefaults のキャッシュ値をそのまま使う
                     self.onboardingStatusReady = true
                 }
-            } else {
-                DispatchQueue.main.async { self.onboardingStatusReady = true }
+                return
+            }
+            
+            let dbFlag = parseJSONBool(json["has_completed_onboarding"])
+            DispatchQueue.main.async {
+                if self.hasCompletedOnboarding != dbFlag {
+                    self.hasCompletedOnboarding = dbFlag
+                }
+                self.onboardingStatusReady = true
+                // onboarding判定確定後にフォロワー数などを取得
+                self.fetchUser()
             }
         }.resume()
     }
@@ -210,8 +224,20 @@ class AppState: ObservableObject {
         return thresholds[currentRank]
     }
     
+    /// fakeCompose投稿時点でAIにリクエストを送り、返信を事前取得しておく
+    func prefetchOnboardingReplies(text: String) {
+        prefetchedOnboardingText = text
+        prefetchedOnboardingReplies = []
+        // is_onboarding=true で送信（オンボ専用プロンプト）
+        fetchAiRepliesBackground(content: text, followers: 20_000_000) { [weak self] replies in
+            guard let self = self else { return }
+            self.prefetchedOnboardingReplies = replies
+        }
+    }
+    
     func submitOnboardingPost(text: String) {
         isInOnboarding = true
+        onboardingFirstReplyReceived = false
         let newPost = PostModel(content: text, imageData: nil, likes: 0, replies: [], time: "今")
         posts = [newPost]
         
@@ -236,7 +262,20 @@ class AppState: ObservableObject {
             self.followers = Int(Double(targetFollowers) * p)
         }
         
-        requestAiReplies(content: text, imageData: nil, followers: 20_000_000)
+        if !prefetchedOnboardingReplies.isEmpty {
+            // プリフェッチ済み返信をそのまま使う
+            let replies = prefetchedOnboardingReplies
+            prefetchedOnboardingReplies = []
+            pendingReplies = replies
+            startReplyDrainTimer()
+        } else {
+            // まだ取得中ならそのまま待つ（fetchAiRepliesBackgroundのコールバックで自動反映）
+            fetchAiRepliesBackground(content: text, followers: 20_000_000) { [weak self] replies in
+                guard let self = self else { return }
+                self.pendingReplies = replies
+                self.startReplyDrainTimer()
+            }
+        }
     }
     
     func completeOnboarding() {
@@ -288,17 +327,13 @@ class AppState: ObservableObject {
         savePosts()
     }
     
-    // API関連
-    static let localBaseUrl = "http://127.0.0.1:8000"
-    static let remoteBaseUrl = "https://zen-kotei-api.onrender.com"
-    
-    @Published var useRemoteApi: Bool = UserDefaults.standard.bool(forKey: "useRemoteApi") {
-        didSet { UserDefaults.standard.set(useRemoteApi, forKey: "useRemoteApi") }
-    }
-    
-    private var baseUrl: String { useRemoteApi ? Self.remoteBaseUrl : Self.localBaseUrl }
-    private var apiUrl: String { "\(baseUrl)/api/posts" }
-    private var userApiUrl: String { "\(baseUrl)/api/users" }
+    // API関連 — ローカル/リモート切り替えはここを変更するだけ
+    private static let useRemote = false
+    private static let baseUrl = useRemote
+        ? "https://aisns-1.onrender.com"
+        : "http://127.0.0.1:8000"
+    private let apiUrl = "\(baseUrl)/api/posts"
+    private let userApiUrl = "\(baseUrl)/api/users"
     
     let userId: String = {
         if let stored = UserDefaults.standard.string(forKey: "userId") {
@@ -312,16 +347,16 @@ class AppState: ObservableObject {
     
     func fetchUser() {
         guard let url = URL(string: "\(userApiUrl)/\(userId)") else { return }
-        URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
+        var request = URLRequest(url: url)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        URLSession.shared.dataTask(with: request) { [weak self] data, _, _ in
             guard let self = self, let data = data else { return }
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
                 DispatchQueue.main.async {
                     self.followers = json["total_followers"] as? Int ?? 0
                     self.totalPosts = json["total_posts"] as? Int ?? 0
-                    let dbFlag = parseJSONBool(json["has_completed_onboarding"])
-                    if self.hasCompletedOnboarding != dbFlag {
-                        self.hasCompletedOnboarding = dbFlag
-                    }
+                    // hasCompletedOnboarding はここでは更新しない
+                    //（onboarding判定は registerUser() が唯一の責務）
                 }
             }
         }.resume()
@@ -343,6 +378,7 @@ class AppState: ObservableObject {
 
     private func requestAiReplies(content: String, imageData: Data?, followers: Int) {
         pendingReplies = []
+        isRequestingReplies = true
         
         guard let url = URL(string: apiUrl) else { return }
         var request = URLRequest(url: url)
@@ -364,12 +400,31 @@ class AppState: ObservableObject {
         
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         
+        DispatchQueue.main.async { self.debugText = "REQ→\(url)" }
         URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
-            guard let self = self, let data = data, error == nil else { return }
+            if let error = error {
+                DispatchQueue.main.async {
+                    self?.debugText = "ERR:\(error.localizedDescription)"
+                    self?.isRequestingReplies = false
+                }
+                return
+            }
+            guard let self = self, let data = data else {
+                DispatchQueue.main.async {
+                    self?.debugText = "NO DATA"
+                    self?.isRequestingReplies = false
+                }
+                return
+            }
+            let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+            let raw = String(data: data, encoding: .utf8) ?? "(not utf8)"
+            DispatchQueue.main.async { self.debugText = "HTTP\(status) len=\(data.count) \(String(raw.prefix(120)))" }
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let status = json["status"] as? String, status == "success",
+               let st = json["status"] as? String, st == "success",
                let repliesJson = json["replies"] as? [[String: Any]] {
                 DispatchQueue.main.async {
+                    self.debugText = "OK \(repliesJson.count) replies"
+                    self.isRequestingReplies = false
                     var pending: [Reply] = []
                     for r in repliesJson {
                         let author = r["author_name"] as? String ?? "名無し"
@@ -382,7 +437,60 @@ class AppState: ObservableObject {
                     self.pendingReplies = pending
                     self.startReplyDrainTimer()
                 }
+            } else {
+                DispatchQueue.main.async {
+                    self.debugText = "PARSE FAIL: \(String(raw.prefix(200)))"
+                    self.isRequestingReplies = false
+                }
             }
+        }.resume()
+    }
+    
+    private func fetchAiRepliesBackground(content: String, followers: Int, retryCount: Int = 0, completion: @escaping ([Reply]) -> Void) {
+        guard let url = URL(string: apiUrl) else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 180
+        
+        let body: [String: Any] = [
+            "user_id": userId,
+            "content": content,
+            "followers": followers,
+            "is_hater_enabled": isHaterEnabled,
+            "is_onboarding": true    // オンボ専用プロンプト固定
+        ]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            guard let self = self else { return }
+            
+            if let error = error {
+                print("fetchAiRepliesBackground error: \(error.localizedDescription)")
+                // ネットワーク切断などは2回までリトライ
+                if retryCount < 2 {
+                    DispatchQueue.global().asyncAfter(deadline: .now() + 3.0) {
+                        self.fetchAiRepliesBackground(content: content, followers: followers, retryCount: retryCount + 1, completion: completion)
+                    }
+                }
+                return
+            }
+            
+            guard let data = data,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let st = json["status"] as? String, st == "success",
+                  let repliesJson = json["replies"] as? [[String: Any]] else { return }
+            
+            var replies: [Reply] = []
+            for r in repliesJson {
+                let author = r["author_name"] as? String ?? "名無し"
+                let content = r["content"] as? String ?? ""
+                let isHater = jsonReplyBool(r, snake: "is_hater", camel: "isHater")
+                let isDefender = jsonReplyBool(r, snake: "is_defender", camel: "isDefender")
+                let img = r["author_img"] as? String ?? self.avatars[0]
+                replies.append(Reply(authorName: author, text: content, img: img, isHater: isHater, isDefender: isDefender))
+            }
+            DispatchQueue.main.async { completion(replies) }
         }.resume()
     }
     
@@ -426,6 +534,11 @@ class AppState: ObservableObject {
                 : .spring(response: 0.4, dampingFraction: 0.7)
             withAnimation(animation) {
                 self.posts[0].replies.insert(reply, at: 0)
+            }
+            
+            // オンボ中：1件目のリプライが表示されたらローディングを消す
+            if self.isInOnboarding && !self.onboardingFirstReplyReceived {
+                self.onboardingFirstReplyReceived = true
             }
             
             if self.pendingReplies.isEmpty {

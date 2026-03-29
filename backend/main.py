@@ -12,7 +12,7 @@ from supabase import create_client, Client
 # -------- 1. 設定・初期化 --------
 load_dotenv()
 
-app = FastAPI(title="ZEN-KOTEI Logic Engine")
+app = FastAPI(title="UPME! | AI SNS Logic Engine")
 
 app.add_middleware(
     CORSMiddleware,
@@ -316,7 +316,7 @@ async def generate_ai_replies(content: str, followers: int, is_hater_enabled: bo
     """
 
     system_prompt = f"""
-    あなたはSNS「ZEN-KOTEI」の仮想フォロワーエンジンです。
+    あなたはSNS「UPME! | AI SNS」の仮想フォロワーエンジンです。
     ユーザーの承認ランクは「Lv.{rank}」（フォロワー: {followers}）です。
     ユーザーの投稿に対して、以下の条件に沿った架空のフォロワーからの返信を **きっちり {total_replies} 件**（多くても少なくてもダメ）JSONで作成してください。
 
@@ -522,7 +522,7 @@ def update_user_status(user_id: str, request: UserUpdateRequest):
 
 @app.get("/")
 def health_check():
-    return {"status": "ok", "message": "ZEN-KOTEI Backend logic is running."}
+    return {"status": "ok", "message": "UPME! | AI SNS Backend logic is running."}
 
 # [実行コマンド]
 # uvicorn main:app --reload

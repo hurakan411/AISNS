@@ -1,4 +1,4 @@
--- ZEN-KOTEI データベーススキーマ (Supabase SQL Editor で実行)
+-- UPME! | AI SNS データベーススキーマ (Supabase SQL Editor で実行)
 -- posts / replies はローカル管理のため、DB は users テーブルのみ
 
 -- 拡張機能 (UUIDの自動生成用)

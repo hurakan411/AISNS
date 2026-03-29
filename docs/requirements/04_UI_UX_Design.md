@@ -25,8 +25,8 @@
 - **オンボーディングアニメーション**:
   - Phase間のトランジション: `easeInOut(duration: 0.6)` で自然に切り替え。
   - Ritualテキスト: 各行を0.6秒のフェードインで順次表示。
-  - ZEN-KOTEIロゴ: Spring Animation + ネオンシャドウで登場。
-  - 「ZEN-KOTEIを始める」ボタン: bottom → up のスライド + フェードで出現。
+  - UPME! | AI SNS ロゴ: Spring Animation + ネオンシャドウで登場。
+  - 「UPME! | AI SNSを始める」ボタン: bottom → up のスライド + フェードで出現。
 
 ## 5.4 ランクガイドUI
 Stats画面内の全10ランク一覧表示のデザインルール:

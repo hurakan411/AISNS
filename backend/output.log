@@ -1,6 +1,27 @@
-------- バックエンド（AI & DB）動作テスト -------
-👤 テスト用ユーザー確認OK
-
-🚀 FastAPIへ投稿リクエストを送信しています...
-❌ FastAPIリクエストエラー: [Errno 61] Connection refused
-💡 uvicornサーバーが起動していない可能性があります。
+INFO:     Will watch for changes in these directories: ['/Users/hashinokuchishougo/AISNS/backend']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [73928] using StatReload
+INFO:     Started server process [73986]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:51660 - "HEAD /docs HTTP/1.1" 200 OK
+✅ AI Replies generated: 12 replies
+INFO:     127.0.0.1:51720 - "POST /api/posts HTTP/1.1" 200 OK
+✅ AI Replies generated: 12 replies
+INFO:     127.0.0.1:51755 - "POST /api/posts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51810 - "PUT /api/users/85acf315-d82d-43b5-8dae-3037a0520732 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51820 - "POST /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51820 - "GET /api/users/85acf315-d82d-43b5-8dae-3037a0520732 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51847 - "POST /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51847 - "GET /api/users/221d144f-260d-4fdf-a174-ee640e2ca8e2 HTTP/1.1" 200 OK
+✅ AI Replies generated: 17 replies
+INFO:     127.0.0.1:51850 - "POST /api/posts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51922 - "POST /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51922 - "GET /api/users/221d144f-260d-4fdf-a174-ee640e2ca8e2 HTTP/1.1" 200 OK
+✅ AI Replies generated: 10 replies
+INFO:     127.0.0.1:51927 - "POST /api/posts HTTP/1.1" 200 OK
+✅ AI Replies generated: 7 replies
+INFO:     127.0.0.1:51976 - "POST /api/posts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51994 - "PUT /api/users/221d144f-260d-4fdf-a174-ee640e2ca8e2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52005 - "POST /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52005 - "GET /api/users/221d144f-260d-4fdf-a174-ee640e2ca8e2 HTTP/1.1" 200 OK

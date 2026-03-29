@@ -348,17 +348,6 @@ struct ProfileView: View {
                     }
                     .toggleStyle(SwitchToggleStyle(tint: Theme.hotPink))
                     
-                    Toggle(isOn: $appState.useRemoteApi) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("リモートAPI（Render.com）")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundColor(.white)
-                            Text(appState.useRemoteApi ? "本番サーバーに接続中" : "ローカルサーバーに接続中")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(appState.useRemoteApi ? .green : .orange)
-                        }
-                    }
-                    .toggleStyle(SwitchToggleStyle(tint: Theme.cyan))
                 }
                 .padding(.horizontal, 32)
                 .padding(.top, 32)
@@ -441,12 +430,12 @@ struct LegalTextView: View {
 }
 
 private let termsOfServiceText = """
-ZEN-KOTEI 利用規約
+UPME! | AI SNS 利用規約
 
 最終更新日: 2026年3月28日
 
 第1条（適用）
-本規約は、ZEN-KOTEI（以下「本アプリ」）の利用に関する条件を定めるものです。ユーザーは、本アプリを利用することにより、本規約に同意したものとみなされます。
+本規約は、UPME! | AI SNS（以下「本アプリ」）の利用に関する条件を定めるものです。ユーザーは、本アプリを利用することにより、本規約に同意したものとみなされます。
 
 第2条（サービスの内容）
 本アプリは、ユーザーが投稿したテキストに対してAI（人工知能）が仮想的なフォロワーの返信を生成するエンターテインメントアプリです。
@@ -477,12 +466,12 @@ ZEN-KOTEI 利用規約
 """
 
 private let privacyPolicyText = """
-ZEN-KOTEI プライバシーポリシー
+UPME! | AI SNS プライバシーポリシー
 
 最終更新日: 2026年3月28日
 
 1. はじめに
-ZEN-KOTEI（以下「本アプリ」）は、ユーザーのプライバシーを尊重し、個人情報の保護に努めます。本ポリシーでは、本アプリが取り扱う情報について説明します。
+UPME! | AI SNS（以下「本アプリ」）は、ユーザーのプライバシーを尊重し、個人情報の保護に努めます。本ポリシーでは、本アプリが取り扱う情報について説明します。
 
 2. 収集する情報
 本アプリでは、以下の情報を取り扱います。

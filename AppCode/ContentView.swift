@@ -26,12 +26,12 @@ struct ContentView: View {
             VStack(spacing: 0) {
                 if activeTab != .post && activeTab != .profile {
                     HStack(spacing: 12) {
-                        Text("ZEN-KOTEI")
+                        Text("UPME! | AI SNS")
                             .font(.system(size: 20, weight: .black, design: .rounded)).italic()
                             .foregroundColor(.clear)
                             .background(
                                 LinearGradient(gradient: Gradient(colors: [Theme.hotPink, .purple, Theme.cyan]), startPoint: .leading, endPoint: .trailing)
-                                    .mask(Text("ZEN-KOTEI").font(.system(size: 20, weight: .black, design: .rounded)).italic())
+                                    .mask(Text("UPME! | AI SNS").font(.system(size: 20, weight: .black, design: .rounded)).italic())
                             )
                             .neonShadow(color: Theme.hotPink, radius: 4)
                             
