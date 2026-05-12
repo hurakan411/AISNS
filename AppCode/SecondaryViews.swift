@@ -69,7 +69,7 @@ struct RankInfo {
     let likes: String
 }
 
-private let rankData: [RankInfo] = [
+let rankData: [RankInfo] = [
     RankInfo(level: 1,  name: "名もなき市民",             followers: "0〜99",          replies: "3〜5",   haters: "なし",     likes: "100〜280"),
     RankInfo(level: 2,  name: "クラスの人気者",           followers: "100〜499",       replies: "4〜7",   haters: "なし",     likes: "270〜770"),
     RankInfo(level: 3,  name: "プチ・インフルエンサー",    followers: "500〜1,999",     replies: "4〜7",   haters: "なし",     likes: "510〜1,470"),
@@ -207,6 +207,7 @@ struct StatCard: View {
 
 struct ProfileView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var storeManager: StoreManager
     @State private var selectedItem: PhotosPickerItem? = nil
     @State private var isEditingName = false
     @State private var isEditingBio = false
@@ -348,6 +349,59 @@ struct ProfileView: View {
                     }
                     .toggleStyle(SwitchToggleStyle(tint: Theme.hotPink))
                     
+                    if !storeManager.isAdsRemoved {
+                        if let product = storeManager.products.first {
+                            Button(action: {
+                                Task {
+                                    await storeManager.purchase(product)
+                                }
+                            }) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("広告を消す (買い切り)")
+                                            .font(.system(size: 16, weight: .bold))
+                                            .foregroundColor(.white)
+                                        Text("バナー広告を非表示にします")
+                                            .font(.system(size: 11, weight: .medium))
+                                            .foregroundColor(.gray)
+                                    }
+                                    Spacer()
+                                    Text(product.displayPrice)
+                                        .font(.system(size: 15, weight: .bold))
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(Theme.cyan.opacity(0.2))
+                                        .foregroundColor(Theme.cyan)
+                                        .cornerRadius(8)
+                                }
+                            }
+                            
+                            Button(action: {
+                                Task {
+                                    await storeManager.restorePurchases()
+                                }
+                            }) {
+                                Text("購入の復元")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.gray)
+                            }
+                            .padding(.top, 4)
+                        } else {
+                            Text("広告削除の読み込み中...")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.gray)
+                        }
+                    } else {
+                        HStack {
+                            Text("広告を消す (買い切り)")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.white.opacity(0.5))
+                            Spacer()
+                            Text("購入済み")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.gray)
+                        }
+                    }
                 }
                 .padding(.horizontal, 32)
                 .padding(.top, 32)
@@ -465,15 +519,18 @@ UPME! | AI SNS 利用規約
 運営者は、必要に応じて本規約を変更できるものとします。変更後の規約は、本アプリ内に掲示した時点で効力を生じます。
 """
 
-private let privacyPolicyText = """
+let privacyPolicyText = """
 UPME! | AI SNS プライバシーポリシー
 
-最終更新日: 2026年3月28日
+最終更新日: 2026年5月12日
 
 1. はじめに
 UPME! | AI SNS（以下「本アプリ」）は、ユーザーのプライバシーを尊重し、個人情報の保護に努めます。本ポリシーでは、本アプリが取り扱う情報について説明します。
 
-2. 収集する情報
+2. ユーザーの同意について
+本アプリの初回起動時に、下記「3. 情報の利用目的」と「4. 第三者への提供」に記載する通り、インターネット上のサーバー（OpenAI）へデータが送信される旨を明示し、ユーザーから同意を得た上でサービスを提供します。
+
+3. 収集する情報
 本アプリでは、以下の情報を取り扱います。
 
 【自動的に生成・保存される情報】
@@ -482,30 +539,32 @@ UPME! | AI SNS（以下「本アプリ」）は、ユーザーのプライバシ
 
 【ユーザーが入力する情報】
 ・投稿テキスト（AI返信生成のためサーバーに送信されます）
-・プロフィール情報（ユーザー名、自己紹介文、アバター画像 — 端末内にのみ保存）
+・投稿に添付した画像（任意。選択した場合のみAI返信生成のためサーバーに送信されます）
+・プロフィール情報（ユーザー名、自己紹介文、アバター画像 — 端末内にのみ保存、サーバーへの送信はしません）
 
-3. 情報の利用目的
-・投稿テキスト: AI返信を生成するために、OpenAI社のAPIへ送信されます。送信されたテキストはAI処理後、本アプリのサーバーには保存されません。
+4. 情報の利用目的
+・投稿テキスト・画像: AI返信を生成するために、OpenAI社のAPIへ送信されます。送信されたデータはAI処理後、本アプリのサーバーには保存されません。
 ・ユーザーID・進行データ: アプリの状態を管理し、端末間でのデータ同期に利用します。
 
-4. 第三者への提供
-・投稿テキストは、AI返信生成の目的でOpenAI社のAPIに送信されます。OpenAI社のデータ取り扱いについては、同社のプライバシーポリシーをご確認ください。
+5. 第三者への提供
+・投稿テキストおよび添付画像は、AI返信生成の目的でOpenAI社のAPIに送信されます。
+・OpenAI社のデータ取り扱いについては、同社のプライバシーポリシー (https://openai.com/policies/privacy-policy) をご確認ください。同社は本アプリと同等以上のプライバシー保護基準を適用しています。
 ・上記を除き、ユーザーの情報を第三者に提供・販売することはありません。
 
-5. データの保存
+6. データの保存
 ・投稿データ（テキスト・返信）は端末内にのみ保存され、直近5件を超えるデータは自動的に削除されます。
 ・サーバー（Supabase）には、ユーザーID・フォロワー数・投稿数・オンボーディングフラグのみが保存されます。
 
-6. データの削除
+7. データの削除
 ・アプリをアンインストールすることで、端末内のすべてのデータが削除されます。
 ・サーバー上のデータの削除を希望される場合は、運営者までご連絡ください。
 
-7. お子様のプライバシー
+8. お子様のプライバシー
 本アプリは、13歳未満のお子様を対象としていません。
 
-8. ポリシーの変更
+9. ポリシーの変更
 本ポリシーは、必要に応じて改定されることがあります。重要な変更がある場合は、アプリ内で通知します。
 
-9. お問い合わせ
+10. お問い合わせ
 本ポリシーに関するご質問は、アプリの運営者までお問い合わせください。
 """
