@@ -213,6 +213,7 @@ struct ProfileView: View {
     @State private var isEditingBio = false
     @State private var showTerms = false
     @State private var showPrivacy = false
+    @State private var followerPendingRemoval: RegularFollower?
     
     var body: some View {
         ScrollView {
@@ -326,6 +327,101 @@ struct ProfileView: View {
                 .padding(.horizontal, 24)
                 .padding(.top, 16)
                 
+                Divider()
+                    .background(Color.white.opacity(0.1))
+                    .padding(.vertical, 24)
+
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("REGULAR FOLLOWERS")
+                                .font(.system(size: 14, weight: .black))
+                                .foregroundColor(.gray)
+                                .tracking(2)
+                            Text("常連AIフォロワー")
+                                .font(.system(size: 18, weight: .black))
+                                .foregroundColor(.white)
+                        }
+                        Spacer()
+                        Text("\(appState.regularFollowers.count) / \(appState.maxRegularFollowers)")
+                            .font(.system(size: 14, weight: .black, design: .monospaced))
+                            .foregroundColor(Theme.cyan)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Theme.cyan.opacity(0.12))
+                            .cornerRadius(10)
+                    }
+
+                    if appState.regularFollowers.isEmpty {
+                        HStack(spacing: 12) {
+                            Image(systemName: "star.circle")
+                                .font(.system(size: 28))
+                                .foregroundColor(.gray.opacity(0.6))
+                            Text("返信右上の☆ボタンから、覚えてほしいフォロワーを常連にできます。")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.gray)
+                                .lineSpacing(4)
+                        }
+                        .padding(16)
+                        .background(Color.white.opacity(0.03))
+                        .cornerRadius(16)
+                    } else {
+                        ForEach(appState.regularFollowers) { follower in
+                            HStack(spacing: 12) {
+                                AsyncImage(url: URL(string: follower.avatarURL)) { phase in
+                                    if let image = phase.image {
+                                        image.resizable().scaledToFill()
+                                    } else {
+                                        Image(systemName: "person.circle.fill")
+                                            .resizable()
+                                            .foregroundColor(Theme.hotPink)
+                                    }
+                                }
+                                .frame(width: 48, height: 48)
+                                .clipShape(Circle())
+                                .overlay(Circle().stroke(Theme.cyan.opacity(0.6), lineWidth: 2))
+
+                                VStack(alignment: .leading, spacing: 5) {
+                                    HStack(spacing: 6) {
+                                        Text("@\(follower.authorName)")
+                                            .font(.system(size: 15, weight: .black))
+                                            .foregroundColor(.white)
+                                        Text("REGULAR")
+                                            .font(.system(size: 8, weight: .black))
+                                            .foregroundColor(Theme.cyan)
+                                    }
+                                    Text(follower.recentInteractions.last ?? "次の投稿から記憶を使って返信します")
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundColor(.gray)
+                                        .lineLimit(2)
+                                }
+
+                                Spacer()
+
+                                Button("解除") {
+                                    followerPendingRemoval = follower
+                                }
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(.red.opacity(0.9))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 7)
+                                .background(Color.red.opacity(0.1))
+                                .cornerRadius(10)
+                            }
+                            .padding(14)
+                            .background(Color.white.opacity(0.035))
+                            .cornerRadius(18)
+                        }
+                    }
+
+                    if appState.maxRegularFollowers < 3 {
+                        Text(appState.maxRegularFollowers == 1 ? "Lv.4で常連枠が2人に増えます" : "Lv.7で常連枠が3人に増えます")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(Theme.cyan.opacity(0.8))
+                    }
+                }
+                .padding(.horizontal, 32)
+
                 Divider()
                     .background(Color.white.opacity(0.1))
                     .padding(.vertical, 24)
@@ -451,6 +547,16 @@ struct ProfileView: View {
         .refreshable {
             appState.fetchUser()
         }
+        .alert(item: $followerPendingRemoval) { follower in
+            Alert(
+                title: Text("@\(follower.authorName)の常連を解除しますか？"),
+                message: Text("このフォロワーの会話記憶も端末から削除されます。"),
+                primaryButton: .destructive(Text("解除する")) {
+                    appState.removeRegularFollower(id: follower.id)
+                },
+                secondaryButton: .cancel(Text("キャンセル"))
+            )
+        }
         .sheet(isPresented: $showTerms) { LegalTextView(title: "利用規約", text: termsOfServiceText) }
         .sheet(isPresented: $showPrivacy) { LegalTextView(title: "プライバシーポリシー", text: privacyPolicyText) }
     }
@@ -522,7 +628,7 @@ UPME! | AI SNS 利用規約
 let privacyPolicyText = """
 UPME! | AI SNS プライバシーポリシー
 
-最終更新日: 2026年5月12日
+最終更新日: 2026年8月18日
 
 1. はじめに
 UPME! | AI SNS（以下「本アプリ」）は、ユーザーのプライバシーを尊重し、個人情報の保護に努めます。本ポリシーでは、本アプリが取り扱う情報について説明します。
@@ -536,6 +642,7 @@ UPME! | AI SNS（以下「本アプリ」）は、ユーザーのプライバシ
 【自動的に生成・保存される情報】
 ・ユーザーID（アプリ初回起動時に端末上で自動生成されるランダムなUUID）
 ・アプリ内の進行データ（フォロワー数、投稿数、ランク、オンボーディング完了フラグ）
+・常連AIフォロワー情報（名前、アバターURL、会話から生成された記憶と直近のやり取りの要約 — 端末内にのみ保存）
 
 【ユーザーが入力する情報】
 ・投稿テキスト（AI返信生成のためサーバーに送信されます）
@@ -544,15 +651,18 @@ UPME! | AI SNS（以下「本アプリ」）は、ユーザーのプライバシ
 
 4. 情報の利用目的
 ・投稿テキスト・画像: AI返信を生成するために、OpenAI社のAPIへ送信されます。送信されたデータはAI処理後、本アプリのサーバーには保存されません。
+・常連AIフォロワーの会話記憶: 過去のやり取りを踏まえた返信を生成するため、常連設定中のみ投稿とあわせてOpenAI社のAPIへ送信されます。本アプリのサーバーには保存されません。
 ・ユーザーID・進行データ: アプリの状態を管理し、端末間でのデータ同期に利用します。
 
 5. 第三者への提供
 ・投稿テキストおよび添付画像は、AI返信生成の目的でOpenAI社のAPIに送信されます。
+・常連設定中は、常連AIフォロワーの会話記憶と直近のやり取りの要約も、継続性のあるAI返信を生成する目的でOpenAI社のAPIに送信されます。
 ・OpenAI社のデータ取り扱いについては、同社のプライバシーポリシー (https://openai.com/policies/privacy-policy) をご確認ください。同社は本アプリと同等以上のプライバシー保護基準を適用しています。
 ・上記を除き、ユーザーの情報を第三者に提供・販売することはありません。
 
 6. データの保存
 ・投稿データ（テキスト・返信）は端末内にのみ保存され、直近5件を超えるデータは自動的に削除されます。
+・常連AIフォロワーの設定と会話記憶は端末内にのみ保存され、プロフィール画面から常連を解除すると削除されます。
 ・サーバー（Supabase）には、ユーザーID・フォロワー数・投稿数・オンボーディングフラグのみが保存されます。
 
 7. データの削除

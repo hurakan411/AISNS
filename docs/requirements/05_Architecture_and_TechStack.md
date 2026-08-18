@@ -13,8 +13,10 @@
   - 宣言的UIによる高速なプロトタイピングと、iOS標準の滑らかなアニメーション（Spring Animation等）の実装。
 - **非同期処理**: Swift Concurrency (`async/await`) + Combine
   - バックエンドAPIとのHTTP通信、Timer（バズ演出・リプライ遅延表示）の制御。
+  - Debugビルドは `http://127.0.0.1:8000`、Releaseビルドは本番Renderを使用。`UPME_API_BASE_URL` 環境変数でステージングURLへ上書き可能。
 - **ローカルストレージ**: JSONファイル + UserDefaults
   - 投稿データ（最大5件）はJSONファイルとしてDocumentsディレクトリに保存。
+  - 常連AIフォロワー（最大3人）の固定ID・名前・アバター・要約記憶は `regular_followers_v1.json` に保存。
   - ユーザー設定（ユーザー名、Bio、アンチON/OFF、ユーザーID等）はUserDefaultsに保存。
   - アバター画像はDocumentsディレクトリにバイナリファイルとして保存。
 - **アニメーションライブラリ**: Lottie (Swift Package Manager, v4.4.0+)
@@ -29,7 +31,8 @@
   - **Structured Outputs**: Pydanticモデル（`GenerateRepliesResponse`）を使用し、確実にJSONスキーマで返却。1回のAPIリクエストで全リプライ分を一括生成。
   - **画像認識**: `image_base64` をVision形式ペイロードとして送信し、画像付き投稿にも対応。
 - **データフロー**: 同期レスポンス方式
-  - `POST /api/posts` でAIリプライを生成し、レスポンスボディで直接返却。DB中間保存やバックグラウンドタスクは使用しない。
+  - `POST /api/posts` でAIリプライと常連の記憶更新を生成し、レスポンスボディで直接返却。DB中間保存やバックグラウンドタスクは使用しない。
+  - 常連の要約記憶はリクエスト時のみクライアントから渡し、API・Supabaseには保存しない。旧クライアントは追加レスポンスフィールドを無視できるため後方互換。
 
 ### インフラストラクチャ・データベース
 - **プラットフォーム**: Supabase
@@ -40,7 +43,7 @@
 ### API エンドポイント一覧
 | メソッド | パス | 概要 |
 | :--- | :--- | :--- |
-| `POST` | `/api/posts` | AI返信を生成し、レスポンスで直接返却 |
+| `POST` | `/api/posts` | AI返信と常連の記憶更新を生成し、レスポンスで直接返却 |
 | `POST` | `/api/users` | 初回ユーザー登録（upsert） |
 | `GET` | `/api/users/{user_id}` | ユーザー情報取得（フォロワー数・投稿数・オンボーディングフラグ） |
 | `PUT` | `/api/users/{user_id}` | ユーザー情報更新（フォロワー数・投稿数の同期） |

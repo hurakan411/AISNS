@@ -42,9 +42,9 @@
 
 ```
 [投稿フロー]
-1. SwiftUI → POST /api/posts (投稿テキスト + フォロワー数 + 設定)
-2. FastAPI → OpenAI API (リプライ一括生成)
-3. FastAPI → SwiftUI (レスポンスボディでリプライ配列を返却)
+1. SwiftUI → POST /api/posts (投稿テキスト + フォロワー数 + 設定 + 常連の要約記憶)
+2. FastAPI → OpenAI API (リプライ + 常連の記憶更新を一括生成)
+3. FastAPI → SwiftUI (レスポンスボディでリプライ配列 + 記憶更新を返却)
 4. SwiftUI → ローカルJSONファイルに保存 (最大5件)
 5. SwiftUI → リプライを5〜15秒間隔で順次表示 + いいね/フォロワー漸増
 6. SwiftUI → PUT /api/users/{id} (フォロワー数・投稿数をDBに同期)
@@ -65,6 +65,7 @@
 | データ | 保存先 | 保持上限 | 備考 |
 | :--- | :--- | :--- | :--- |
 | 投稿＋返信 | `Documents/posts_v1.json` | 5件 | 超過分は自動削除 |
+| 常連AIフォロワー＋要約記憶 | `Documents/regular_followers_v1.json` | 3人 | ランク別上限あり。プロフィールから解除可能 |
 | ユーザーアバター | `Documents/user_avatar.dat` | 1件 | バイナリ画像データ |
 | ユーザー名 | `UserDefaults` | - | `userName` キー |
 | 自己紹介文 | `UserDefaults` | - | `userBio` キー |

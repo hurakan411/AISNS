@@ -46,6 +46,7 @@ struct FeedView: View {
 struct PostCard: View {
     @EnvironmentObject var appState: AppState
     let post: PostModel
+    @State private var regularFollowerAlert: RegularFollowerAlert?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -134,7 +135,18 @@ struct PostCard: View {
                     }
 
                     ForEach(post.replies) { reply in
-                        ReplyRow(reply: reply)
+                        ReplyRow(
+                            reply: reply,
+                            isRegular: appState.isRegularFollower(reply),
+                            canManageRegulars: !appState.isInOnboarding
+                        ) {
+                            guard !appState.isRegularFollower(reply) else { return }
+                            if appState.regularFollowers.count >= appState.maxRegularFollowers {
+                                regularFollowerAlert = .limitReached(maximum: appState.maxRegularFollowers)
+                            } else {
+                                regularFollowerAlert = .confirm(reply: reply)
+                            }
+                        }
                     }
                 }
                 .padding(.top, 20)
@@ -149,11 +161,45 @@ struct PostCard: View {
                 )
             }
         }
+        .alert(item: $regularFollowerAlert) { alert in
+            switch alert {
+            case .confirm(let reply):
+                return Alert(
+                    title: Text("@\(reply.authorName)を常連にしますか？"),
+                    message: Text("今後の投稿にも同じ名前と記憶を持って返信します。会話記憶は端末に保存され、返信生成時にOpenAIへ送信されます。"),
+                    primaryButton: .default(Text("常連にする")) {
+                        _ = appState.addRegularFollower(from: reply, postContent: post.content)
+                    },
+                    secondaryButton: .cancel(Text("キャンセル"))
+                )
+            case .limitReached(let maximum):
+                return Alert(
+                    title: Text("常連の上限に達しています"),
+                    message: Text("現在のランクでは最大\(maximum)人まで設定できます。プロフィール画面から常連を解除してから、もう一度お試しください。"),
+                    dismissButton: .default(Text("OK"))
+                )
+            }
+        }
+    }
+}
+
+private enum RegularFollowerAlert: Identifiable {
+    case confirm(reply: Reply)
+    case limitReached(maximum: Int)
+
+    var id: String {
+        switch self {
+        case .confirm(let reply): return "confirm-\(reply.id.uuidString)"
+        case .limitReached(let maximum): return "limit-\(maximum)"
+        }
     }
 }
 
 struct ReplyRow: View {
     let reply: Reply
+    let isRegular: Bool
+    let canManageRegulars: Bool
+    let onRegularTap: () -> Void
     
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
@@ -197,7 +243,26 @@ struct ReplyRow: View {
                             .foregroundColor(.green)
                             .cornerRadius(10)
                     }
+                    if isRegular {
+                        Text("REGULAR")
+                            .font(.system(size: 8, weight: .black))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Theme.cyan.opacity(0.18))
+                            .foregroundColor(Theme.cyan)
+                            .cornerRadius(10)
+                    }
                     Spacer()
+                    if canManageRegulars {
+                        Button(action: onRegularTap) {
+                            Image(systemName: isRegular ? "star.circle.fill" : "star.circle")
+                                .foregroundColor(isRegular ? .yellow : .gray.opacity(0.8))
+                                .font(.system(size: 18, weight: .bold))
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isRegular)
+                        .accessibilityLabel(isRegular ? "常連設定済み" : "常連に設定")
+                    }
                     if reply.isHater {
                         Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.red).font(.system(size: 12))
                     } else if reply.isDefender {

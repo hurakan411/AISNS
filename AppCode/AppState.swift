@@ -8,6 +8,23 @@ struct Reply: Identifiable, Equatable, Codable {
     let img: String
     let isHater: Bool
     let isDefender: Bool
+    let regularFollowerId: String?
+}
+
+struct RegularFollower: Identifiable, Equatable, Codable {
+    let id: String
+    let authorName: String
+    let avatarURL: String
+    var memories: [String]
+    var recentInteractions: [String]
+    let createdAt: Date
+    var lastInteractionAt: Date?
+}
+
+enum AddRegularFollowerResult {
+    case added
+    case alreadyRegistered
+    case limitReached(maximum: Int)
 }
 
 struct PostModel: Identifiable, Codable {
@@ -49,6 +66,9 @@ class AppState: ObservableObject {
     @Published var totalPosts: Int = 0
     @Published var posts: [PostModel] = [] {
         didSet { if !isInOnboarding { savePosts() } }
+    }
+    @Published private(set) var regularFollowers: [RegularFollower] = [] {
+        didSet { saveRegularFollowers() }
     }
     
     @Published var hasCompletedOnboarding: Bool = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
@@ -118,6 +138,10 @@ class AppState: ObservableObject {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("user_avatar.dat")
     }
 
+    private var regularFollowersURL: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("regular_followers_v1.json")
+    }
+
     init() { 
         let bio = UserDefaults.standard.string(forKey: "userBio") ?? ""
         if bio.contains("ZEN-KOTEI") || bio.contains("全肯定") {
@@ -134,6 +158,7 @@ class AppState: ObservableObject {
         
         loadAvatar()
         loadPosts()
+        loadRegularFollowers()
         registerUser() // 完了後に fetchUser() を呼ぶ（直列化でレースコンディション回避）
     }
     
@@ -201,6 +226,18 @@ class AppState: ObservableObject {
             self.userAvatarData = fallback // backward compatible
         }
     }
+
+    private func saveRegularFollowers() {
+        if let data = try? JSONEncoder().encode(regularFollowers) {
+            try? data.write(to: regularFollowersURL, options: .atomic)
+        }
+    }
+
+    private func loadRegularFollowers() {
+        guard let data = try? Data(contentsOf: regularFollowersURL),
+              let decoded = try? JSONDecoder().decode([RegularFollower].self, from: data) else { return }
+        regularFollowers = Array(decoded.prefix(3))
+    }
     
     var currentRank: Int {
         if followers >= 20_000_000 { return 10 }
@@ -213,6 +250,53 @@ class AppState: ObservableObject {
         if followers >= 500 { return 3 }
         if followers >= 100 { return 2 }
         return 1
+    }
+
+    /// Lv.1〜3は1人、Lv.4〜6は2人、Lv.7〜10は3人まで常連にできる。
+    var maxRegularFollowers: Int {
+        switch currentRank {
+        case 1...3: return 1
+        case 4...6: return 2
+        default: return 3
+        }
+    }
+
+    func isRegularFollower(_ reply: Reply) -> Bool {
+        regularFollowers.contains { follower in
+            if let regularID = reply.regularFollowerId {
+                return follower.id == regularID
+            }
+            return follower.authorName == reply.authorName && follower.avatarURL == reply.img
+        }
+    }
+
+    @discardableResult
+    func addRegularFollower(from reply: Reply, postContent: String) -> AddRegularFollowerResult {
+        if isRegularFollower(reply) {
+            return .alreadyRegistered
+        }
+        guard regularFollowers.count < maxRegularFollowers else {
+            return .limitReached(maximum: maxRegularFollowers)
+        }
+
+        let postSummary = String(postContent.prefix(100))
+        let replySummary = String(reply.text.prefix(120))
+        let initialInteraction = "投稿「\(postSummary)」に「\(replySummary)」と返信した"
+        let follower = RegularFollower(
+            id: reply.regularFollowerId ?? UUID().uuidString.lowercased(),
+            authorName: reply.authorName,
+            avatarURL: reply.img,
+            memories: [],
+            recentInteractions: [initialInteraction],
+            createdAt: Date(),
+            lastInteractionAt: Date()
+        )
+        regularFollowers.append(follower)
+        return .added
+    }
+
+    func removeRegularFollower(id: String) {
+        regularFollowers.removeAll { $0.id == id }
     }
     
     var rankName: String {
@@ -340,11 +424,18 @@ class AppState: ObservableObject {
         savePosts()
     }
     
-    // API関連 — ローカル/リモート切り替えはここを変更するだけ
-    private static let useRemote = true
-    private static let baseUrl = useRemote
-        ? "https://aisns-1.onrender.com"
-        : "http://127.0.0.1:8000"
+    // Debugは本番Renderへ影響しないローカルAPIを使用する。
+    // Xcode Schemeの UPME_API_BASE_URL でステージングURLへ上書き可能。
+    private static let baseUrl: String = {
+        if let override = ProcessInfo.processInfo.environment["UPME_API_BASE_URL"], !override.isEmpty {
+            return override.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        }
+        #if DEBUG
+        return "http://127.0.0.1:8000"
+        #else
+        return "https://aisns-1.onrender.com"
+        #endif
+    }()
     private let apiUrl = "\(baseUrl)/api/posts"
     private let userApiUrl = "\(baseUrl)/api/users"
     
@@ -389,6 +480,48 @@ class AppState: ObservableObject {
         URLSession.shared.dataTask(with: request).resume()
     }
 
+    private func regularFollowerPayload() -> [[String: Any]] {
+        Array(regularFollowers.prefix(maxRegularFollowers)).map { follower in
+            [
+                "follower_id": follower.id,
+                "author_name": follower.authorName,
+                "avatar_url": follower.avatarURL,
+                "memories": Array(follower.memories.suffix(8)),
+                "recent_interactions": Array(follower.recentInteractions.suffix(3))
+            ]
+        }
+    }
+
+    private func applyRegularFollowerMemoryUpdates(_ updates: [[String: Any]]) {
+        guard !updates.isEmpty else { return }
+        var updatedFollowers = regularFollowers
+
+        for update in updates {
+            guard let followerID = update["follower_id"] as? String,
+                  let index = updatedFollowers.firstIndex(where: { $0.id == followerID }) else { continue }
+
+            let incomingMemories = (update["new_memories"] as? [String] ?? [])
+                .map { String($0.prefix(160)) }
+                .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            var mergedMemories = updatedFollowers[index].memories
+            for memory in incomingMemories where !mergedMemories.contains(memory) {
+                mergedMemories.append(memory)
+            }
+            updatedFollowers[index].memories = Array(mergedMemories.suffix(8))
+
+            if let interaction = update["interaction_summary"] as? String {
+                let trimmed = String(interaction.prefix(180)).trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty {
+                    updatedFollowers[index].recentInteractions.append(trimmed)
+                    updatedFollowers[index].recentInteractions = Array(updatedFollowers[index].recentInteractions.suffix(3))
+                }
+            }
+            updatedFollowers[index].lastInteractionAt = Date()
+        }
+
+        regularFollowers = updatedFollowers
+    }
+
     private func requestAiReplies(content: String, imageData: Data?, followers: Int) {
         pendingReplies = []
         isRequestingReplies = true
@@ -404,7 +537,8 @@ class AppState: ObservableObject {
             "content": content,
             "followers": followers,
             "is_hater_enabled": isHaterEnabled,
-            "is_onboarding": isInOnboarding
+            "is_onboarding": isInOnboarding,
+            "regular_followers": isInOnboarding ? [] : regularFollowerPayload()
         ]
         
         if let data = imageData {
@@ -435,9 +569,11 @@ class AppState: ObservableObject {
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let st = json["status"] as? String, st == "success",
                let repliesJson = json["replies"] as? [[String: Any]] {
+                let memoryUpdates = json["memory_updates"] as? [[String: Any]] ?? []
                 DispatchQueue.main.async {
                     self.debugText = "OK \(repliesJson.count) replies"
                     self.isRequestingReplies = false
+                    self.applyRegularFollowerMemoryUpdates(memoryUpdates)
                     var pending: [Reply] = []
                     for r in repliesJson {
                         let author = r["author_name"] as? String ?? "名無し"
@@ -445,7 +581,8 @@ class AppState: ObservableObject {
                         let isHater = jsonReplyBool(r, snake: "is_hater", camel: "isHater")
                         let isDefender = jsonReplyBool(r, snake: "is_defender", camel: "isDefender")
                         let img = r["author_img"] as? String ?? self.avatars[0]
-                        pending.append(Reply(authorName: author, text: content, img: img, isHater: isHater, isDefender: isDefender))
+                        let regularFollowerID = r["regular_follower_id"] as? String
+                        pending.append(Reply(authorName: author, text: content, img: img, isHater: isHater, isDefender: isDefender, regularFollowerId: regularFollowerID))
                     }
                     self.pendingReplies = pending
                     self.startReplyDrainTimer()
@@ -501,7 +638,8 @@ class AppState: ObservableObject {
                 let isHater = jsonReplyBool(r, snake: "is_hater", camel: "isHater")
                 let isDefender = jsonReplyBool(r, snake: "is_defender", camel: "isDefender")
                 let img = r["author_img"] as? String ?? self.avatars[0]
-                replies.append(Reply(authorName: author, text: content, img: img, isHater: isHater, isDefender: isDefender))
+                let regularFollowerID = r["regular_follower_id"] as? String
+                replies.append(Reply(authorName: author, text: content, img: img, isHater: isHater, isDefender: isDefender, regularFollowerId: regularFollowerID))
             }
             DispatchQueue.main.async { completion(replies) }
         }.resume()
