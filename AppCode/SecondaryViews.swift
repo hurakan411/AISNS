@@ -67,19 +67,20 @@ struct RankInfo {
     let replies: String
     let haters: String
     let likes: String
+    let regularFollowerLimit: Int
 }
 
 let rankData: [RankInfo] = [
-    RankInfo(level: 1,  name: "名もなき市民",             followers: "0〜99",          replies: "3〜5",   haters: "なし",     likes: "100〜280"),
-    RankInfo(level: 2,  name: "クラスの人気者",           followers: "100〜499",       replies: "4〜7",   haters: "なし",     likes: "270〜770"),
-    RankInfo(level: 3,  name: "プチ・インフルエンサー",    followers: "500〜1,999",     replies: "4〜7",   haters: "なし",     likes: "510〜1,470"),
-    RankInfo(level: 4,  name: "マイクロ・インフルエンサー", followers: "2,000〜9,999",   replies: "5〜8",   haters: "最大1",    likes: "1,500〜3,990"),
-    RankInfo(level: 5,  name: "ネットのカリスマ",          followers: "10,000〜49,999", replies: "5〜9",   haters: "最大1",    likes: "3,600〜10,150"),
-    RankInfo(level: 6,  name: "オピニオンリーダー",        followers: "50,000〜199,999", replies: "7〜10",  haters: "最大1",    likes: "10,500〜28,000"),
-    RankInfo(level: 7,  name: "時代の寵児",               followers: "200,000〜999,999", replies: "7〜12", haters: "最大2",    likes: "45,000〜119,000"),
-    RankInfo(level: 8,  name: "宗派の祖",                 followers: "1,000,000〜4,999,999", replies: "8〜13", haters: "最大2", likes: "114,000〜294,000"),
-    RankInfo(level: 9,  name: "預言者",                   followers: "5,000,000〜19,999,999", replies: "9〜14", haters: "最大2", likes: "270,000〜770,000"),
-    RankInfo(level: 10, name: "デジタル・ゴッド",          followers: "20,000,000〜",   replies: "10〜16", haters: "最大3",    likes: "450,000〜2,100,000"),
+    RankInfo(level: 1,  name: "名もなき市民",             followers: "0〜99",          replies: "3〜5",   haters: "なし",     likes: "100〜280",         regularFollowerLimit: 1),
+    RankInfo(level: 2,  name: "クラスの人気者",           followers: "100〜499",       replies: "4〜7",   haters: "なし",     likes: "270〜770",         regularFollowerLimit: 1),
+    RankInfo(level: 3,  name: "プチ・インフルエンサー",    followers: "500〜1,999",     replies: "4〜7",   haters: "なし",     likes: "510〜1,470",       regularFollowerLimit: 1),
+    RankInfo(level: 4,  name: "マイクロ・インフルエンサー", followers: "2,000〜9,999",   replies: "5〜8",   haters: "最大1",    likes: "1,500〜3,990",     regularFollowerLimit: 2),
+    RankInfo(level: 5,  name: "ネットのカリスマ",          followers: "10,000〜49,999", replies: "5〜9",   haters: "最大1",    likes: "3,600〜10,150",    regularFollowerLimit: 2),
+    RankInfo(level: 6,  name: "オピニオンリーダー",        followers: "50,000〜199,999", replies: "7〜10",  haters: "最大1",    likes: "10,500〜28,000",   regularFollowerLimit: 2),
+    RankInfo(level: 7,  name: "時代の寵児",               followers: "200,000〜999,999", replies: "7〜12", haters: "最大2",    likes: "45,000〜119,000",  regularFollowerLimit: 3),
+    RankInfo(level: 8,  name: "宗派の祖",                 followers: "1,000,000〜4,999,999", replies: "8〜13", haters: "最大2", likes: "114,000〜294,000", regularFollowerLimit: 3),
+    RankInfo(level: 9,  name: "預言者",                   followers: "5,000,000〜19,999,999", replies: "9〜14", haters: "最大2", likes: "270,000〜770,000", regularFollowerLimit: 3),
+    RankInfo(level: 10, name: "デジタル・ゴッド",          followers: "20,000,000〜",   replies: "10〜16", haters: "最大3",    likes: "450,000〜2,100,000", regularFollowerLimit: 3),
 ]
 
 struct RankGuideSection: View {
@@ -133,13 +134,17 @@ struct RankGuideSection: View {
                         RankDetailLabel(icon: "heart.fill", text: isHidden ? "???" : info.likes, dimmed: isHidden)
                     }
 
-                    HStack(spacing: 4) {
-                        Image(systemName: "flame.fill")
-                            .font(.system(size: 10))
-                            .foregroundColor(isHidden ? .gray.opacity(0.2) : (info.level >= 4 ? .orange.opacity(0.7) : .gray.opacity(0.3)))
-                        Text(isHidden ? "アンチ: ???" : "アンチ: \(info.haters)")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(isHidden ? .gray.opacity(0.2) : .gray.opacity(0.7))
+                    HStack(spacing: 16) {
+                        RankDetailLabel(
+                            icon: "flame.fill",
+                            text: isHidden ? "アンチ: ???" : "アンチ: \(info.haters)",
+                            dimmed: isHidden
+                        )
+                        RankDetailLabel(
+                            icon: "star.fill",
+                            text: isHidden ? "常連: ???" : "常連: 最大\(info.regularFollowerLimit)人",
+                            dimmed: isHidden
+                        )
                     }
                 }
                 .padding(16)
@@ -628,7 +633,7 @@ UPME! | AI SNS 利用規約
 let privacyPolicyText = """
 UPME! | AI SNS プライバシーポリシー
 
-最終更新日: 2026年8月18日
+最終更新日: 2026年8月19日
 
 1. はじめに
 UPME! | AI SNS（以下「本アプリ」）は、ユーザーのプライバシーを尊重し、個人情報の保護に努めます。本ポリシーでは、本アプリが取り扱う情報について説明します。
@@ -644,6 +649,10 @@ UPME! | AI SNS（以下「本アプリ」）は、ユーザーのプライバシ
 ・アプリ内の進行データ（フォロワー数、投稿数、ランク、オンボーディング完了フラグ）
 ・常連AIフォロワー情報（名前、アバターURL、会話から生成された記憶と直近のやり取りの要約 — 端末内にのみ保存）
 
+【利用状況の計測情報】
+・匿名のユーザーIDに紐づく、アプリ起動・日次利用・画面閲覧・投稿・AI返信・ランクアップ・常連設定のイベント
+・投稿本文、添付画像、ユーザー名、自己紹介文などの内容は利用状況の計測サービスへ送信しません
+
 【ユーザーが入力する情報】
 ・投稿テキスト（AI返信生成のためサーバーに送信されます）
 ・投稿に添付した画像（任意。選択した場合のみAI返信生成のためサーバーに送信されます）
@@ -654,10 +663,13 @@ UPME! | AI SNS（以下「本アプリ」）は、ユーザーのプライバシ
 ・常連AIフォロワーの会話記憶: 過去のやり取りを踏まえた返信を生成するため、常連設定中のみ投稿とあわせてOpenAI社のAPIへ送信されます。本アプリのサーバーには保存されません。
 ・ユーザーID・進行データ: アプリの状態を管理し、端末間でのデータ同期に利用します。
 
+・利用状況の計測情報: アプリの継続利用状況、機能ごとの利用状況、離脱箇所を把握し、サービス改善に利用します。計測にはPostHogを使用します。
+
 5. 第三者への提供
 ・投稿テキストおよび添付画像は、AI返信生成の目的でOpenAI社のAPIに送信されます。
 ・常連設定中は、常連AIフォロワーの会話記憶と直近のやり取りの要約も、継続性のあるAI返信を生成する目的でOpenAI社のAPIに送信されます。
 ・OpenAI社のデータ取り扱いについては、同社のプライバシーポリシー (https://openai.com/policies/privacy-policy) をご確認ください。同社は本アプリと同等以上のプライバシー保護基準を適用しています。
+・利用状況の計測情報は、計測サービス提供者であるPostHogへ送信されます。PostHogのデータ取り扱いについては、同社のプライバシーポリシー (https://posthog.com/privacy) をご確認ください。
 ・上記を除き、ユーザーの情報を第三者に提供・販売することはありません。
 
 6. データの保存

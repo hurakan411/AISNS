@@ -6,6 +6,7 @@ import SwiftUI
 /// 以降は表示されない。
 struct PrivacyConsentView: View {
     @Binding var hasAccepted: Bool
+    let userID: String
     @State private var showPrivacyPolicy = false
 
     var body: some View {
@@ -62,6 +63,13 @@ struct PrivacyConsentView: View {
                         title: "保存・販売はしません",
                         description: "送信データはAI処理後に保持されず、第三者への販売は行いません"
                     )
+                    Divider().background(Color.white.opacity(0.08))
+                    DataRow(
+                        icon: "chart.bar.xaxis",
+                        iconColor: .orange,
+                        title: "利用状況の計測",
+                        description: "匿名のユーザーIDで、起動・投稿・AI返信などの利用状況を計測します"
+                    )
                 }
                 .padding(24)
                 .background(Color.white.opacity(0.05))
@@ -92,6 +100,9 @@ struct PrivacyConsentView: View {
                 VStack(spacing: 12) {
                     Button(action: {
                         UserDefaults.standard.set(true, forKey: "hasAcceptedPrivacyPolicy")
+                        UPMEAnalytics.start(userID: userID)
+                        UPMEAnalytics.capture("privacy_accepted")
+                        UPMEAnalytics.recordActiveSession(userID: userID)
                         withAnimation(.easeInOut(duration: 0.4)) {
                             hasAccepted = true
                         }

@@ -67,6 +67,9 @@ struct OnboardingView: View {
             }
         }
         .animation(.easeInOut(duration: 0.6), value: phase)
+        .onAppear {
+            UPMEAnalytics.capture("onboarding_started")
+        }
     }
 
     // MARK: - Phase 1: Fake Compose

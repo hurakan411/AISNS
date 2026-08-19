@@ -21,7 +21,7 @@ struct ContentView: View {
     var body: some View {
         if !hasAcceptedPrivacyPolicy {
             // ── Step 0: プライバシー同意画面 ──
-            PrivacyConsentView(hasAccepted: $hasAcceptedPrivacyPolicy)
+            PrivacyConsentView(hasAccepted: $hasAcceptedPrivacyPolicy, userID: appState.userId)
         } else if !appState.onboardingStatusReady {
             // ── Step 1: サーバー確認待ち ──
             Theme.bgDeepBlack.ignoresSafeArea()
@@ -117,6 +117,9 @@ struct ContentView: View {
         }
         .onChange(of: appState.currentRank) { newRank in
             if newRank > lastSeenRank {
+                UPMEAnalytics.capture("rank_up", properties: [
+                    "rank": newRank
+                ])
                 newlyAchievedRank = newRank
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.6)) {
                     showRankUpPopup = true
@@ -133,6 +136,16 @@ struct ContentView: View {
                     }
                 }
             }
+        }
+        .onChange(of: activeTab) { _, tab in
+            let tabName: String
+            switch tab {
+            case .home: tabName = "home"
+            case .post: tabName = "post"
+            case .stats: tabName = "stats"
+            case .profile: tabName = "profile"
+            }
+            UPMEAnalytics.capture("tab_viewed", properties: ["tab": tabName])
         }
     }
 }
@@ -296,4 +309,3 @@ struct RankUpView: View {
         }
     }
 }
-

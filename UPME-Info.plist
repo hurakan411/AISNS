@@ -8,5 +8,9 @@
 	</array>
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-1732522218412052~8421069623</string>
+	<key>PostHogProjectToken</key>
+	<string>phc_zZGcB5HQzTM8iefc6x9zuebTcgxw5Pk7wAajqe333oBz</string>
+	<key>PostHogHost</key>
+	<string>https://us.i.posthog.com</string>
 </dict>
 </plist>

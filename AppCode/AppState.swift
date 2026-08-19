@@ -276,6 +276,10 @@ class AppState: ObservableObject {
             return .alreadyRegistered
         }
         guard regularFollowers.count < maxRegularFollowers else {
+            UPMEAnalytics.capture("regular_follower_limit_reached", properties: [
+                "rank": currentRank,
+                "limit": maxRegularFollowers
+            ])
             return .limitReached(maximum: maxRegularFollowers)
         }
 
@@ -292,11 +296,24 @@ class AppState: ObservableObject {
             lastInteractionAt: Date()
         )
         regularFollowers.append(follower)
+        UPMEAnalytics.capture("regular_follower_added", properties: [
+            "rank": currentRank,
+            "regular_count": regularFollowers.count,
+            "regular_limit": maxRegularFollowers
+        ])
         return .added
     }
 
     func removeRegularFollower(id: String) {
+        let hadFollower = regularFollowers.contains { $0.id == id }
         regularFollowers.removeAll { $0.id == id }
+        if hadFollower {
+            UPMEAnalytics.capture("regular_follower_removed", properties: [
+                "rank": currentRank,
+                "regular_count": regularFollowers.count,
+                "regular_limit": maxRegularFollowers
+            ])
+        }
     }
     
     var rankName: String {
@@ -325,6 +342,7 @@ class AppState: ObservableObject {
     func prefetchOnboardingReplies(text: String) {
         prefetchedOnboardingText = text
         prefetchedOnboardingReplies = []
+        UPMEAnalytics.capture("onboarding_post_submitted")
         // is_onboarding=true で送信（オンボ専用プロンプト）
         fetchAiRepliesBackground(content: text, followers: 20_000_000) { [weak self] replies in
             guard let self = self else { return }
@@ -384,6 +402,9 @@ class AppState: ObservableObject {
         followers = 0
         totalPosts = 1
         hasCompletedOnboarding = true
+        UPMEAnalytics.capture("onboarding_completed", properties: [
+            "rank": currentRank
+        ])
         syncUser(includeOnboarding: true)
     }
     
@@ -393,6 +414,11 @@ class AppState: ObservableObject {
         
         let rank = currentRank
         totalPosts += 1
+        UPMEAnalytics.capture("post_created", properties: [
+            "has_image": imageData != nil,
+            "rank": rank,
+            "regular_count": regularFollowers.count
+        ])
         
         // 確定した「累計〇回で昇格」を実現するため、必要な平均獲得フォロワー数を逆算して設定
         let totalFollowers: Int
@@ -525,6 +551,11 @@ class AppState: ObservableObject {
     private func requestAiReplies(content: String, imageData: Data?, followers: Int) {
         pendingReplies = []
         isRequestingReplies = true
+        UPMEAnalytics.capture("ai_replies_request_started", properties: [
+            "has_image": imageData != nil,
+            "is_onboarding": isInOnboarding,
+            "regular_count": regularFollowers.count
+        ])
         
         guard let url = URL(string: apiUrl) else { return }
         var request = URLRequest(url: url)
@@ -553,6 +584,10 @@ class AppState: ObservableObject {
                 DispatchQueue.main.async {
                     self?.debugText = "ERR:\(error.localizedDescription)"
                     self?.isRequestingReplies = false
+                    UPMEAnalytics.capture("ai_replies_failed", properties: [
+                        "reason": "network",
+                        "is_onboarding": self?.isInOnboarding ?? false
+                    ])
                 }
                 return
             }
@@ -584,6 +619,11 @@ class AppState: ObservableObject {
                         let regularFollowerID = r["regular_follower_id"] as? String
                         pending.append(Reply(authorName: author, text: content, img: img, isHater: isHater, isDefender: isDefender, regularFollowerId: regularFollowerID))
                     }
+                    UPMEAnalytics.capture("ai_replies_received", properties: [
+                        "reply_count": pending.count,
+                        "regular_reply_count": pending.filter { $0.regularFollowerId != nil }.count,
+                        "is_onboarding": self.isInOnboarding
+                    ])
                     self.pendingReplies = pending
                     self.startReplyDrainTimer()
                 }
@@ -591,6 +631,10 @@ class AppState: ObservableObject {
                 DispatchQueue.main.async {
                     self.debugText = "PARSE FAIL: \(String(raw.prefix(200)))"
                     self.isRequestingReplies = false
+                    UPMEAnalytics.capture("ai_replies_failed", properties: [
+                        "reason": "invalid_response",
+                        "is_onboarding": self.isInOnboarding
+                    ])
                 }
             }
         }.resume()
@@ -641,6 +685,11 @@ class AppState: ObservableObject {
                 let regularFollowerID = r["regular_follower_id"] as? String
                 replies.append(Reply(authorName: author, text: content, img: img, isHater: isHater, isDefender: isDefender, regularFollowerId: regularFollowerID))
             }
+            UPMEAnalytics.capture("ai_replies_received", properties: [
+                "reply_count": replies.count,
+                "regular_reply_count": replies.filter { $0.regularFollowerId != nil }.count,
+                "is_onboarding": true
+            ])
             DispatchQueue.main.async { completion(replies) }
         }.resume()
     }
@@ -697,6 +746,10 @@ class AppState: ObservableObject {
                 self.likeTimer?.cancel()
                 self.posts[0].likes = self.buzzInitialLikes + self.buzzTargetLikes
                 self.followers = self.buzzInitialFollowers + self.buzzTargetFollowers
+                UPMEAnalytics.capture("ai_replies_displayed", properties: [
+                    "reply_count": self.buzzTotalReplies,
+                    "is_onboarding": self.isInOnboarding
+                ])
                 self.syncUser()
             } else {
                 let randomInterval = self.isInOnboarding ? Double.random(in: 1.5...4.0) : Double.random(in: 5.0...15.0)
