@@ -1,5 +1,6 @@
 import os
 import random
+import re
 import requests
 from typing import List, Optional, Any, Tuple
 from dotenv import load_dotenv
@@ -73,12 +74,68 @@ class GenerateRepliesResponse(BaseModel):
     memory_updates: List[RegularFollowerMemoryUpdateSchema]
 
 
+class ReplyToAiRequest(BaseModel):
+    user_id: str
+    post_content: str
+    ai_author_name: str
+    ai_reply_content: str
+    user_reply: str
+    ai_is_hater: bool = False
+    ai_is_defender: bool = False
+    target_regular_follower: Optional[RegularFollowerContext] = None
+
+
+class GenerateReplyToUserResponse(BaseModel):
+    reply: ReplySchema
+    memory_updates: List[RegularFollowerMemoryUpdateSchema] = Field(default_factory=list)
+
+
 # -------- 3. リソース (モックアバター) --------
 # picsum.photosのseed URLを使用して多様なジャンルの画像を100種類用意
 AVATARS = [f"https://picsum.photos/seed/user{i}/150/150" for i in range(1, 101)]
 
 # アンチ用は別のシード名で20種類
 HATER_AVATARS = [f"https://picsum.photos/seed/hater{i}/150/150" for i in range(1, 21)]
+
+# 常連以外のAIフォロワーに使う日本語名。AIが英字名を返した場合の安全な置換先にも使う。
+JAPANESE_AI_NAMES = [
+    "ゆき", "たけし", "みく", "れん", "あかり", "けんた", "さくら", "りょう",
+    "まい", "なお", "ひなた", "しょうた", "あや", "こうき", "えり", "だいき",
+    "みさき", "そうた", "かな", "はると", "ほのか", "かいと", "ちひろ", "ゆうた",
+    "ももか", "りく", "なな", "たくみ", "ひかり", "ゆうき", "あおい", "しおり",
+    "まこと", "すず", "つばさ", "あきら", "めい", "たいち", "こはる", "じゅん",
+    "まなみ", "かずき", "あん", "とうま", "りな", "はじめ", "のぞみ", "そら",
+]
+
+
+def is_japanese_ai_name(name: str) -> bool:
+    """英字・数字・記号を含まない日本語の表示名か判定する。"""
+    return bool(re.fullmatch(r"[ぁ-んァ-ヶ一-龠々ー・\s]+", name.strip()))
+
+
+def localize_generated_author_names(replies: List[ReplySchema]) -> None:
+    """常連以外のAI名を日本語名に統一し、同一人物の名前は返信間で維持する。"""
+    replacements: dict[str, str] = {}
+    used_names = {
+        reply.author_name.strip()
+        for reply in replies
+        if reply.regular_follower_id is not None and is_japanese_ai_name(reply.author_name)
+    }
+    available_names = [name for name in JAPANESE_AI_NAMES if name not in used_names]
+    random.shuffle(available_names)
+
+    for reply in replies:
+        if reply.regular_follower_id is not None or is_japanese_ai_name(reply.author_name):
+            continue
+
+        original_name = reply.author_name.strip()
+        if original_name not in replacements:
+            if available_names:
+                replacements[original_name] = available_names.pop()
+            else:
+                # 1投稿あたりの返信数は最大16件のため通常到達しないフォールバック。
+                replacements[original_name] = "名もなき人"
+        reply.author_name = replacements[original_name]
 
 def resolve_avatar_url(seed_url: str) -> str:
     """picsum.photosのseed URLからリダイレクトを解決し、最終的な直接画像URLを返す"""
@@ -449,7 +506,7 @@ async def generate_ai_replies(
 
     【展開ルール】
     1. {hater_instruction}
-    2. 常連以外のユーザー名（author_name）は、SNSでよくある適当なニックネームやハンドルネームにすること（例：「ゆき」「たけし」「miku_23」「ren」など）。ペルソナの職業や属性を名前に含めなくてよい。
+    2. 常連以外のユーザー名（author_name）は、SNSでよくある日本語のニックネームにすること（例：「ゆき」「たけし」「みく」「れん」など）。**ひらがな・カタカナ・漢字のみを使い、アルファベット、数字、英語名、アンダースコア、記号は絶対に使わないこと。** ペルソナの職業や属性を名前に含めなくてよい。
     """
 
     try:
@@ -476,6 +533,10 @@ async def generate_ai_replies(
         parsed_data = completion.choices[0].message.parsed
         if parsed_data is None:
             raise RuntimeError("OpenAI response did not contain parsed reply data")
+
+        # Structured Outputsでも英字名が混ざることがあるため、常連以外は日本語名に統一する。
+        # 常連は設定済みの名前を維持し、会話記憶との紐づきを壊さない。
+        localize_generated_author_names(parsed_data.replies)
         
         if not supabase:
             print("--- [WARNING] DB NOT CONNECTED. DUMPING MOCK RESULTS ---")
@@ -544,6 +605,104 @@ async def generate_ai_replies(
         raise
 
 
+async def generate_ai_reply_to_user(request: ReplyToAiRequest) -> Tuple[dict, List[dict]]:
+    """AIリプライ1件に対するユーザーの返信へ、対象AIが1件だけ再返信する。"""
+    target = request.target_regular_follower
+    target_id = target.follower_id if target else None
+
+    if target:
+        memories = " / ".join(str(item)[:160] for item in target.memories[-8:]) or "まだ記憶なし"
+        recent = " / ".join(str(item)[:180] for item in target.recent_interactions[-3:]) or "まだ履歴なし"
+        character_instruction = f"""
+【対象AIの継続情報】
+- 名前: {target.author_name}
+- 長期記憶: {memories}
+- 最近のやり取り: {recent}
+- このAIは常連なので、上記の記憶と口調を自然に引き継ぐこと。
+- 記憶にない事実を知っているふりはしないこと。
+"""
+    else:
+        character_instruction = """
+【対象AI】
+このAIは今回の投稿に対して初めて返信する一般フォロワーです。
+直前の返信とユーザーの返答を踏まえ、同じ人物として返してください。
+"""
+
+    if request.ai_is_hater:
+        tone_instruction = "対象AIは批判者です。ユーザーの返答を受けても、冷静な皮肉や具体的な反論を維持してください。暴言・差別・脅迫は禁止です。"
+    elif request.ai_is_defender:
+        tone_instruction = "対象AIは擁護者です。ユーザーの返答に具体的に反応し、投稿者を自然に応援してください。"
+    else:
+        tone_instruction = "対象AIは通常のフォロワーです。ユーザーの返答に自然に反応し、会話が続く一言を返してください。"
+
+    system_prompt = f"""
+あなたはSNS「UPME! | AI SNS」の仮想フォロワーエンジンです。
+ユーザーが自分の投稿に付いたAIリプライへ返信しました。対象AIとして、**再返信をちょうど1件だけ**JSONで生成してください。
+
+{character_instruction}
+
+【会話のルール】
+- author_name は対象AIの名前「{request.ai_author_name}」を一字一句変えない。
+- regular_follower_id は常連なら「{target_id or 'null'}」、常連でなければ null。
+- is_hater は対象AIが批判者の場合のみ true。
+- is_defender は対象AIが擁護者の場合のみ true。
+- 返信はユーザーの返答に直接反応し、元の投稿と直前のAIリプライの文脈も踏まえる。
+- 返信は日本語で、機械的な定型文や無関係な称賛を避ける。
+- content は短く自然なSNS返信にする。
+- memory_updates は常連の場合のみ、今回の会話から今後も役立つ非機密の事実を0〜1件返す。常連でなければ空配列。
+
+【対象AIのトーン】
+{tone_instruction}
+"""
+
+    user_message = f"""
+元の投稿:
+{request.post_content}
+
+直前のAIリプライ（{request.ai_author_name}）:
+{request.ai_reply_content}
+
+ユーザーの返信:
+{request.user_reply}
+"""
+
+    completion = await openai_client.beta.chat.completions.parse(
+        model="gpt-5.4-mini",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message},
+        ],
+        response_format=GenerateReplyToUserResponse,
+    )
+    parsed_data = completion.choices[0].message.parsed
+    if parsed_data is None:
+        raise RuntimeError("OpenAI response did not contain parsed follow-up reply data")
+
+    parsed_data.reply.author_name = request.ai_author_name
+    parsed_data.reply.regular_follower_id = target_id
+    parsed_data.reply.is_hater = False if target else request.ai_is_hater
+    parsed_data.reply.is_defender = False if target else request.ai_is_defender
+
+    memory_updates = []
+    if target_id:
+        for update in parsed_data.memory_updates:
+            if update.follower_id == target_id:
+                memory_updates.append({
+                    "follower_id": target_id,
+                    "new_memories": [str(memory)[:160] for memory in update.new_memories[:1]],
+                    "interaction_summary": str(update.interaction_summary)[:180],
+                })
+                break
+
+    return {
+        "author_name": parsed_data.reply.author_name,
+        "content": parsed_data.reply.content,
+        "is_hater": parsed_data.reply.is_hater,
+        "is_defender": parsed_data.reply.is_defender,
+        "regular_follower_id": parsed_data.reply.regular_follower_id,
+    }, memory_updates
+
+
 # -------- 5. ルーティング (API Endpoints) --------
 @app.post("/api/posts")
 async def create_post(request: PostRequest):
@@ -560,6 +719,19 @@ async def create_post(request: PostRequest):
             regular_followers=request.regular_followers,
         )
         return {"status": "success", "replies": replies, "memory_updates": memory_updates}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/replies")
+async def create_reply_to_ai(request: ReplyToAiRequest):
+    """AIリプライへのユーザー返信を受け、対象AIの再返信を1件だけ返す。"""
+    if not request.ai_author_name.strip() or not request.user_reply.strip():
+        raise HTTPException(status_code=400, detail="ai_author_name and user_reply are required")
+
+    try:
+        reply, memory_updates = await generate_ai_reply_to_user(request)
+        return {"status": "success", "reply": reply, "memory_updates": memory_updates}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

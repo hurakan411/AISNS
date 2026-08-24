@@ -2,13 +2,77 @@ import SwiftUI
 import Combine
 
 struct Reply: Identifiable, Equatable, Codable {
-    var id: UUID = UUID()
+    var id: UUID
     let authorName: String
     let text: String
     let img: String
     let isHater: Bool
     let isDefender: Bool
     let regularFollowerId: String?
+    let replyToId: UUID?
+    let isUserReply: Bool
+    var hasUserReply: Bool
+
+    init(
+        id: UUID = UUID(),
+        authorName: String,
+        text: String,
+        img: String,
+        isHater: Bool,
+        isDefender: Bool,
+        regularFollowerId: String? = nil,
+        replyToId: UUID? = nil,
+        isUserReply: Bool = false,
+        hasUserReply: Bool = false
+    ) {
+        self.id = id
+        self.authorName = authorName
+        self.text = text
+        self.img = img
+        self.isHater = isHater
+        self.isDefender = isDefender
+        self.regularFollowerId = regularFollowerId
+        self.replyToId = replyToId
+        self.isUserReply = isUserReply
+        self.hasUserReply = hasUserReply
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, authorName, text, img, isHater, isDefender, regularFollowerId
+        case replyToId, isUserReply, hasUserReply
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        authorName = try container.decode(String.self, forKey: .authorName)
+        text = try container.decode(String.self, forKey: .text)
+        img = try container.decode(String.self, forKey: .img)
+        isHater = try container.decode(Bool.self, forKey: .isHater)
+        isDefender = try container.decode(Bool.self, forKey: .isDefender)
+        regularFollowerId = try container.decodeIfPresent(String.self, forKey: .regularFollowerId)
+        replyToId = try container.decodeIfPresent(UUID.self, forKey: .replyToId)
+        isUserReply = try container.decodeIfPresent(Bool.self, forKey: .isUserReply) ?? false
+        hasUserReply = try container.decodeIfPresent(Bool.self, forKey: .hasUserReply) ?? false
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(authorName, forKey: .authorName)
+        try container.encode(text, forKey: .text)
+        try container.encode(img, forKey: .img)
+        try container.encode(isHater, forKey: .isHater)
+        try container.encode(isDefender, forKey: .isDefender)
+        try container.encodeIfPresent(regularFollowerId, forKey: .regularFollowerId)
+        try container.encodeIfPresent(replyToId, forKey: .replyToId)
+        try container.encode(isUserReply, forKey: .isUserReply)
+        try container.encode(hasUserReply, forKey: .hasUserReply)
+    }
+
+    var canReceiveUserReply: Bool {
+        !isUserReply && replyToId == nil && !hasUserReply
+    }
 }
 
 struct RegularFollower: Identifiable, Equatable, Codable {
@@ -78,6 +142,7 @@ class AppState: ObservableObject {
     @Published var isInOnboarding: Bool = false
     @Published var onboardingExpectedReplies: Int = 0
     @Published var isRequestingReplies: Bool = false
+    @Published var isSubmittingUserReply: Bool = false
     @Published var onboardingFirstReplyReceived: Bool = false
     
     // オンボーディング用プリフェッチ
@@ -463,6 +528,7 @@ class AppState: ObservableObject {
         #endif
     }()
     private let apiUrl = "\(baseUrl)/api/posts"
+    private let replyApiUrl = "\(baseUrl)/api/replies"
     private let userApiUrl = "\(baseUrl)/api/users"
     
     let userId: String = {
@@ -546,6 +612,144 @@ class AppState: ObservableObject {
         }
 
         regularFollowers = updatedFollowers
+    }
+
+    /// 1つのAIリプライに対して、ユーザーが1回だけ返信する。
+    /// 成功時だけユーザー返信と対象AIの再返信を追加し、失敗時は返信枠を消費せず再試行可能にする。
+    func submitReply(to reply: Reply, postID: UUID, text: String, completion: @escaping (Bool) -> Void = { _ in }) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              !isSubmittingUserReply,
+              let postIndex = posts.firstIndex(where: { $0.id == postID }),
+              let replyIndex = posts[postIndex].replies.firstIndex(where: { $0.id == reply.id }),
+              posts[postIndex].replies[replyIndex].canReceiveUserReply else {
+            completion(false)
+            return
+        }
+
+        let userReplyID = UUID()
+        let userReply = Reply(
+            id: userReplyID,
+            authorName: userName,
+            text: trimmed,
+            img: "",
+            isHater: false,
+            isDefender: false,
+            replyToId: reply.id,
+            isUserReply: true
+        )
+        isSubmittingUserReply = true
+        UPMEAnalytics.capture("user_reply_submitted", properties: [
+            "is_regular": regularFollowers.contains { follower in
+                if let regularID = reply.regularFollowerId { return follower.id == regularID }
+                return follower.authorName == reply.authorName && follower.avatarURL == reply.img
+            },
+            "is_hater": reply.isHater,
+            "is_defender": reply.isDefender
+        ])
+
+        guard let url = URL(string: replyApiUrl) else {
+            isSubmittingUserReply = false
+            completion(false)
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 120
+
+        var body: [String: Any] = [
+            "user_id": userId,
+            "post_content": posts[postIndex].content,
+            "ai_author_name": reply.authorName,
+            "ai_reply_content": reply.text,
+            "user_reply": trimmed,
+            "ai_is_hater": reply.isHater,
+            "ai_is_defender": reply.isDefender
+        ]
+
+        let targetRegular = regularFollowers.first { follower in
+            if let regularID = reply.regularFollowerId { return follower.id == regularID }
+            return follower.authorName == reply.authorName && follower.avatarURL == reply.img
+        }
+        if let targetRegular {
+            body["target_regular_follower"] = [
+                "follower_id": targetRegular.id,
+                "author_name": targetRegular.authorName,
+                "avatar_url": targetRegular.avatarURL,
+                "memories": Array(targetRegular.memories.suffix(8)),
+                "recent_interactions": Array(targetRegular.recentInteractions.suffix(3))
+            ]
+        }
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            guard let self = self else { return }
+
+            if error != nil {
+                DispatchQueue.main.async {
+                    self.isSubmittingUserReply = false
+                    UPMEAnalytics.capture("user_reply_failed", properties: ["reason": "network"])
+                    completion(false)
+                }
+                return
+            }
+
+            guard let data,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let status = json["status"] as? String, status == "success",
+                  let replyJSON = json["reply"] as? [String: Any] else {
+                DispatchQueue.main.async {
+                    self.isSubmittingUserReply = false
+                    UPMEAnalytics.capture("user_reply_failed", properties: ["reason": "invalid_response"])
+                    completion(false)
+                }
+                return
+            }
+
+            let author = replyJSON["author_name"] as? String ?? reply.authorName
+            let content = replyJSON["content"] as? String ?? ""
+            let isHater = jsonReplyBool(replyJSON, snake: "is_hater", camel: "isHater")
+            let isDefender = jsonReplyBool(replyJSON, snake: "is_defender", camel: "isDefender")
+            let regularFollowerID = replyJSON["regular_follower_id"] as? String ?? reply.regularFollowerId
+            let memoryUpdates = json["memory_updates"] as? [[String: Any]] ?? []
+            let followUp = Reply(
+                authorName: author,
+                text: content,
+                img: reply.img,
+                isHater: isHater,
+                isDefender: isDefender,
+                regularFollowerId: regularFollowerID,
+                replyToId: userReplyID
+            )
+
+            DispatchQueue.main.async {
+                self.applyRegularFollowerMemoryUpdates(memoryUpdates)
+                guard let currentPostIndex = self.posts.firstIndex(where: { $0.id == postID }) else {
+                    self.isSubmittingUserReply = false
+                    completion(false)
+                    return
+                }
+                guard let currentReplyIndex = self.posts[currentPostIndex].replies.firstIndex(where: { $0.id == reply.id }) else {
+                    self.isSubmittingUserReply = false
+                    completion(false)
+                    return
+                }
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                    self.posts[currentPostIndex].replies[currentReplyIndex].hasUserReply = true
+                    self.posts[currentPostIndex].replies.insert(userReply, at: 0)
+                    self.posts[currentPostIndex].replies.insert(followUp, at: 0)
+                }
+                self.isSubmittingUserReply = false
+                UPMEAnalytics.capture("ai_thread_reply_received", properties: [
+                    "is_regular": regularFollowerID != nil,
+                    "is_hater": isHater,
+                    "is_defender": isDefender
+                ])
+                completion(true)
+            }
+        }.resume()
     }
 
     private func requestAiReplies(content: String, imageData: Data?, followers: Int) {

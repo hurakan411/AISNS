@@ -47,6 +47,7 @@ struct PostCard: View {
     @EnvironmentObject var appState: AppState
     let post: PostModel
     @State private var regularFollowerAlert: RegularFollowerAlert?
+    @State private var replyTarget: Reply?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -137,8 +138,12 @@ struct PostCard: View {
                     ForEach(post.replies) { reply in
                         ReplyRow(
                             reply: reply,
-                            isRegular: appState.isRegularFollower(reply),
-                            canManageRegulars: !appState.isInOnboarding
+                            isRegular: !reply.isUserReply && appState.isRegularFollower(reply),
+                            canManageRegulars: !appState.isInOnboarding && !reply.isUserReply,
+                            canReply: !appState.isInOnboarding && reply.canReceiveUserReply,
+                            onReplyTap: {
+                                replyTarget = reply
+                            }
                         ) {
                             guard !appState.isRegularFollower(reply) else { return }
                             if appState.regularFollowers.count >= appState.maxRegularFollowers {
@@ -180,6 +185,10 @@ struct PostCard: View {
                 )
             }
         }
+        .sheet(item: $replyTarget) { target in
+            ReplyComposerView(post: post, target: target)
+                .environmentObject(appState)
+        }
     }
 }
 
@@ -196,35 +205,93 @@ private enum RegularFollowerAlert: Identifiable {
 }
 
 struct ReplyRow: View {
+    @EnvironmentObject var appState: AppState
     let reply: Reply
     let isRegular: Bool
     let canManageRegulars: Bool
+    let canReply: Bool
+    let onReplyTap: () -> Void
     let onRegularTap: () -> Void
+
+    private var displayName: String {
+        reply.isUserReply ? appState.userName : "@\(reply.authorName)"
+    }
+
+    private var nameColor: Color {
+        if reply.isUserReply { return Theme.cyan }
+        if reply.isHater { return .red }
+        if reply.isDefender { return .green }
+        return Theme.hotPink
+    }
+
+    private var avatarStrokeColor: Color {
+        if reply.isUserReply { return Theme.cyan }
+        if reply.isHater { return .red }
+        return Color.gray.opacity(0.3)
+    }
+
+    private var avatarStrokeWidth: CGFloat {
+        reply.isUserReply || reply.isHater ? 2 : 1
+    }
+
+    private var cardBackground: Color {
+        if reply.isUserReply { return Theme.cyan.opacity(0.1) }
+        if reply.isHater { return Color(red: 0.2, green: 0, blue: 0).opacity(0.4) }
+        if reply.isDefender { return Color(red: 0, green: 0.2, blue: 0).opacity(0.2) }
+        return Color(white: 0.1).opacity(0.5)
+    }
+
+    private var cardStrokeColor: Color {
+        if reply.isUserReply { return Theme.cyan.opacity(0.5) }
+        if reply.isHater { return Color.red.opacity(0.5) }
+        if reply.isDefender { return Color.green.opacity(0.5) }
+        return Color.white.opacity(0.05)
+    }
     
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
-            AsyncImage(url: URL(string: reply.img)) { phase in
-                if let image = phase.image {
-                    image.resizable().scaledToFill()
-                } else if phase.error != nil {
-                    Image(systemName: "person.circle.fill")
+            Group {
+                if reply.isUserReply,
+                   let data = appState.userAvatarData,
+                   let uiImage = UIImage(data: data) {
+                    Image(uiImage: uiImage)
                         .resizable()
-                        .foregroundColor(reply.isHater ? .gray : Theme.hotPink)
+                        .scaledToFill()
                 } else {
-                    Circle().fill(reply.isHater ? Color.gray : Color.purple)
+                    AsyncImage(url: URL(string: reply.img)) { phase in
+                        if let image = phase.image {
+                            image.resizable().scaledToFill()
+                        } else if phase.error != nil {
+                            Image(systemName: "person.circle.fill")
+                                .resizable()
+                                .foregroundColor(reply.isHater ? .gray : Theme.hotPink)
+                        } else {
+                            Circle().fill(reply.isHater ? Color.gray : Color.purple)
+                        }
+                    }
                 }
             }
             .frame(width: 36, height: 36)
             .clipShape(Circle())
-            .overlay(Circle().stroke(reply.isHater ? Color.red : Color.gray.opacity(0.3), lineWidth: reply.isHater ? 2 : 1))
+            .overlay(Circle().stroke(avatarStrokeColor, lineWidth: avatarStrokeWidth))
             .shadow(color: reply.isHater ? Color.red.opacity(0.5) : .clear, radius: reply.isHater ? 6 : 0)
             .padding(.top, 16) // テキストのpadding(16)と高さを完全に揃えるため、アバターも同じだけ下げる
             
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .center) {
-                    Text("@\(reply.authorName)")
+                    Text(displayName)
                         .font(.system(size: 12, weight: .black))
-                        .foregroundColor(reply.isHater ? .red : reply.isDefender ? .green : Theme.hotPink)
+                        .foregroundColor(nameColor)
+
+                    if reply.isUserReply {
+                        Text("あなた")
+                            .font(.system(size: 8, weight: .black))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Theme.cyan.opacity(0.18))
+                            .foregroundColor(Theme.cyan)
+                            .cornerRadius(10)
+                    }
                     
                     if reply.isHater {
                         Text("HATER")
@@ -253,6 +320,15 @@ struct ReplyRow: View {
                             .cornerRadius(10)
                     }
                     Spacer()
+                    if canReply {
+                        Button(action: onReplyTap) {
+                            Image(systemName: "arrowshape.turn.up.left.circle")
+                                .foregroundColor(Theme.cyan)
+                                .font(.system(size: 18, weight: .bold))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("このAIに返信")
+                    }
                     if canManageRegulars {
                         Button(action: onRegularTap) {
                             Image(systemName: isRegular ? "star.circle.fill" : "star.circle")
@@ -276,16 +352,104 @@ struct ReplyRow: View {
                     .lineSpacing(4)
             }
             .padding(16)
-            .background(
-                reply.isHater ? Color(red: 0.2, green: 0, blue: 0).opacity(0.4) :
-                reply.isDefender ? Color(red: 0, green: 0.2, blue: 0).opacity(0.2) :
-                Color(white: 0.1).opacity(0.5)
-            )
+            .background(cardBackground)
             .cornerRadius(20)
-            .overlay(RoundedRectangle(cornerRadius: 20).stroke(reply.isHater ? Color.red.opacity(0.5) : reply.isDefender ? Color.green.opacity(0.5) : Color.white.opacity(0.05), lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 20).stroke(cardStrokeColor, lineWidth: 1))
             
             Spacer(minLength: 16)
         }
         .padding(.trailing, 16)
+    }
+}
+
+struct ReplyComposerView: View {
+    @EnvironmentObject var appState: AppState
+    @Environment(\.dismiss) private var dismiss
+    let post: PostModel
+    let target: Reply
+    @State private var text = ""
+    @State private var isSending = false
+    @State private var showError = false
+
+    private var canSend: Bool {
+        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isSending && !appState.isSubmittingUserReply
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("@\(target.authorName)に返信")
+                        .font(.system(size: 16, weight: .black))
+                        .foregroundColor(Theme.cyan)
+                    Text(target.text)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white.opacity(0.8))
+                        .lineSpacing(4)
+                        .padding(14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.white.opacity(0.06))
+                        .cornerRadius(14)
+                }
+
+                TextEditor(text: $text)
+                    .scrollContentBackground(.hidden)
+                    .foregroundColor(.white)
+                    .padding(12)
+                    .frame(minHeight: 130)
+                    .background(Color.white.opacity(0.08))
+                    .cornerRadius(16)
+                    .overlay(alignment: .topLeading) {
+                        if text.isEmpty {
+                            Text("返信を書く…")
+                                .foregroundColor(.gray.opacity(0.7))
+                                .padding(.top, 20)
+                                .padding(.leading, 18)
+                                .allowsHitTesting(false)
+                        }
+                    }
+
+                Text("返信は1回限りです。送信後、@\(target.authorName)が1件だけ返信します。")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.gray)
+                Spacer()
+            }
+            .padding(20)
+            .background(Theme.bgDeepBlack.ignoresSafeArea())
+            .navigationTitle("AIに返信")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("キャンセル") { dismiss() }
+                        .disabled(isSending)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        isSending = true
+                        appState.submitReply(to: target, postID: post.id, text: text) { success in
+                            if success {
+                                dismiss()
+                            } else {
+                                isSending = false
+                                showError = true
+                            }
+                        }
+                    } label: {
+                        if isSending {
+                            ProgressView()
+                        } else {
+                            Text("送信")
+                                .fontWeight(.bold)
+                        }
+                    }
+                    .disabled(!canSend)
+                }
+            }
+            .alert("返信を送信できませんでした", isPresented: $showError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("通信状態を確認して、もう一度お試しください。")
+            }
+        }
     }
 }

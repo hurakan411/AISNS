@@ -47,7 +47,7 @@ struct PrivacyConsentView: View {
                         icon: "text.bubble.fill",
                         iconColor: Theme.cyan,
                         title: "送信されるデータ",
-                        description: "投稿テキスト・添付画像（任意）・常連AIの会話記憶（設定時）"
+                        description: "投稿・返信テキスト、添付画像（任意）、常連AIの会話記憶（設定時）"
                     )
                     Divider().background(Color.white.opacity(0.08))
                     DataRow(
