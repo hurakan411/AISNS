@@ -78,6 +78,7 @@ class ThreadReplyContext(BaseModel):
     """元の投稿に付いていた、会話スレッド参加候補のAI情報。"""
     author_name: str
     content: str
+    avatar_url: Optional[str] = None
     is_hater: bool = False
     is_defender: bool = False
     regular_follower_id: Optional[str] = None
@@ -775,7 +776,9 @@ JSONの replies 配列の1件目は必ず対象AI、その後に他のAIを並�
             if context:
                 author_name = context.author_name.strip()
                 regular_id = context.regular_follower_id
-                avatar = context.avatar_url
+                avatar = context.avatar_url or resolve_avatar_url(
+                    random.choice(HATER_AVATARS if generated.is_hater else AVATARS)
+                )
                 is_hater = False if regular_id else generated.is_hater
                 is_defender = False if regular_id else generated.is_defender
             else:

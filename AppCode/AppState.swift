@@ -781,6 +781,7 @@ class AppState: ObservableObject {
                 var payload: [String: Any] = [
                     "author_name": otherReply.authorName,
                     "content": otherReply.text,
+                    "avatar_url": otherReply.img,
                     "is_hater": otherReply.isHater,
                     "is_defender": otherReply.isDefender
                 ]
