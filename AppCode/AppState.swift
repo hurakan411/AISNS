@@ -91,13 +91,65 @@ enum AddRegularFollowerResult {
     case limitReached(maximum: Int)
 }
 
+struct ReplyThread: Identifiable, Equatable, Codable {
+    let targetReplyID: UUID
+    var replies: [Reply]
+
+    var id: UUID { targetReplyID }
+}
+
 struct PostModel: Identifiable, Codable {
-    var id: UUID = UUID()
+    var id: UUID
     let content: String
     var imageData: Data?
     var likes: Int
     var replies: [Reply]
+    var replyThreads: [ReplyThread]
     let time: String
+
+    init(
+        id: UUID = UUID(),
+        content: String,
+        imageData: Data?,
+        likes: Int,
+        replies: [Reply],
+        replyThreads: [ReplyThread] = [],
+        time: String
+    ) {
+        self.id = id
+        self.content = content
+        self.imageData = imageData
+        self.likes = likes
+        self.replies = replies
+        self.replyThreads = replyThreads
+        self.time = time
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, content, imageData, likes, replies, replyThreads, time
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        content = try container.decode(String.self, forKey: .content)
+        imageData = try container.decodeIfPresent(Data.self, forKey: .imageData)
+        likes = try container.decodeIfPresent(Int.self, forKey: .likes) ?? 0
+        replies = try container.decodeIfPresent([Reply].self, forKey: .replies) ?? []
+        replyThreads = try container.decodeIfPresent([ReplyThread].self, forKey: .replyThreads) ?? []
+        time = try container.decodeIfPresent(String.self, forKey: .time) ?? ""
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(content, forKey: .content)
+        try container.encodeIfPresent(imageData, forKey: .imageData)
+        try container.encode(likes, forKey: .likes)
+        try container.encode(replies, forKey: .replies)
+        try container.encode(replyThreads, forKey: .replyThreads)
+        try container.encode(time, forKey: .time)
+    }
 }
 
 /// JSONSerialization 経由の辞書で Bool が NSNumber や文字列になる場合があるため統一して解釈する
@@ -143,6 +195,9 @@ class AppState: ObservableObject {
     @Published var onboardingExpectedReplies: Int = 0
     @Published var isRequestingReplies: Bool = false
     @Published var isSubmittingUserReply: Bool = false
+    @Published private(set) var expandedReplyThreadIDs: Set<UUID> = []
+    @Published private(set) var loadingReplyThreadIDs: Set<UUID> = []
+    @Published var replyErrorMessage: String?
     @Published var onboardingFirstReplyReceived: Bool = false
     
     // オンボーディング用プリフェッチ
@@ -167,6 +222,7 @@ class AppState: ObservableObject {
     
     private var likeTimer: AnyCancellable?
     private var replyTimer: AnyCancellable?
+    private var pendingReplyThreadReplies: [UUID: [Reply]] = [:]
     @Published var hasPendingReplies: Bool = false
     private var pendingReplies: [Reply] = [] {
         didSet { hasPendingReplies = !pendingReplies.isEmpty }
@@ -614,9 +670,88 @@ class AppState: ObservableObject {
         regularFollowers = updatedFollowers
     }
 
+    func isReplyThreadExpanded(_ replyID: UUID) -> Bool {
+        expandedReplyThreadIDs.contains(replyID)
+    }
+
+    func isReplyThreadLoading(_ replyID: UUID) -> Bool {
+        loadingReplyThreadIDs.contains(replyID)
+    }
+
+    func toggleReplyThread(_ replyID: UUID) {
+        if expandedReplyThreadIDs.contains(replyID) {
+            expandedReplyThreadIDs.remove(replyID)
+        } else {
+            expandedReplyThreadIDs.insert(replyID)
+        }
+    }
+
+    private func addUserReplyToThread(_ userReply: Reply, postIndex: Int, targetReplyIndex: Int) {
+        let targetReplyID = posts[postIndex].replies[targetReplyIndex].id
+        posts[postIndex].replies[targetReplyIndex].hasUserReply = true
+        if let threadIndex = posts[postIndex].replyThreads.firstIndex(where: { $0.targetReplyID == targetReplyID }) {
+            posts[postIndex].replyThreads[threadIndex].replies = [userReply]
+        } else {
+            posts[postIndex].replyThreads.append(
+                ReplyThread(targetReplyID: targetReplyID, replies: [userReply])
+            )
+        }
+        expandedReplyThreadIDs.insert(targetReplyID)
+        loadingReplyThreadIDs.insert(targetReplyID)
+    }
+
+    private func failReplyThread(postID: UUID, targetReplyID: UUID, message: String) {
+        if let postIndex = posts.firstIndex(where: { $0.id == postID }) {
+            if let replyIndex = posts[postIndex].replies.firstIndex(where: { $0.id == targetReplyID }) {
+                posts[postIndex].replies[replyIndex].hasUserReply = false
+            }
+            posts[postIndex].replyThreads.removeAll { $0.targetReplyID == targetReplyID }
+        }
+        pendingReplyThreadReplies[targetReplyID] = nil
+        loadingReplyThreadIDs.remove(targetReplyID)
+        expandedReplyThreadIDs.remove(targetReplyID)
+        replyErrorMessage = message
+    }
+
+    private func drainReplyThreadNext(postID: UUID, targetReplyID: UUID) {
+        guard var pending = pendingReplyThreadReplies[targetReplyID], !pending.isEmpty else {
+            pendingReplyThreadReplies[targetReplyID] = nil
+            loadingReplyThreadIDs.remove(targetReplyID)
+            return
+        }
+
+        let nextReply = pending.removeFirst()
+        pendingReplyThreadReplies[targetReplyID] = pending.isEmpty ? nil : pending
+
+        if let postIndex = posts.firstIndex(where: { $0.id == postID }),
+           let threadIndex = posts[postIndex].replyThreads.firstIndex(where: { $0.targetReplyID == targetReplyID }) {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                posts[postIndex].replyThreads[threadIndex].replies.append(nextReply)
+            }
+        }
+
+        if pending.isEmpty {
+            loadingReplyThreadIDs.remove(targetReplyID)
+            UPMEAnalytics.capture("ai_thread_replies_displayed", properties: [
+                "reply_count": 1,
+                "is_regular": nextReply.regularFollowerId != nil
+            ])
+        } else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double.random(in: 3.0...8.0)) { [weak self] in
+                self?.drainReplyThreadNext(postID: postID, targetReplyID: targetReplyID)
+            }
+        }
+    }
+
     /// 1つのAIリプライに対して、ユーザーが1回だけ返信する。
-    /// 成功時だけユーザー返信と対象AIの再返信を追加し、失敗時は返信枠を消費せず再試行可能にする。
-    func submitReply(to reply: Reply, postID: UUID, text: String, completion: @escaping (Bool) -> Void = { _ in }) {
+    /// ユーザー返信は先に専用スレッドへ表示し、AIの複数返信を順番に追加する。
+    func submitReply(
+        to reply: Reply,
+        postID: UUID,
+        text: String,
+        onStarted: @escaping () -> Void = {},
+        completion: @escaping (Bool) -> Void = { _ in }
+    ) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty,
               !isSubmittingUserReply,
@@ -638,7 +773,28 @@ class AppState: ObservableObject {
             replyToId: reply.id,
             isUserReply: true
         )
+
+        let otherReplies = posts[postIndex].replies
+            .filter { $0.id != reply.id && !$0.isUserReply && $0.replyToId == nil }
+            .prefix(8)
+            .map { otherReply -> [String: Any] in
+                var payload: [String: Any] = [
+                    "author_name": otherReply.authorName,
+                    "content": otherReply.text,
+                    "is_hater": otherReply.isHater,
+                    "is_defender": otherReply.isDefender
+                ]
+                if let regularID = otherReply.regularFollowerId {
+                    payload["regular_follower_id"] = regularID
+                }
+                return payload
+            }
+
         isSubmittingUserReply = true
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+            addUserReplyToThread(userReply, postIndex: postIndex, targetReplyIndex: replyIndex)
+        }
+        onStarted()
         UPMEAnalytics.capture("user_reply_submitted", properties: [
             "is_regular": regularFollowers.contains { follower in
                 if let regularID = reply.regularFollowerId { return follower.id == regularID }
@@ -650,6 +806,7 @@ class AppState: ObservableObject {
 
         guard let url = URL(string: replyApiUrl) else {
             isSubmittingUserReply = false
+            failReplyThread(postID: postID, targetReplyID: reply.id, message: "返信先のAPI URLを確認できませんでした。")
             completion(false)
             return
         }
@@ -663,10 +820,13 @@ class AppState: ObservableObject {
             "user_id": userId,
             "post_content": posts[postIndex].content,
             "ai_author_name": reply.authorName,
+            "ai_author_img": reply.img,
             "ai_reply_content": reply.text,
             "user_reply": trimmed,
             "ai_is_hater": reply.isHater,
-            "ai_is_defender": reply.isDefender
+            "ai_is_defender": reply.isDefender,
+            "regular_followers": regularFollowerPayload(),
+            "other_ai_replies": otherReplies
         ]
 
         let targetRegular = regularFollowers.first { follower in
@@ -690,6 +850,7 @@ class AppState: ObservableObject {
             if error != nil {
                 DispatchQueue.main.async {
                     self.isSubmittingUserReply = false
+                    self.failReplyThread(postID: postID, targetReplyID: reply.id, message: "通信状態を確認して、もう一度お試しください。")
                     UPMEAnalytics.capture("user_reply_failed", properties: ["reason": "network"])
                     completion(false)
                 }
@@ -698,55 +859,77 @@ class AppState: ObservableObject {
 
             guard let data,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let status = json["status"] as? String, status == "success",
-                  let replyJSON = json["reply"] as? [String: Any] else {
+                  let status = json["status"] as? String, status == "success" else {
                 DispatchQueue.main.async {
                     self.isSubmittingUserReply = false
+                    self.failReplyThread(postID: postID, targetReplyID: reply.id, message: "AIから返信を取得できませんでした。")
                     UPMEAnalytics.capture("user_reply_failed", properties: ["reason": "invalid_response"])
                     completion(false)
                 }
                 return
             }
 
-            let author = replyJSON["author_name"] as? String ?? reply.authorName
-            let content = replyJSON["content"] as? String ?? ""
-            let isHater = jsonReplyBool(replyJSON, snake: "is_hater", camel: "isHater")
-            let isDefender = jsonReplyBool(replyJSON, snake: "is_defender", camel: "isDefender")
-            let regularFollowerID = replyJSON["regular_follower_id"] as? String ?? reply.regularFollowerId
+            let replyJSONs: [[String: Any]]
+            if let replies = json["replies"] as? [[String: Any]], !replies.isEmpty {
+                replyJSONs = replies
+            } else if let legacyReply = json["reply"] as? [String: Any] {
+                replyJSONs = [legacyReply]
+            } else {
+                DispatchQueue.main.async {
+                    self.isSubmittingUserReply = false
+                    self.failReplyThread(postID: postID, targetReplyID: reply.id, message: "AIから返信を取得できませんでした。")
+                    UPMEAnalytics.capture("user_reply_failed", properties: ["reason": "missing_replies"])
+                    completion(false)
+                }
+                return
+            }
+
             let memoryUpdates = json["memory_updates"] as? [[String: Any]] ?? []
-            let followUp = Reply(
-                authorName: author,
-                text: content,
-                img: reply.img,
-                isHater: isHater,
-                isDefender: isDefender,
-                regularFollowerId: regularFollowerID,
-                replyToId: userReplyID
-            )
+            let followUps = replyJSONs.enumerated().compactMap { index, replyJSON -> Reply? in
+                let content = replyJSON["content"] as? String ?? ""
+                guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+                let author = replyJSON["author_name"] as? String ?? (index == 0 ? reply.authorName : "名無し")
+                let img = replyJSON["author_img"] as? String
+                    ?? (index == 0 ? reply.img : self.avatars[index % self.avatars.count])
+                let isHater = jsonReplyBool(replyJSON, snake: "is_hater", camel: "isHater")
+                let isDefender = jsonReplyBool(replyJSON, snake: "is_defender", camel: "isDefender")
+                let regularFollowerID = replyJSON["regular_follower_id"] as? String
+                return Reply(
+                    authorName: author,
+                    text: content,
+                    img: img,
+                    isHater: isHater,
+                    isDefender: isDefender,
+                    regularFollowerId: regularFollowerID,
+                    replyToId: userReplyID
+                )
+            }
 
             DispatchQueue.main.async {
                 self.applyRegularFollowerMemoryUpdates(memoryUpdates)
                 guard let currentPostIndex = self.posts.firstIndex(where: { $0.id == postID }) else {
                     self.isSubmittingUserReply = false
+                    self.failReplyThread(postID: postID, targetReplyID: reply.id, message: "投稿が見つからないため、返信を表示できませんでした。")
                     completion(false)
                     return
                 }
-                guard let currentReplyIndex = self.posts[currentPostIndex].replies.firstIndex(where: { $0.id == reply.id }) else {
+                guard self.posts[currentPostIndex].replyThreads.contains(where: { $0.targetReplyID == reply.id }) else {
                     self.isSubmittingUserReply = false
+                    self.failReplyThread(postID: postID, targetReplyID: reply.id, message: "返信スレッドを表示できませんでした。")
                     completion(false)
                     return
                 }
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                    self.posts[currentPostIndex].replies[currentReplyIndex].hasUserReply = true
-                    self.posts[currentPostIndex].replies.insert(userReply, at: 0)
-                    self.posts[currentPostIndex].replies.insert(followUp, at: 0)
-                }
+                self.pendingReplyThreadReplies[reply.id] = followUps
                 self.isSubmittingUserReply = false
                 UPMEAnalytics.capture("ai_thread_reply_received", properties: [
-                    "is_regular": regularFollowerID != nil,
-                    "is_hater": isHater,
-                    "is_defender": isDefender
+                    "reply_count": followUps.count,
+                    "regular_reply_count": followUps.filter { $0.regularFollowerId != nil }.count
                 ])
+                if followUps.isEmpty {
+                    self.loadingReplyThreadIDs.remove(reply.id)
+                } else {
+                    self.drainReplyThreadNext(postID: postID, targetReplyID: reply.id)
+                }
                 completion(true)
             }
         }.resume()

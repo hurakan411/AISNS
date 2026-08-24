@@ -40,6 +40,16 @@ struct FeedView: View {
         .refreshable {
             appState.fetchUser()
         }
+        .alert("返信を送信できませんでした", isPresented: Binding(
+            get: { appState.replyErrorMessage != nil },
+            set: { isPresented in
+                if !isPresented { appState.replyErrorMessage = nil }
+            }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(appState.replyErrorMessage ?? "通信状態を確認して、もう一度お試しください。")
+        }
     }
 }
 
@@ -136,20 +146,36 @@ struct PostCard: View {
                     }
 
                     ForEach(post.replies) { reply in
-                        ReplyRow(
-                            reply: reply,
-                            isRegular: !reply.isUserReply && appState.isRegularFollower(reply),
-                            canManageRegulars: !appState.isInOnboarding && !reply.isUserReply,
-                            canReply: !appState.isInOnboarding && reply.canReceiveUserReply,
-                            onReplyTap: {
-                                replyTarget = reply
+                        VStack(alignment: .leading, spacing: 10) {
+                            ReplyRow(
+                                reply: reply,
+                                isRegular: !reply.isUserReply && appState.isRegularFollower(reply),
+                                canManageRegulars: !appState.isInOnboarding && !reply.isUserReply,
+                                canReply: !appState.isInOnboarding && reply.canReceiveUserReply,
+                                showsThreadToggle: reply.hasUserReply,
+                                isThreadExpanded: appState.isReplyThreadExpanded(reply.id),
+                                onReplyTap: {
+                                    replyTarget = reply
+                                },
+                                onThreadTap: {
+                                    appState.toggleReplyThread(reply.id)
+                                }
+                            ) {
+                                guard !appState.isRegularFollower(reply) else { return }
+                                if appState.regularFollowers.count >= appState.maxRegularFollowers {
+                                    regularFollowerAlert = .limitReached(maximum: appState.maxRegularFollowers)
+                                } else {
+                                    regularFollowerAlert = .confirm(reply: reply)
+                                }
                             }
-                        ) {
-                            guard !appState.isRegularFollower(reply) else { return }
-                            if appState.regularFollowers.count >= appState.maxRegularFollowers {
-                                regularFollowerAlert = .limitReached(maximum: appState.maxRegularFollowers)
-                            } else {
-                                regularFollowerAlert = .confirm(reply: reply)
+
+                            if appState.isReplyThreadExpanded(reply.id),
+                               let thread = post.replyThreads.first(where: { $0.targetReplyID == reply.id }) {
+                                ReplyThreadView(
+                                    thread: thread,
+                                    isLoading: appState.isReplyThreadLoading(reply.id)
+                                )
+                                .environmentObject(appState)
                             }
                         }
                     }
@@ -210,7 +236,10 @@ struct ReplyRow: View {
     let isRegular: Bool
     let canManageRegulars: Bool
     let canReply: Bool
+    let showsThreadToggle: Bool
+    let isThreadExpanded: Bool
     let onReplyTap: () -> Void
+    let onThreadTap: () -> Void
     let onRegularTap: () -> Void
 
     private var displayName: String {
@@ -329,6 +358,18 @@ struct ReplyRow: View {
                         .buttonStyle(.plain)
                         .accessibilityLabel("このAIに返信")
                     }
+                    if showsThreadToggle {
+                        Button(action: onThreadTap) {
+                            HStack(spacing: 3) {
+                                Image(systemName: isThreadExpanded ? "bubble.left.and.bubble.right.fill" : "bubble.left.and.bubble.right")
+                                Text(isThreadExpanded ? "閉じる" : "会話")
+                            }
+                            .foregroundColor(Theme.cyan)
+                            .font(.system(size: 10, weight: .black))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(isThreadExpanded ? "会話を閉じる" : "会話を表示")
+                    }
                     if canManageRegulars {
                         Button(action: onRegularTap) {
                             Image(systemName: isRegular ? "star.circle.fill" : "star.circle")
@@ -359,6 +400,60 @@ struct ReplyRow: View {
             Spacer(minLength: 16)
         }
         .padding(.trailing, 16)
+    }
+}
+
+struct ReplyThreadView: View {
+    @EnvironmentObject var appState: AppState
+    let thread: ReplyThread
+    let isLoading: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.turn.down.right")
+                    .foregroundColor(Theme.cyan)
+                Text("この返信から続く会話")
+                    .font(.system(size: 11, weight: .black))
+                    .foregroundColor(Theme.cyan)
+                Spacer()
+            }
+
+            ForEach(thread.replies) { reply in
+                ReplyRow(
+                    reply: reply,
+                    isRegular: !reply.isUserReply && appState.isRegularFollower(reply),
+                    canManageRegulars: false,
+                    canReply: false,
+                    showsThreadToggle: false,
+                    isThreadExpanded: false,
+                    onReplyTap: {},
+                    onThreadTap: {}
+                ) {}
+            }
+
+            if isLoading {
+                HStack {
+                    Spacer()
+                    LottieAnimationUIView(name: "Loading Pink Dots")
+                        .frame(height: 58)
+                        .frame(maxWidth: 130)
+                    Spacer()
+                }
+                .padding(.vertical, 2)
+            }
+        }
+        .padding(.top, 12)
+        .padding(.leading, 18)
+        .padding(.trailing, 4)
+        .padding(.bottom, 8)
+        .background(Color.black.opacity(0.18))
+        .overlay(alignment: .leading) {
+            Rectangle()
+                .fill(Theme.cyan.opacity(0.7))
+                .frame(width: 2)
+        }
+        .cornerRadius(16)
     }
 }
 
@@ -409,7 +504,7 @@ struct ReplyComposerView: View {
                         }
                     }
 
-                Text("返信は1回限りです。送信後、@\(target.authorName)が1件だけ返信します。")
+                Text("返信は1回限りです。送信後、@\(target.authorName)を起点に他のAIも会話へ参加します。")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.gray)
                 Spacer()
@@ -426,9 +521,11 @@ struct ReplyComposerView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
                         isSending = true
-                        appState.submitReply(to: target, postID: post.id, text: text) { success in
+                        appState.submitReply(to: target, postID: post.id, text: text, onStarted: {
+                            dismiss()
+                        }) { success in
                             if success {
-                                dismiss()
+                                // 送信直後に専用スレッドを表示し、AI返信はその中で到着順に表示する。
                             } else {
                                 isSending = false
                                 showError = true

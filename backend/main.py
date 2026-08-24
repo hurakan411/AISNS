@@ -74,19 +74,36 @@ class GenerateRepliesResponse(BaseModel):
     memory_updates: List[RegularFollowerMemoryUpdateSchema]
 
 
+class ThreadReplyContext(BaseModel):
+    """元の投稿に付いていた、会話スレッド参加候補のAI情報。"""
+    author_name: str
+    content: str
+    is_hater: bool = False
+    is_defender: bool = False
+    regular_follower_id: Optional[str] = None
+
+
 class ReplyToAiRequest(BaseModel):
     user_id: str
     post_content: str
     ai_author_name: str
+    ai_author_img: Optional[str] = None
     ai_reply_content: str
     user_reply: str
     ai_is_hater: bool = False
     ai_is_defender: bool = False
     target_regular_follower: Optional[RegularFollowerContext] = None
+    regular_followers: List[RegularFollowerContext] = Field(default_factory=list)
+    other_ai_replies: List[ThreadReplyContext] = Field(default_factory=list)
 
 
 class GenerateReplyToUserResponse(BaseModel):
     reply: ReplySchema
+    memory_updates: List[RegularFollowerMemoryUpdateSchema] = Field(default_factory=list)
+
+
+class GenerateReplyThreadResponse(BaseModel):
+    replies: List[ReplySchema]
     memory_updates: List[RegularFollowerMemoryUpdateSchema] = Field(default_factory=list)
 
 
@@ -605,10 +622,19 @@ async def generate_ai_replies(
         raise
 
 
-async def generate_ai_reply_to_user(request: ReplyToAiRequest) -> Tuple[dict, List[dict]]:
-    """AIリプライ1件に対するユーザーの返信へ、対象AIが1件だけ再返信する。"""
+async def generate_ai_reply_to_user(request: ReplyToAiRequest) -> Tuple[List[dict], List[dict]]:
+    """ユーザーの返信に対し、対象AIを含む会話スレッドを生成する。"""
     target = request.target_regular_follower
     target_id = target.follower_id if target else None
+    other_contexts = [
+        context
+        for context in request.other_ai_replies[:8]
+        if context.author_name.strip() != request.ai_author_name.strip()
+    ]
+    regular_context_by_id = {
+        follower.follower_id: follower
+        for follower in request.regular_followers
+    }
 
     if target:
         memories = " / ".join(str(item)[:160] for item in target.memories[-8:]) or "まだ記憶なし"
@@ -618,7 +644,7 @@ async def generate_ai_reply_to_user(request: ReplyToAiRequest) -> Tuple[dict, Li
 - 名前: {target.author_name}
 - 長期記憶: {memories}
 - 最近のやり取り: {recent}
-- このAIは常連なので、上記の記憶と口調を自然に引き継ぐこと。
+- このAIは常連なので、上記の記憶と口調を自然に引き継れるのは対象AIだけ。
 - 記憶にない事実を知っているふりはしないこと。
 """
     else:
@@ -635,21 +661,34 @@ async def generate_ai_reply_to_user(request: ReplyToAiRequest) -> Tuple[dict, Li
     else:
         tone_instruction = "対象AIは通常のフォロワーです。ユーザーの返答に自然に反応し、会話が続く一言を返してください。"
 
+    other_context_text = "\n".join(
+        f"- {context.author_name}: {context.content}"
+        + (
+            f"（常連の記憶: {' / '.join(regular_context_by_id[context.regular_follower_id].memories[-4:]) or 'なし'}; "
+            f"最近: {' / '.join(regular_context_by_id[context.regular_follower_id].recent_interactions[-2:]) or 'なし'}）"
+            if context.regular_follower_id in regular_context_by_id else ""
+        )
+        for context in other_contexts
+    ) or "（他の初期リプライ情報はありません）"
+
     system_prompt = f"""
 あなたはSNS「UPME! | AI SNS」の仮想フォロワーエンジンです。
-ユーザーが自分の投稿に付いたAIリプライへ返信しました。対象AIとして、**再返信をちょうど1件だけ**JSONで生成してください。
+ユーザーが自分の投稿に付いた特定のAIリプライへ返信しました。
+この返信を起点に、**対象AI1人と、他のAIフォロワー2〜4人による合計3〜5件の会話スレッド**を生成してください。
+JSONの replies 配列の1件目は必ず対象AI、その後に他のAIを並べてください。
 
 {character_instruction}
 
 【会話のルール】
-- author_name は対象AIの名前「{request.ai_author_name}」を一字一句変えない。
-- regular_follower_id は常連なら「{target_id or 'null'}」、常連でなければ null。
-- is_hater は対象AIが批判者の場合のみ true。
-- is_defender は対象AIが擁護者の場合のみ true。
-- 返信はユーザーの返答に直接反応し、元の投稿と直前のAIリプライの文脈も踏まえる。
-- 返信は日本語で、機械的な定型文や無関係な称賛を避ける。
-- content は短く自然なSNS返信にする。
-- memory_updates は常連の場合のみ、今回の会話から今後も役立つ非機密の事実を0〜1件返す。常連でなければ空配列。
+- 1件目の author_name は対象AIの名前「{request.ai_author_name}」を一字一句変えない。
+- 1件目の regular_follower_id は常連なら「{target_id or 'null'}」、常連でなければ null。
+- 1件目の is_hater / is_defender は対象AIの属性を維持する。
+- 2件目以降は、可能な限り「他の初期AIリプライ」に登場した人物を使い、元のコメントとは違う視点でユーザーの返信に反応する。
+- 2件目以降の author_name は1件目と重複させず、人物ごとに変える。常連を使う場合だけ regular_follower_id を対応するIDにする。
+- AI同士がユーザーの返信や対象AIの返答を見て、同意・補足・軽い反論などを交わす自然な流れにする。
+- 全返信はユーザーの返信または元の投稿に具体的に反応する。無関係な称賛や機械的な定型文は禁止。
+- 返信は日本語で、短く自然なSNS返信にする。
+- memory_updates は今回の会話に参加した常連についてのみ、今後も役立つ非機密の事実を0〜1件返す。常連でなければ空配列。
 
 【対象AIのトーン】
 {tone_instruction}
@@ -659,8 +698,11 @@ async def generate_ai_reply_to_user(request: ReplyToAiRequest) -> Tuple[dict, Li
 元の投稿:
 {request.post_content}
 
-直前のAIリプライ（{request.ai_author_name}）:
+対象AIの直前のリプライ（{request.ai_author_name}）:
 {request.ai_reply_content}
+
+他の初期AIリプライ:
+{other_context_text}
 
 ユーザーの返信:
 {request.user_reply}
@@ -672,35 +714,107 @@ async def generate_ai_reply_to_user(request: ReplyToAiRequest) -> Tuple[dict, Li
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_message},
         ],
-        response_format=GenerateReplyToUserResponse,
+        response_format=GenerateReplyThreadResponse,
     )
     parsed_data = completion.choices[0].message.parsed
-    if parsed_data is None:
-        raise RuntimeError("OpenAI response did not contain parsed follow-up reply data")
+    if parsed_data is None or not parsed_data.replies:
+        raise RuntimeError("OpenAI response did not contain parsed reply thread data")
 
-    parsed_data.reply.author_name = request.ai_author_name
-    parsed_data.reply.regular_follower_id = target_id
-    parsed_data.reply.is_hater = False if target else request.ai_is_hater
-    parsed_data.reply.is_defender = False if target else request.ai_is_defender
+    localize_generated_author_names(parsed_data.replies)
+    generated_replies = parsed_data.replies[:5]
+    context_by_id = {
+        context.regular_follower_id: context
+        for context in other_contexts
+        if context.regular_follower_id
+    }
+    context_by_name = {context.author_name: context for context in other_contexts}
+    used_names = {request.ai_author_name.strip()}
+    used_regular_ids: set[str] = set()
+    author_avatar_map: dict[str, str] = {}
+    if target:
+        author_avatar_map[target.author_name] = target.avatar_url
+    elif request.ai_author_img:
+        author_avatar_map[request.ai_author_name] = request.ai_author_img
+    if target_id:
+        used_regular_ids.add(target_id)
+
+    available_names = [
+        name for name in JAPANESE_AI_NAMES
+        if name not in used_names and name not in {context.author_name for context in other_contexts}
+    ]
+
+    def next_unique_name(candidate: str) -> str:
+        clean = candidate.strip()
+        if is_japanese_ai_name(clean) and clean and clean not in used_names:
+            return clean
+        if available_names:
+            return available_names.pop(0)
+        return "名もなき人"
+
+    result: List[dict] = []
+    for index, generated in enumerate(generated_replies):
+        if index == 0:
+            author_name = request.ai_author_name.strip()
+            regular_id = target_id
+            avatar = target.avatar_url if target else (
+                request.ai_author_img
+                or resolve_avatar_url(random.choice(HATER_AVATARS if request.ai_is_hater else AVATARS))
+            )
+            is_hater = False if target else request.ai_is_hater
+            is_defender = False if target else request.ai_is_defender
+        else:
+            context = None
+            if generated.regular_follower_id in context_by_id:
+                context = context_by_id[generated.regular_follower_id]
+            elif generated.author_name in context_by_name:
+                context = context_by_name[generated.author_name]
+
+            if context and context.regular_follower_id in used_regular_ids:
+                context = None
+
+            if context:
+                author_name = context.author_name.strip()
+                regular_id = context.regular_follower_id
+                avatar = context.avatar_url
+                is_hater = False if regular_id else generated.is_hater
+                is_defender = False if regular_id else generated.is_defender
+            else:
+                author_name = next_unique_name(generated.author_name)
+                regular_id = None
+                if author_name in author_avatar_map:
+                    avatar = author_avatar_map[author_name]
+                else:
+                    avatar = resolve_avatar_url(random.choice(HATER_AVATARS if generated.is_hater else AVATARS))
+                is_hater = generated.is_hater
+                is_defender = generated.is_defender
+
+        if author_name in used_names:
+            author_name = next_unique_name("")
+        used_names.add(author_name)
+        if regular_id:
+            used_regular_ids.add(regular_id)
+        result.append({
+            "author_name": author_name,
+            "author_img": avatar,
+            "content": generated.content,
+            "is_hater": is_hater,
+            "is_defender": is_defender,
+            "regular_follower_id": regular_id,
+        })
 
     memory_updates = []
-    if target_id:
-        for update in parsed_data.memory_updates:
-            if update.follower_id == target_id:
-                memory_updates.append({
-                    "follower_id": target_id,
-                    "new_memories": [str(memory)[:160] for memory in update.new_memories[:1]],
-                    "interaction_summary": str(update.interaction_summary)[:180],
-                })
-                break
+    seen_update_ids: set[str] = set()
+    for update in parsed_data.memory_updates:
+        if update.follower_id not in used_regular_ids or update.follower_id in seen_update_ids:
+            continue
+        memory_updates.append({
+            "follower_id": update.follower_id,
+            "new_memories": [str(memory)[:160] for memory in update.new_memories[:1]],
+            "interaction_summary": str(update.interaction_summary)[:180],
+        })
+        seen_update_ids.add(update.follower_id)
 
-    return {
-        "author_name": parsed_data.reply.author_name,
-        "content": parsed_data.reply.content,
-        "is_hater": parsed_data.reply.is_hater,
-        "is_defender": parsed_data.reply.is_defender,
-        "regular_follower_id": parsed_data.reply.regular_follower_id,
-    }, memory_updates
+    return result, memory_updates
 
 
 # -------- 5. ルーティング (API Endpoints) --------
@@ -725,13 +839,19 @@ async def create_post(request: PostRequest):
 
 @app.post("/api/replies")
 async def create_reply_to_ai(request: ReplyToAiRequest):
-    """AIリプライへのユーザー返信を受け、対象AIの再返信を1件だけ返す。"""
+    """AIリプライへのユーザー返信を受け、別スレッド用のAI返信を返す。"""
     if not request.ai_author_name.strip() or not request.user_reply.strip():
         raise HTTPException(status_code=400, detail="ai_author_name and user_reply are required")
 
     try:
-        reply, memory_updates = await generate_ai_reply_to_user(request)
-        return {"status": "success", "reply": reply, "memory_updates": memory_updates}
+        replies, memory_updates = await generate_ai_reply_to_user(request)
+        return {
+            "status": "success",
+            "replies": replies,
+            # 旧クライアントとの互換用。新クライアントは replies を使う。
+            "reply": replies[0],
+            "memory_updates": memory_updates,
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

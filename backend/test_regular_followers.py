@@ -5,6 +5,7 @@ os.environ.setdefault("OPENAI_API_KEY", "test-key")
 
 from main import (
     GenerateRepliesResponse,
+    GenerateReplyThreadResponse,
     PostRequest,
     ReplyToAiRequest,
     ReplySchema,
@@ -30,6 +31,45 @@ class RegularFollowerApiTests(unittest.TestCase):
         self.assertEqual(request.ai_author_name, "ミカ")
         self.assertFalse(request.ai_is_hater)
         self.assertIsNone(request.target_regular_follower)
+
+    def test_reply_thread_payload_includes_other_ai_context(self):
+        request = ReplyToAiRequest.model_validate({
+            "user_id": "user-1",
+            "post_content": "今日はカフェに行った",
+            "ai_author_name": "ミカ",
+            "ai_reply_content": "窓際の席が良さそう！",
+            "user_reply": "窓際が一番落ち着いたよ",
+            "other_ai_replies": [{
+                "author_name": "ゆき",
+                "content": "ラテも気になる",
+                "is_hater": False,
+                "is_defender": False,
+            }],
+        })
+        self.assertEqual(len(request.other_ai_replies), 1)
+        self.assertEqual(request.other_ai_replies[0].author_name, "ゆき")
+
+    def test_reply_thread_response_supports_multiple_ai_replies(self):
+        response = GenerateReplyThreadResponse.model_validate({
+            "replies": [
+                {
+                    "author_name": "ミカ",
+                    "content": "窓際って落ち着くよね",
+                    "is_hater": False,
+                    "is_defender": False,
+                    "regular_follower_id": "mika-1",
+                },
+                {
+                    "author_name": "ゆき",
+                    "content": "その話、私も気になってた",
+                    "is_hater": False,
+                    "is_defender": False,
+                    "regular_follower_id": None,
+                },
+            ],
+            "memory_updates": [],
+        })
+        self.assertEqual(len(response.replies), 2)
 
     def test_regular_follower_payload_is_parsed(self):
         request = PostRequest.model_validate({
