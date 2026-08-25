@@ -28,12 +28,35 @@ struct FeedView: View {
                     }
                     .padding(.top, 120)
                 } else {
-                    VStack(spacing: 40) {
+                    Button(action: onGoPost) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "pencil.line")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(Theme.hotPink)
+                            Text("いま、なに思ってる？")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.gray)
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(Theme.lavender)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 14)
+                        .background(Theme.cardBackground)
+                        .cornerRadius(16)
+                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.subtleBorder, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
+
+                    VStack(spacing: 32) {
                         ForEach(appState.posts) { post in
                             PostCard(post: post)
                         }
                     }
-                    .padding(.vertical, 24)
+                    .padding(.vertical, 20)
                 }
             }
         }
@@ -48,7 +71,7 @@ struct FeedView: View {
         )) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text(appState.replyErrorMessage ?? "通信状態を確認して、もう一度お試しください。")
+            Text(appState.replyErrorMessage ?? appState.text("通信状態を確認して、もう一度お試しください。", "Check your connection and try again."))
         }
     }
 }
@@ -70,23 +93,23 @@ struct PostCard: View {
                             .scaledToFill()
                             .frame(width: 44, height: 44)
                             .clipShape(Circle())
-                            .overlay(Circle().stroke(Color.purple, lineWidth: 2))
+                            .overlay(Circle().stroke(Theme.hotPink.opacity(0.75), lineWidth: 2))
                     } else {
                         AsyncImage(url: URL(string: Theme.myAvatar)) { image in
                             image.resizable().scaledToFill()
                         } placeholder: {
-                            Circle().fill(Color.purple)
+                            Circle().fill(Theme.deepPurple)
                         }
                         .frame(width: 44, height: 44)
                         .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.purple, lineWidth: 2))
+                        .overlay(Circle().stroke(Theme.hotPink.opacity(0.75), lineWidth: 2))
                     }
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text(appState.userName)
                             .font(.system(size: 15, weight: .bold))
                             .foregroundColor(.white)
-                        Text(post.time)
+                        Text((post.time == "今" || post.time == "Now") ? appState.text("今", "Now") : post.time)
                             .font(.system(size: 11, weight: .black))
                             .foregroundColor(.gray)
                             .textCase(.uppercase)
@@ -128,8 +151,8 @@ struct PostCard: View {
                 .background(Color.black.opacity(0.3))
             }
             .background(Theme.cardBackground)
-            .cornerRadius(28)
-            .overlay(RoundedRectangle(cornerRadius: 28).stroke(Color.white.opacity(0.08), lineWidth: 1))
+            .cornerRadius(22)
+            .overlay(RoundedRectangle(cornerRadius: 22).stroke(Theme.subtleBorder, lineWidth: 1))
             .padding(.horizontal, 16)
             
             if !post.replies.isEmpty || (appState.posts.first?.id == post.id && (appState.hasPendingReplies || appState.isRequestingReplies)) {
@@ -184,7 +207,7 @@ struct PostCard: View {
                 .padding(.leading, 32)
                 .overlay(
                     Rectangle()
-                        .fill(LinearGradient(gradient: Gradient(colors: [Color.gray.opacity(0.4), .clear]), startPoint: .top, endPoint: .bottom))
+                        .fill(LinearGradient(gradient: Gradient(colors: [Theme.hotPink.opacity(0.7), Theme.purpleAccent.opacity(0.45), .clear]), startPoint: .top, endPoint: .bottom))
                         .frame(width: 2)
                         .padding(.leading, 22)
                         .padding(.top, 24)
@@ -196,8 +219,8 @@ struct PostCard: View {
             switch alert {
             case .confirm(let reply):
                 return Alert(
-                    title: Text("@\(reply.authorName)を常連にしますか？"),
-                    message: Text("今後の投稿にも同じ名前と記憶を持って返信します。会話記憶は端末に保存され、返信生成時にOpenAIへ送信されます。"),
+                    title: Text(appState.text("@\(reply.authorName)を常連にしますか？", "Make @\(reply.authorName) a regular?")),
+                    message: Text(appState.text("今後の投稿にも同じ名前と記憶を持って返信します。会話記憶は端末に保存され、返信生成時にOpenAIへ送信されます。", "They will reply to future posts with the same name and memory. Conversation memory is stored on this device and sent to OpenAI when generating replies.")),
                     primaryButton: .default(Text("常連にする")) {
                         _ = appState.addRegularFollower(from: reply, postContent: post.content)
                     },
@@ -205,8 +228,8 @@ struct PostCard: View {
                 )
             case .limitReached(let maximum):
                 return Alert(
-                    title: Text("常連の上限に達しています"),
-                    message: Text("現在のランクでは最大\(maximum)人まで設定できます。プロフィール画面から常連を解除してから、もう一度お試しください。"),
+                    title: Text(appState.text("常連の上限に達しています", "Regular follower limit reached")),
+                    message: Text(appState.text("現在のランクでは最大\(maximum)人まで設定できます。プロフィール画面から常連を解除してから、もう一度お試しください。", "Your current rank allows up to \(maximum) regular followers. Remove one from your profile and try again.")),
                     dismissButton: .default(Text("OK"))
                 )
             }
@@ -247,16 +270,16 @@ struct ReplyRow: View {
     }
 
     private var nameColor: Color {
-        if reply.isUserReply { return Theme.cyan }
+        if reply.isUserReply { return Theme.hotPink }
         if reply.isHater { return .red }
         if reply.isDefender { return .green }
-        return Theme.hotPink
+        return Theme.lavender
     }
 
     private var avatarStrokeColor: Color {
-        if reply.isUserReply { return Theme.cyan }
+        if reply.isUserReply { return Theme.hotPink }
         if reply.isHater { return .red }
-        return Color.gray.opacity(0.3)
+        return Theme.purpleAccent.opacity(0.65)
     }
 
     private var avatarStrokeWidth: CGFloat {
@@ -264,17 +287,17 @@ struct ReplyRow: View {
     }
 
     private var cardBackground: Color {
-        if reply.isUserReply { return Theme.cyan.opacity(0.1) }
+        if reply.isUserReply { return Theme.hotPink.opacity(0.10) }
         if reply.isHater { return Color(red: 0.2, green: 0, blue: 0).opacity(0.4) }
         if reply.isDefender { return Color(red: 0, green: 0.2, blue: 0).opacity(0.2) }
-        return Color(white: 0.1).opacity(0.5)
+        return Theme.aiCardBackground.opacity(0.9)
     }
 
     private var cardStrokeColor: Color {
-        if reply.isUserReply { return Theme.cyan.opacity(0.5) }
+        if reply.isUserReply { return Theme.hotPink.opacity(0.45) }
         if reply.isHater { return Color.red.opacity(0.5) }
         if reply.isDefender { return Color.green.opacity(0.5) }
-        return Color.white.opacity(0.05)
+        return Theme.subtleBorder
     }
     
     var body: some View {
@@ -295,7 +318,7 @@ struct ReplyRow: View {
                                 .resizable()
                                 .foregroundColor(reply.isHater ? .gray : Theme.hotPink)
                         } else {
-                            Circle().fill(reply.isHater ? Color.gray : Color.purple)
+                            Circle().fill(reply.isHater ? Color.gray : Theme.deepPurple)
                         }
                     }
                 }
@@ -312,13 +335,23 @@ struct ReplyRow: View {
                         .font(.system(size: 12, weight: .black))
                         .foregroundColor(nameColor)
 
+                    if !reply.isUserReply && !reply.isHater && !reply.isDefender {
+                        Text("AI")
+                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(Theme.purpleAccent.opacity(0.45))
+                            .foregroundColor(.white.opacity(0.9))
+                            .cornerRadius(4)
+                    }
+
                     if reply.isUserReply {
                         Text("あなた")
                             .font(.system(size: 8, weight: .black))
                             .padding(.horizontal, 6)
                             .padding(.vertical, 3)
-                            .background(Theme.cyan.opacity(0.18))
-                            .foregroundColor(Theme.cyan)
+                            .background(Theme.hotPink.opacity(0.18))
+                            .foregroundColor(Theme.hotPink)
                             .cornerRadius(10)
                     }
                     
@@ -344,8 +377,8 @@ struct ReplyRow: View {
                             .font(.system(size: 8, weight: .black))
                             .padding(.horizontal, 6)
                             .padding(.vertical, 3)
-                            .background(Theme.cyan.opacity(0.18))
-                            .foregroundColor(Theme.cyan)
+                            .background(Theme.purpleAccent.opacity(0.22))
+                            .foregroundColor(Theme.lavender)
                             .cornerRadius(10)
                     }
                     Spacer()
@@ -362,23 +395,23 @@ struct ReplyRow: View {
                         Button(action: onThreadTap) {
                             HStack(spacing: 3) {
                                 Image(systemName: isThreadExpanded ? "bubble.left.and.bubble.right.fill" : "bubble.left.and.bubble.right")
-                                Text(isThreadExpanded ? "閉じる" : "会話")
+                                Text(appState.text(isThreadExpanded ? "閉じる" : "会話", isThreadExpanded ? "Close" : "Thread"))
                             }
                             .foregroundColor(Theme.cyan)
                             .font(.system(size: 10, weight: .black))
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel(isThreadExpanded ? "会話を閉じる" : "会話を表示")
+                        .accessibilityLabel(appState.text(isThreadExpanded ? "会話を閉じる" : "会話を表示", isThreadExpanded ? "Close thread" : "Show thread"))
                     }
                     if canManageRegulars {
                         Button(action: onRegularTap) {
                             Image(systemName: isRegular ? "star.circle.fill" : "star.circle")
-                                .foregroundColor(isRegular ? .yellow : .gray.opacity(0.8))
+                                .foregroundColor(isRegular ? Theme.hotPink : .gray.opacity(0.8))
                                 .font(.system(size: 18, weight: .bold))
                         }
                         .buttonStyle(.plain)
                         .disabled(isRegular)
-                        .accessibilityLabel(isRegular ? "常連設定済み" : "常連に設定")
+                        .accessibilityLabel(appState.text(isRegular ? "常連設定済み" : "常連に設定", isRegular ? "Already a regular" : "Make a regular"))
                     }
                     if reply.isHater {
                         Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.red).font(.system(size: 12))
@@ -394,8 +427,8 @@ struct ReplyRow: View {
             }
             .padding(16)
             .background(cardBackground)
-            .cornerRadius(20)
-            .overlay(RoundedRectangle(cornerRadius: 20).stroke(cardStrokeColor, lineWidth: 1))
+            .cornerRadius(16)
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(cardStrokeColor, lineWidth: 1))
             
             Spacer(minLength: 16)
         }
@@ -474,7 +507,7 @@ struct ReplyComposerView: View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("@\(target.authorName)に返信")
+                    Text(appState.text("@\(target.authorName)に返信", "Reply to @\(target.authorName)"))
                         .font(.system(size: 16, weight: .black))
                         .foregroundColor(Theme.cyan)
                     Text(target.text)
@@ -504,7 +537,7 @@ struct ReplyComposerView: View {
                         }
                     }
 
-                Text("返信は1回限りです。送信後、@\(target.authorName)を起点に他のAIも会話へ参加します。")
+                Text(appState.text("返信は1回限りです。送信後、@\(target.authorName)を起点に他のAIも会話へ参加します。", "You can reply once. After sending, other AIs will join the thread starting from @\(target.authorName)."))
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.gray)
                 Spacer()

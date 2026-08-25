@@ -1,8 +1,13 @@
+import asyncio
 import os
+import re
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 
 os.environ.setdefault("OPENAI_API_KEY", "test-key")
 
+import main as backend_main
 from main import (
     GenerateRepliesResponse,
     GenerateReplyThreadResponse,
@@ -15,10 +20,26 @@ from main import (
 )
 
 
+class PromptCaptureClient:
+    def __init__(self, parsed_response):
+        self.calls = []
+
+        async def parse(**kwargs):
+            self.calls.append(kwargs)
+            return SimpleNamespace(
+                choices=[SimpleNamespace(message=SimpleNamespace(parsed=parsed_response))]
+            )
+
+        self.beta = SimpleNamespace(
+            chat=SimpleNamespace(completions=SimpleNamespace(parse=parse))
+        )
+
+
 class RegularFollowerApiTests(unittest.TestCase):
     def test_old_post_payload_remains_compatible(self):
         request = PostRequest(user_id="user-1", content="hello", followers=0)
         self.assertEqual(request.regular_followers, [])
+        self.assertEqual(request.language, "ja")
 
     def test_single_user_reply_payload_is_parsed(self):
         request = ReplyToAiRequest.model_validate({
@@ -147,6 +168,120 @@ class RegularFollowerApiTests(unittest.TestCase):
         self.assertEqual(replies[0].author_name, replies[1].author_name)
         self.assertRegex(replies[0].author_name, r"^[ぁ-んァ-ヶ一-龠々ー・\s]+$")
         self.assertEqual(replies[2].author_name, "ren")
+
+    def test_non_regular_ai_names_are_localized_to_english(self):
+        replies = [
+            ReplySchema(
+                author_name="みく_23",
+                content="Love that night breeze.",
+                is_hater=False,
+                is_defender=False,
+                regular_follower_id=None,
+            ),
+            ReplySchema(
+                author_name="みく_23",
+                content="It sounds peaceful.",
+                is_hater=False,
+                is_defender=False,
+                regular_follower_id=None,
+            ),
+            ReplySchema(
+                author_name="ゆき",
+                content="Same regular follower.",
+                is_hater=False,
+                is_defender=False,
+                regular_follower_id="regular-1",
+            ),
+        ]
+
+        localize_generated_author_names(replies, "en")
+
+        self.assertEqual(replies[0].author_name, replies[1].author_name)
+        self.assertRegex(replies[0].author_name, r"^[A-Za-z][A-Za-z '\-]+$")
+        self.assertEqual(replies[2].author_name, "ゆき")
+
+    def test_english_post_generation_uses_an_english_only_prompt(self):
+        parsed_response = GenerateRepliesResponse.model_validate({
+            "replies": [{
+                "author_name": "Mia",
+                "content": "That quiet morning sounds genuinely restorative.",
+                "is_hater": False,
+                "is_defender": False,
+                "regular_follower_id": None,
+            }],
+            "memory_updates": [],
+        })
+        capture_client = PromptCaptureClient(parsed_response)
+
+        with (
+            patch.object(backend_main, "openai_client", capture_client),
+            patch.object(backend_main, "resolve_avatar_url", return_value="https://example.com/avatar.png"),
+        ):
+            asyncio.run(backend_main.generate_ai_replies(
+                content="A quiet morning walk helped me reset.",
+                followers=0,
+                is_hater_enabled=False,
+                language="en",
+            ))
+
+        messages = capture_client.calls[0]["messages"]
+        system_prompt = messages[0]["content"]
+        user_text = messages[1]["content"][0]["text"]
+        self.assertIn("OUTPUT LANGUAGE — HIGHEST PRIORITY", system_prompt)
+        self.assertIn("ENGLISH-LANGUAGE SOCIAL MEDIA", system_prompt)
+        self.assertIn("User's post:", user_text)
+        self.assertIsNone(re.search(r"[ぁ-んァ-ヶ一-龠]", system_prompt))
+
+    def test_english_reply_thread_uses_an_english_only_prompt(self):
+        parsed_response = GenerateReplyThreadResponse.model_validate({
+            "replies": [
+                {
+                    "author_name": "Alex",
+                    "content": "Yeah, the slower pace was exactly what I meant.",
+                    "is_hater": False,
+                    "is_defender": False,
+                    "regular_follower_id": None,
+                },
+                {
+                    "author_name": "Mia",
+                    "content": "Morning walks really do change the whole day.",
+                    "is_hater": False,
+                    "is_defender": False,
+                    "regular_follower_id": None,
+                },
+                {
+                    "author_name": "Noah",
+                    "content": "Was it quiet because you went out early?",
+                    "is_hater": False,
+                    "is_defender": False,
+                    "regular_follower_id": None,
+                },
+            ],
+            "memory_updates": [],
+        })
+        capture_client = PromptCaptureClient(parsed_response)
+        request = ReplyToAiRequest.model_validate({
+            "user_id": "user-1",
+            "post_content": "A quiet morning walk helped me reset.",
+            "ai_author_name": "Alex",
+            "ai_reply_content": "That sounds like a good way to slow down.",
+            "user_reply": "It was. I left my phone in my pocket the whole time.",
+            "language": "en",
+        })
+
+        with (
+            patch.object(backend_main, "openai_client", capture_client),
+            patch.object(backend_main, "resolve_avatar_url", return_value="https://example.com/avatar.png"),
+        ):
+            replies, _ = asyncio.run(backend_main.generate_ai_reply_to_user(request))
+
+        messages = capture_client.calls[0]["messages"]
+        system_prompt = messages[0]["content"]
+        user_message = messages[1]["content"]
+        self.assertIn("OUTPUT LANGUAGE — HIGHEST PRIORITY", system_prompt)
+        self.assertIn("Original post:", user_message)
+        self.assertIsNone(re.search(r"[ぁ-んァ-ヶ一-龠]", system_prompt))
+        self.assertEqual(replies[0]["author_name"], "Alex")
 
 
 if __name__ == "__main__":

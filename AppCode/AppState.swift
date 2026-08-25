@@ -1,6 +1,27 @@
 import SwiftUI
 import Combine
 
+enum AppLanguage: String, CaseIterable, Identifiable {
+    case japanese = "ja"
+    case english = "en"
+
+    var id: String { rawValue }
+
+    static var deviceDefault: AppLanguage {
+        let preferred = Locale.preferredLanguages.first?.lowercased() ?? "en"
+        return preferred.hasPrefix("ja") ? .japanese : .english
+    }
+
+    var locale: Locale { Locale(identifier: rawValue) }
+    var displayName: String { self == .japanese ? "日本語" : "English" }
+    var defaultUserName: String { self == .japanese ? "あなた" : "You" }
+    var defaultBio: String {
+        self == .japanese
+            ? "今日も息してるだけでえらい。UPME! | AI SNSで承認欲求の海に溺れるアカウント。"
+            : "Just making it through today is enough. An account floating in the sea of validation on UPME! | AI SNS."
+    }
+}
+
 struct Reply: Identifiable, Equatable, Codable {
     var id: UUID
     let authorName: String
@@ -177,6 +198,32 @@ private func jsonReplyBool(_ r: [String: Any], snake: String, camel: String) -> 
 }
 
 class AppState: ObservableObject {
+    @Published var appLanguage: AppLanguage = {
+        guard let saved = UserDefaults.standard.string(forKey: "appLanguage"),
+              let language = AppLanguage(rawValue: saved) else {
+            return .deviceDefault
+        }
+        return language
+    }() {
+        didSet {
+            UserDefaults.standard.set(appLanguage.rawValue, forKey: "appLanguage")
+            if userName == oldValue.defaultUserName {
+                userName = appLanguage.defaultUserName
+            }
+            if userBio == oldValue.defaultBio {
+                userBio = appLanguage.defaultBio
+            }
+            UPMEAnalytics.capture("app_language_changed", properties: ["language": appLanguage.rawValue])
+        }
+    }
+
+    var locale: Locale { appLanguage.locale }
+    var languageCode: String { appLanguage.rawValue }
+
+    func text(_ japanese: String, _ english: String) -> String {
+        appLanguage == .japanese ? japanese : english
+    }
+
     @Published var debugText: String = "---"
     @Published var followers: Int = 0
     @Published var totalPosts: Int = 0
@@ -204,13 +251,13 @@ class AppState: ObservableObject {
     private var prefetchedOnboardingReplies: [Reply] = []
     @Published var prefetchedOnboardingText: String = ""
     
-    @Published var userName: String = UserDefaults.standard.string(forKey: "userName") ?? "あなた" {
+    @Published var userName: String = UserDefaults.standard.string(forKey: "userName") ?? AppLanguage.deviceDefault.defaultUserName {
         didSet { UserDefaults.standard.set(userName, forKey: "userName") }
     }
     @Published var userAvatarData: Data? = nil {
         didSet { saveAvatar() }
     }
-    @Published var userBio: String = UserDefaults.standard.string(forKey: "userBio") ?? "今日も息してるだけでえらい。UPME! | AI SNSで承認欲求の海に溺れるアカウント。" {
+    @Published var userBio: String = UserDefaults.standard.string(forKey: "userBio") ?? AppLanguage.deviceDefault.defaultBio {
         didSet { UserDefaults.standard.set(userBio, forKey: "userBio") }
     }
     
@@ -266,15 +313,15 @@ class AppState: ObservableObject {
     init() { 
         let bio = UserDefaults.standard.string(forKey: "userBio") ?? ""
         if bio.contains("ZEN-KOTEI") || bio.contains("全肯定") {
-            let newBio = "今日も息してるだけでえらい。UPME! | AI SNSで承認欲求の海に溺れるアカウント。"
+            let newBio = appLanguage.defaultBio
             UserDefaults.standard.set(newBio, forKey: "userBio")
             self.userBio = newBio
         }
         
         let savedName = UserDefaults.standard.string(forKey: "userName") ?? ""
         if savedName == "みずき（あなた）" {
-            UserDefaults.standard.set("あなた", forKey: "userName")
-            self.userName = "あなた"
+            UserDefaults.standard.set(appLanguage.defaultUserName, forKey: "userName")
+            self.userName = appLanguage.defaultUserName
         }
         
         loadAvatar()
@@ -439,17 +486,17 @@ class AppState: ObservableObject {
     
     var rankName: String {
         switch currentRank {
-        case 1: return "Lv.1 名もなき市民"
-        case 2: return "Lv.2 クラスの人気者"
-        case 3: return "Lv.3 プチ・インフルエンサー"
-        case 4: return "Lv.4 マイクロ・インフルエンサー"
-        case 5: return "Lv.5 ネットのカリスマ"
-        case 6: return "Lv.6 オピニオンリーダー"
-        case 7: return "Lv.7 時代の寵児"
-        case 8: return "Lv.8 宗派の祖"
-        case 9: return "Lv.9 預言者"
-        case 10: return "Lv.10 デジタル・ゴッド"
-        default: return "名もなき市民"
+        case 1: return text("Lv.1 名もなき市民", "Lv.1 Unknown Citizen")
+        case 2: return text("Lv.2 クラスの人気者", "Lv.2 Class Favorite")
+        case 3: return text("Lv.3 プチ・インフルエンサー", "Lv.3 Rising Influencer")
+        case 4: return text("Lv.4 マイクロ・インフルエンサー", "Lv.4 Micro Influencer")
+        case 5: return text("Lv.5 ネットのカリスマ", "Lv.5 Internet Icon")
+        case 6: return text("Lv.6 オピニオンリーダー", "Lv.6 Opinion Leader")
+        case 7: return text("Lv.7 時代の寵児", "Lv.7 Voice of the Moment")
+        case 8: return text("Lv.8 宗派の祖", "Lv.8 Movement Founder")
+        case 9: return text("Lv.9 預言者", "Lv.9 Prophet")
+        case 10: return text("Lv.10 デジタル・ゴッド", "Lv.10 Digital God")
+        default: return text("名もなき市民", "Unknown Citizen")
         }
     }
     
@@ -474,7 +521,7 @@ class AppState: ObservableObject {
     func submitOnboardingPost(text: String) {
         isInOnboarding = true
         onboardingFirstReplyReceived = false
-        let newPost = PostModel(content: text, imageData: nil, likes: 0, replies: [], time: "今")
+        let newPost = PostModel(content: text, imageData: nil, likes: 0, replies: [], time: self.text("今", "Now"))
         posts = [newPost]
         
         let targetFollowers = Int.random(in: 150000...300000)
@@ -530,7 +577,7 @@ class AppState: ObservableObject {
     }
     
     func submitPost(text: String, imageData: Data? = nil) {
-        let newPost = PostModel(content: text, imageData: imageData, likes: 0, replies: [], time: "今")
+        let newPost = PostModel(content: text, imageData: imageData, likes: 0, replies: [], time: self.text("今", "Now"))
         posts.insert(newPost, at: 0)
         
         let rank = currentRank
@@ -571,14 +618,14 @@ class AppState: ObservableObject {
         savePosts()
     }
     
-    // Debugは本番Renderへ影響しないローカルAPIを使用する。
-    // Xcode Schemeの UPME_API_BASE_URL でステージングURLへ上書き可能。
+    // Debugは本番Renderへ影響しない開発Renderを使用する。
+    // Xcode Schemeの UPME_API_BASE_URL でローカルAPI等へ上書き可能。
     private static let baseUrl: String = {
         if let override = ProcessInfo.processInfo.environment["UPME_API_BASE_URL"], !override.isEmpty {
             return override.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         }
         #if DEBUG
-        return "http://127.0.0.1:8000"
+        return "https://AISNS-dev.onrender.com"
         #else
         return "https://aisns-1.onrender.com"
         #endif
@@ -807,7 +854,7 @@ class AppState: ObservableObject {
 
         guard let url = URL(string: replyApiUrl) else {
             isSubmittingUserReply = false
-            failReplyThread(postID: postID, targetReplyID: reply.id, message: "返信先のAPI URLを確認できませんでした。")
+            failReplyThread(postID: postID, targetReplyID: reply.id, message: self.text("返信先のAPI URLを確認できませんでした。", "The reply API URL could not be resolved."))
             completion(false)
             return
         }
@@ -826,6 +873,7 @@ class AppState: ObservableObject {
             "user_reply": trimmed,
             "ai_is_hater": reply.isHater,
             "ai_is_defender": reply.isDefender,
+            "language": languageCode,
             "regular_followers": regularFollowerPayload(),
             "other_ai_replies": otherReplies
         ]
@@ -851,7 +899,7 @@ class AppState: ObservableObject {
             if error != nil {
                 DispatchQueue.main.async {
                     self.isSubmittingUserReply = false
-                    self.failReplyThread(postID: postID, targetReplyID: reply.id, message: "通信状態を確認して、もう一度お試しください。")
+                    self.failReplyThread(postID: postID, targetReplyID: reply.id, message: self.text("通信状態を確認して、もう一度お試しください。", "Check your connection and try again."))
                     UPMEAnalytics.capture("user_reply_failed", properties: ["reason": "network"])
                     completion(false)
                 }
@@ -863,7 +911,7 @@ class AppState: ObservableObject {
                   let status = json["status"] as? String, status == "success" else {
                 DispatchQueue.main.async {
                     self.isSubmittingUserReply = false
-                    self.failReplyThread(postID: postID, targetReplyID: reply.id, message: "AIから返信を取得できませんでした。")
+                    self.failReplyThread(postID: postID, targetReplyID: reply.id, message: self.text("AIから返信を取得できませんでした。", "Could not get replies from the AI."))
                     UPMEAnalytics.capture("user_reply_failed", properties: ["reason": "invalid_response"])
                     completion(false)
                 }
@@ -878,7 +926,7 @@ class AppState: ObservableObject {
             } else {
                 DispatchQueue.main.async {
                     self.isSubmittingUserReply = false
-                    self.failReplyThread(postID: postID, targetReplyID: reply.id, message: "AIから返信を取得できませんでした。")
+                    self.failReplyThread(postID: postID, targetReplyID: reply.id, message: self.text("AIから返信を取得できませんでした。", "Could not get replies from the AI."))
                     UPMEAnalytics.capture("user_reply_failed", properties: ["reason": "missing_replies"])
                     completion(false)
                 }
@@ -910,13 +958,13 @@ class AppState: ObservableObject {
                 self.applyRegularFollowerMemoryUpdates(memoryUpdates)
                 guard let currentPostIndex = self.posts.firstIndex(where: { $0.id == postID }) else {
                     self.isSubmittingUserReply = false
-                    self.failReplyThread(postID: postID, targetReplyID: reply.id, message: "投稿が見つからないため、返信を表示できませんでした。")
+                    self.failReplyThread(postID: postID, targetReplyID: reply.id, message: self.text("投稿が見つからないため、返信を表示できませんでした。", "The post could not be found, so the replies could not be shown."))
                     completion(false)
                     return
                 }
                 guard self.posts[currentPostIndex].replyThreads.contains(where: { $0.targetReplyID == reply.id }) else {
                     self.isSubmittingUserReply = false
-                    self.failReplyThread(postID: postID, targetReplyID: reply.id, message: "返信スレッドを表示できませんでした。")
+                    self.failReplyThread(postID: postID, targetReplyID: reply.id, message: self.text("返信スレッドを表示できませんでした。", "The reply thread could not be displayed."))
                     completion(false)
                     return
                 }
@@ -939,13 +987,18 @@ class AppState: ObservableObject {
     private func requestAiReplies(content: String, imageData: Data?, followers: Int) {
         pendingReplies = []
         isRequestingReplies = true
+        replyErrorMessage = nil
         UPMEAnalytics.capture("ai_replies_request_started", properties: [
             "has_image": imageData != nil,
             "is_onboarding": isInOnboarding,
             "regular_count": regularFollowers.count
         ])
         
-        guard let url = URL(string: apiUrl) else { return }
+        guard let url = URL(string: apiUrl) else {
+            isRequestingReplies = false
+            replyErrorMessage = text("AI返信の接続先を確認できませんでした。", "The AI reply endpoint could not be resolved.")
+            return
+        }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -957,6 +1010,7 @@ class AppState: ObservableObject {
             "followers": followers,
             "is_hater_enabled": isHaterEnabled,
             "is_onboarding": isInOnboarding,
+            "language": languageCode,
             "regular_followers": isInOnboarding ? [] : regularFollowerPayload()
         ]
         
@@ -972,6 +1026,7 @@ class AppState: ObservableObject {
                 DispatchQueue.main.async {
                     self?.debugText = "ERR:\(error.localizedDescription)"
                     self?.isRequestingReplies = false
+                    self?.replyErrorMessage = self?.text("AI返信を取得できませんでした。通信状態を確認して、もう一度お試しください。", "Could not load AI replies. Check your connection and try again.")
                     UPMEAnalytics.capture("ai_replies_failed", properties: [
                         "reason": "network",
                         "is_onboarding": self?.isInOnboarding ?? false
@@ -983,6 +1038,7 @@ class AppState: ObservableObject {
                 DispatchQueue.main.async {
                     self?.debugText = "NO DATA"
                     self?.isRequestingReplies = false
+                    self?.replyErrorMessage = self?.text("AI返信のデータを受信できませんでした。もう一度お試しください。", "No AI reply data was received. Please try again.")
                 }
                 return
             }
@@ -999,7 +1055,7 @@ class AppState: ObservableObject {
                     self.applyRegularFollowerMemoryUpdates(memoryUpdates)
                     var pending: [Reply] = []
                     for r in repliesJson {
-                        let author = r["author_name"] as? String ?? "名無し"
+                        let author = r["author_name"] as? String ?? self.text("名無し", "Anonymous")
                         let content = r["content"] as? String ?? ""
                         let isHater = jsonReplyBool(r, snake: "is_hater", camel: "isHater")
                         let isDefender = jsonReplyBool(r, snake: "is_defender", camel: "isDefender")
@@ -1019,6 +1075,7 @@ class AppState: ObservableObject {
                 DispatchQueue.main.async {
                     self.debugText = "PARSE FAIL: \(String(raw.prefix(200)))"
                     self.isRequestingReplies = false
+                    self.replyErrorMessage = self.text("AI返信を読み込めませんでした。しばらくしてから、もう一度お試しください。", "AI replies could not be loaded. Please try again later.")
                     UPMEAnalytics.capture("ai_replies_failed", properties: [
                         "reason": "invalid_response",
                         "is_onboarding": self.isInOnboarding
@@ -1040,7 +1097,8 @@ class AppState: ObservableObject {
             "content": content,
             "followers": followers,
             "is_hater_enabled": isHaterEnabled,
-            "is_onboarding": true    // オンボ専用プロンプト固定
+            "is_onboarding": true,    // オンボ専用プロンプト固定
+            "language": languageCode
         ]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         
@@ -1065,7 +1123,7 @@ class AppState: ObservableObject {
             
             var replies: [Reply] = []
             for r in repliesJson {
-                let author = r["author_name"] as? String ?? "名無し"
+                let author = r["author_name"] as? String ?? self.text("名無し", "Anonymous")
                 let content = r["content"] as? String ?? ""
                 let isHater = jsonReplyBool(r, snake: "is_hater", camel: "isHater")
                 let isDefender = jsonReplyBool(r, snake: "is_defender", camel: "isDefender")

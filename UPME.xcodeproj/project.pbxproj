@@ -27,6 +27,7 @@
 		F1A2B3C4D5E6F7A8B9C0D1E2 /* PrivacyConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2D1C0B9A8F7E6D5C4B3A2F1 /* PrivacyConsentView.swift */; };
 		C5C5C5C5C5C5C5C5C5C5C5C5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F5F5F5F5F5F5F5F5F5F5F5F5 /* Assets.xcassets */; };
 		EBEAB8ED130D48049C060815 /* FeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42F591A2378E46F9B89E408C /* FeedView.swift */; };
+		C0DEC0DEC0DEC0DEC0DEC001 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C0DEC0DEC0DEC0DEC0DEC002 /* Localizable.xcstrings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -50,6 +51,7 @@
 		C8C8C8C8C8C8C8C8C8C8C8 /* Analytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Analytics.swift; sourceTree = "<group>"; };
 		D9DB664272BB4D1E8098979F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		F5F5F5F5F5F5F5F5F5F5F5F5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		C0DEC0DEC0DEC0DEC0DEC002 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -95,6 +97,7 @@
 				A1A1A1A1A1A1A1A1A1A1A1A1 /* LottieView.swift */,
 				AA12D3FBDFC083D721D5E35C /* StoreManager.swift */,
 				02A60ABAA9C5AA232E45C78B /* BannerAdView.swift */,
+				C0DEC0DEC0DEC0DEC0DEC002 /* Localizable.xcstrings */,
 			);
 			path = AppCode;
 			sourceTree = "<group>";
@@ -157,10 +160,11 @@
 			};
 			buildConfigurationList = 3D62F95B88354DB4B49D0EC3 /* Build configuration list for PBXProject "UPME" */;
 			compatibilityVersion = "Xcode 14.0";
-			developmentRegion = en;
+			developmentRegion = ja;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				ja,
 				Base,
 			);
 			mainGroup = 1B5AE7B8373E4493AD4F3D34;
@@ -186,6 +190,7 @@
 				B2B2B2B2B2B2B2B2B2B2B2B2 /* Loading Pink Dots.json in Resources */,
 				B3B3B3B3B3B3B3B3B3B3B3B3 /* Technology isometric ai robot brain (1).json in Resources */,
 				C5C5C5C5C5C5C5C5C5C5C5C5 /* Assets.xcassets in Resources */,
+				C0DEC0DEC0DEC0DEC0DEC001 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

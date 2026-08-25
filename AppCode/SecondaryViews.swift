@@ -21,11 +21,11 @@ struct StatsView: View {
                 .padding(.horizontal, 24)
                 
                 HStack(spacing: 16) {
-                    StatCard(title: "累計投稿数", value: "\(appState.totalPosts)", color: .green)
+                    StatCard(title: "累計投稿数", value: "\(appState.totalPosts)", color: Theme.lavender)
                     let totalLikes = appState.posts.reduce(0) { $0 + $1.likes }
-                    StatCard(title: "累計いいね", value: "\(totalLikes)", color: .orange)
+                    StatCard(title: "累計いいね", value: "\(totalLikes)", color: Theme.hotPink)
                     let totalReplies = appState.posts.reduce(0) { $0 + $1.replies.count }
-                    StatCard(title: "累計リプライ", value: "\(totalReplies)", color: .purple)
+                    StatCard(title: "累計リプライ", value: "\(totalReplies)", color: Theme.purpleAccent)
                 }
                 .padding(.horizontal, 24)
                 
@@ -36,7 +36,7 @@ struct StatsView: View {
                     
                     if let nextRank = appState.nextRankFollowers {
                         let diff = nextRank - appState.followers
-                        Text("次のランクまであと **\(diff)** 人")
+                        Text(appState.text("次のランクまであと **\(diff)** 人", "**\(diff)** followers to the next rank"))
                             .font(.system(size: 15, weight: .bold))
                             .foregroundColor(.white.opacity(0.8))
                             .padding(.horizontal, 24)
@@ -68,6 +68,16 @@ struct RankInfo {
     let haters: String
     let likes: String
     let regularFollowerLimit: Int
+
+    var hatersEnglish: String {
+        switch haters {
+        case "なし": return "None"
+        case "最大1": return "Up to 1"
+        case "最大2": return "Up to 2"
+        case "最大3": return "Up to 3"
+        default: return haters
+        }
+    }
 }
 
 let rankData: [RankInfo] = [
@@ -84,6 +94,7 @@ let rankData: [RankInfo] = [
 ]
 
 struct RankGuideSection: View {
+    @EnvironmentObject var appState: AppState
     let currentRank: Int
 
     var body: some View {
@@ -104,7 +115,7 @@ struct RankGuideSection: View {
                         Text("Lv.\(info.level)")
                             .font(.system(size: 14, weight: .black, design: .monospaced))
                             .foregroundColor(isCurrent ? Theme.hotPink : (isNext ? Theme.cyan : (isPast ? Theme.cyan : .gray.opacity(0.3))))
-                        Text(isHidden ? "？？？" : info.name)
+                        Text(isHidden ? LocalizedStringKey("？？？") : LocalizedStringKey(info.name))
                             .font(.system(size: 14, weight: .bold))
                             .foregroundColor(isCurrent ? .white : (isNext ? .white.opacity(0.8) : (isPast ? .white.opacity(0.8) : .gray.opacity(0.3))))
                         Spacer()
@@ -137,12 +148,16 @@ struct RankGuideSection: View {
                     HStack(spacing: 16) {
                         RankDetailLabel(
                             icon: "flame.fill",
-                            text: isHidden ? "アンチ: ???" : "アンチ: \(info.haters)",
+                            text: isHidden
+                                ? appState.text("アンチ: ???", "Haters: ???")
+                                : appState.text("アンチ: \(info.haters)", "Haters: \(info.hatersEnglish)"),
                             dimmed: isHidden
                         )
                         RankDetailLabel(
                             icon: "star.fill",
-                            text: isHidden ? "常連: ???" : "常連: 最大\(info.regularFollowerLimit)人",
+                            text: isHidden
+                                ? appState.text("常連: ???", "Regulars: ???")
+                                : appState.text("常連: 最大\(info.regularFollowerLimit)人", "Regulars: up to \(info.regularFollowerLimit)"),
                             dimmed: isHidden
                         )
                     }
@@ -183,7 +198,7 @@ struct RankDetailLabel: View {
 }
 
 struct StatCard: View {
-    let title: String
+    let title: LocalizedStringKey
     let value: String
     let color: Color
     
@@ -227,10 +242,10 @@ struct ProfileView: View {
                 ZStack(alignment: .bottomLeading) {
                     ZStack(alignment: .bottom) {
                         Rectangle()
-                            .fill(LinearGradient(gradient: Gradient(colors: [Color.indigo.opacity(0.5), Color.purple.opacity(0.5), .black]), startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .fill(LinearGradient(gradient: Gradient(colors: [Theme.deepPurple, Theme.purpleAccent.opacity(0.55), .black]), startPoint: .topLeading, endPoint: .bottomTrailing))
                         LottieAnimationUIView(name: "Technology isometric ai robot brain (1)")
                             .frame(height: 120)
-                            .opacity(0.4)
+                            .opacity(0.24)
                             .padding(.bottom, 5)
                     }
                     .frame(height: 180)
@@ -331,6 +346,38 @@ struct ProfileView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 24)
                 .padding(.top, 16)
+
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("CURRENT RANK")
+                                .font(.system(size: 9, weight: .black, design: .monospaced))
+                                .foregroundColor(Theme.lavender.opacity(0.75))
+                                .tracking(1.6)
+                            Text(appState.rankName)
+                                .font(.system(size: 18, weight: .black))
+                                .foregroundColor(.white)
+                        }
+                        Spacer()
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(Theme.hotPink)
+                    }
+
+                    if let nextRank = appState.nextRankFollowers {
+                        ProgressView(value: Double(appState.followers), total: Double(nextRank))
+                            .tint(Theme.purpleAccent)
+                        Text(appState.text("次のランクまであと \(max(0, nextRank - appState.followers)) 人", "\(max(0, nextRank - appState.followers)) followers to the next rank"))
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.gray)
+                    }
+                }
+                .padding(16)
+                .background(Theme.aiCardBackground)
+                .cornerRadius(16)
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.subtleBorder, lineWidth: 1))
+                .padding(.horizontal, 24)
+                .padding(.top, 20)
                 
                 Divider()
                     .background(Color.white.opacity(0.1))
@@ -350,10 +397,10 @@ struct ProfileView: View {
                         Spacer()
                         Text("\(appState.regularFollowers.count) / \(appState.maxRegularFollowers)")
                             .font(.system(size: 14, weight: .black, design: .monospaced))
-                            .foregroundColor(Theme.cyan)
+                            .foregroundColor(Theme.lavender)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
-                            .background(Theme.cyan.opacity(0.12))
+                            .background(Theme.purpleAccent.opacity(0.18))
                             .cornerRadius(10)
                     }
 
@@ -368,8 +415,9 @@ struct ProfileView: View {
                                 .lineSpacing(4)
                         }
                         .padding(16)
-                        .background(Color.white.opacity(0.03))
+                        .background(Theme.deepPurple.opacity(0.65))
                         .cornerRadius(16)
+                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.subtleBorder, lineWidth: 1))
                     } else {
                         ForEach(appState.regularFollowers) { follower in
                             HStack(spacing: 12) {
@@ -384,7 +432,7 @@ struct ProfileView: View {
                                 }
                                 .frame(width: 48, height: 48)
                                 .clipShape(Circle())
-                                .overlay(Circle().stroke(Theme.cyan.opacity(0.6), lineWidth: 2))
+                                .overlay(Circle().stroke(Theme.purpleAccent.opacity(0.75), lineWidth: 2))
 
                                 VStack(alignment: .leading, spacing: 5) {
                                     HStack(spacing: 6) {
@@ -393,9 +441,9 @@ struct ProfileView: View {
                                             .foregroundColor(.white)
                                         Text("REGULAR")
                                             .font(.system(size: 8, weight: .black))
-                                            .foregroundColor(Theme.cyan)
+                                            .foregroundColor(Theme.lavender)
                                     }
-                                    Text(follower.recentInteractions.last ?? "次の投稿から記憶を使って返信します")
+                                    Text(follower.recentInteractions.last ?? appState.text("次の投稿から記憶を使って返信します", "Memory will be used starting with your next post."))
                                         .font(.system(size: 11, weight: .medium))
                                         .foregroundColor(.gray)
                                         .lineLimit(2)
@@ -414,15 +462,20 @@ struct ProfileView: View {
                                 .cornerRadius(10)
                             }
                             .padding(14)
-                            .background(Color.white.opacity(0.035))
-                            .cornerRadius(18)
+                            .background(Theme.aiCardBackground.opacity(0.86))
+                            .cornerRadius(16)
+                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.subtleBorder, lineWidth: 1))
                         }
                     }
 
                     if appState.maxRegularFollowers < 3 {
-                        Text(appState.maxRegularFollowers == 1 ? "Lv.4で常連枠が2人に増えます" : "Lv.7で常連枠が3人に増えます")
+                        Text(
+                            appState.maxRegularFollowers == 1
+                                ? appState.text("Lv.4で常連枠が2人に増えます", "Reach Lv.4 to unlock 2 regular slots.")
+                                : appState.text("Lv.7で常連枠が3人に増えます", "Reach Lv.7 to unlock 3 regular slots.")
+                        )
                             .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(Theme.cyan.opacity(0.8))
+                            .foregroundColor(Theme.lavender.opacity(0.85))
                     }
                 }
                 .padding(.horizontal, 32)
@@ -437,6 +490,33 @@ struct ProfileView: View {
                         .font(.system(size: 14, weight: .black))
                         .foregroundColor(.gray)
                         .tracking(2)
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("表示言語")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundColor(.white)
+                                Text("UIと今後のAI返信に使用します")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(.gray)
+                            }
+                            Spacer()
+                            Image(systemName: "globe")
+                                .foregroundColor(Theme.lavender)
+                        }
+
+                        Picker("表示言語", selection: $appState.appLanguage) {
+                            ForEach(AppLanguage.allCases) { language in
+                                Text(language.displayName).tag(language)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+                    .padding(14)
+                    .background(Theme.aiCardBackground.opacity(0.7))
+                    .cornerRadius(14)
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.subtleBorder, lineWidth: 1))
                     
                     Toggle(isOn: $appState.isHaterEnabled) {
                         VStack(alignment: .leading, spacing: 4) {
@@ -554,16 +634,26 @@ struct ProfileView: View {
         }
         .alert(item: $followerPendingRemoval) { follower in
             Alert(
-                title: Text("@\(follower.authorName)の常連を解除しますか？"),
-                message: Text("このフォロワーの会話記憶も端末から削除されます。"),
+                title: Text(appState.text("@\(follower.authorName)の常連を解除しますか？", "Remove @\(follower.authorName) as a regular?")),
+                message: Text(appState.text("このフォロワーの会話記憶も端末から削除されます。", "This follower’s conversation memory will also be deleted from this device.")),
                 primaryButton: .destructive(Text("解除する")) {
                     appState.removeRegularFollower(id: follower.id)
                 },
                 secondaryButton: .cancel(Text("キャンセル"))
             )
         }
-        .sheet(isPresented: $showTerms) { LegalTextView(title: "利用規約", text: termsOfServiceText) }
-        .sheet(isPresented: $showPrivacy) { LegalTextView(title: "プライバシーポリシー", text: privacyPolicyText) }
+        .sheet(isPresented: $showTerms) {
+            LegalTextView(
+                title: appState.text("利用規約", "Terms of Service"),
+                text: appState.appLanguage == .japanese ? termsOfServiceText : termsOfServiceTextEnglish
+            )
+        }
+        .sheet(isPresented: $showPrivacy) {
+            LegalTextView(
+                title: appState.text("プライバシーポリシー", "Privacy Policy"),
+                text: appState.appLanguage == .japanese ? privacyPolicyText : privacyPolicyTextEnglish
+            )
+        }
     }
 }
 
@@ -689,4 +779,93 @@ UPME! | AI SNS（以下「本アプリ」）は、ユーザーのプライバシ
 
 10. お問い合わせ
 本ポリシーに関するご質問は、アプリの運営者までお問い合わせください。
+"""
+
+private let termsOfServiceTextEnglish = """
+UPME! | AI SNS Terms of Service
+
+Last updated: March 28, 2026
+
+1. Scope
+These Terms govern use of UPME! | AI SNS (the “App”). By using the App, you agree to these Terms.
+
+2. Service
+The App is an entertainment service in which artificial intelligence generates replies from fictional followers to text posted by users.
+• All followers, likes, and replies shown in the App are fictional and AI-generated. They are not connected to real people or organizations.
+• Follower counts, likes, and other values are valid only inside the App and have no relationship to real social networks.
+
+3. Prohibited Conduct
+You must not:
+1. Post personal information such as a real name, address, phone number, or email address.
+2. Post content that infringes the rights of another party.
+3. Post illegal content or content contrary to public order and morals.
+4. Place an excessive load on the App’s servers or networks.
+5. Interfere with operation of the App.
+
+4. Intellectual Property
+All intellectual property rights related to the App belong to the operator. Copyright in AI-generated replies does not transfer to users.
+
+5. Disclaimer
+The operator is not liable for interruption, suspension, termination, or unavailability of the App; for the content of AI-generated replies; or for damages arising from use of the App.
+
+6. Changes and Termination
+The operator may change or discontinue the App without prior notice.
+
+7. Changes to These Terms
+The operator may update these Terms when necessary. Updated Terms take effect when posted in the App.
+"""
+
+let privacyPolicyTextEnglish = """
+UPME! | AI SNS Privacy Policy
+
+Last updated: August 19, 2026
+
+1. Introduction
+UPME! | AI SNS (the “App”) respects user privacy and works to protect personal information. This Policy explains the information handled by the App.
+
+2. Consent
+On first launch, the App explains that data is sent to internet services, including OpenAI, for the purposes described below. The service is provided after the user gives consent.
+
+3. Information We Handle
+Automatically generated or stored information:
+• A random user ID generated on the device at first launch.
+• Progress data such as follower count, post count, rank, and onboarding status.
+• Regular AI follower information, including names, avatar URLs, memories generated from conversations, and summaries of recent interactions. This is stored only on the device.
+
+Usage analytics:
+• Events linked to an anonymous user ID, including launches, daily activity, screen views, posts, AI replies, rank-ups, and regular-follower settings.
+• Post and reply text, attached images, user names, and profile biographies are not sent to the analytics service.
+
+User-provided information:
+• Post and reply text, sent to the server to generate AI replies.
+• Images attached to posts, sent only when selected and only to generate AI replies.
+• Profile information, including user name, biography, and avatar, is stored only on the device and is not sent to the server.
+
+4. How Information Is Used
+• Post text, reply text, and selected images are sent to the OpenAI API to generate AI replies. The App’s server does not retain this data after processing.
+• While a regular AI follower is enabled, its conversation memory is sent with the post to OpenAI to create continuous replies. The App’s server does not retain this memory.
+• User ID and progress data are used to manage app state and synchronization.
+• Usage analytics are used to understand retention, feature usage, and drop-off points. PostHog provides the analytics service.
+
+5. Third Parties
+Post and reply text, selected images, and enabled regular-follower memory may be sent to OpenAI solely to generate AI replies. Usage analytics are sent to PostHog. Except for these purposes, user information is not provided or sold to third parties.
+OpenAI privacy policy: https://openai.com/policies/privacy-policy
+PostHog privacy policy: https://posthog.com/privacy
+
+6. Storage
+• The five most recent posts and their replies are stored only on the device.
+• Regular-follower settings and memories are stored only on the device and are deleted when the follower is removed from the profile screen.
+• Supabase stores only the user ID, follower count, post count, and onboarding status.
+
+7. Deletion
+Uninstalling the App deletes all data stored on the device. Contact the operator to request deletion of server-side data.
+
+8. Children
+The App is not intended for children under 13.
+
+9. Policy Changes
+This Policy may be revised when necessary. Important changes will be announced in the App.
+
+10. Contact
+Contact the App operator with questions about this Policy.
 """

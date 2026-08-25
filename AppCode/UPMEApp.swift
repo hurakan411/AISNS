@@ -17,6 +17,7 @@ struct UPMEAISNSApp: App {
             ContentView()
                 .environmentObject(appState)
                 .environmentObject(storeManager)
+                .environment(\.locale, appState.locale)
                 .preferredColorScheme(.dark)
                 .onAppear {
                     UPMEAnalytics.recordActiveSession(userID: appState.userId)

@@ -5,6 +5,7 @@ import SwiftUI
 /// ユーザーが「同意する」を選択すると `hasAcceptedPrivacyPolicy` が true になり、
 /// 以降は表示されない。
 struct PrivacyConsentView: View {
+    @EnvironmentObject var appState: AppState
     @Binding var hasAccepted: Bool
     let userID: String
     @State private var showPrivacyPolicy = false
@@ -133,7 +134,10 @@ struct PrivacyConsentView: View {
             }
         }
         .sheet(isPresented: $showPrivacyPolicy) {
-            LegalTextView(title: "プライバシーポリシー", text: privacyPolicyText)
+            LegalTextView(
+                title: appState.text("プライバシーポリシー", "Privacy Policy"),
+                text: appState.appLanguage == .japanese ? privacyPolicyText : privacyPolicyTextEnglish
+            )
         }
     }
 }
@@ -143,8 +147,8 @@ struct PrivacyConsentView: View {
 private struct DataRow: View {
     let icon: String
     let iconColor: Color
-    let title: String
-    let description: String
+    let title: LocalizedStringKey
+    let description: LocalizedStringKey
 
     var body: some View {
         HStack(alignment: .top, spacing: 14) {

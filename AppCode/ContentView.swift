@@ -51,7 +51,7 @@ struct ContentView: View {
                             .font(.system(size: 20, weight: .black, design: .rounded)).italic()
                             .foregroundColor(.clear)
                             .background(
-                                LinearGradient(gradient: Gradient(colors: [Theme.hotPink, .purple, Theme.cyan]), startPoint: .leading, endPoint: .trailing)
+                                Theme.accentGradient
                                     .mask(Text("UPME! | AI SNS").font(.system(size: 20, weight: .black, design: .rounded)).italic())
                             )
                             .neonShadow(color: Theme.hotPink, radius: 4)
@@ -112,8 +112,8 @@ struct ContentView: View {
             .padding(.horizontal, 32)
             .padding(.top, 16)
             .padding(.bottom, 8)
-            .background(Color.black.opacity(0.85).background(Material.ultraThin).ignoresSafeArea(edges: .bottom))
-            .overlay(Rectangle().frame(height: 1).foregroundColor(Color.gray.opacity(0.2)), alignment: .top)
+            .background(Theme.bgDeepBlack.opacity(0.94).background(Material.ultraThin).ignoresSafeArea(edges: .bottom))
+            .overlay(Rectangle().frame(height: 1).foregroundColor(Theme.subtleBorder), alignment: .top)
         }
         .onChange(of: appState.currentRank) { newRank in
             if newRank > lastSeenRank {
@@ -171,7 +171,7 @@ struct PulseModifier: ViewModifier {
 
 struct NavBtn: View {
     let icon: String
-    let label: String
+    let label: LocalizedStringKey
     let isActive: Bool
     var isCenter: Bool = false
     let action: () -> Void
@@ -195,6 +195,7 @@ struct NavBtn: View {
 }
 
 struct RankUpView: View {
+    @EnvironmentObject var appState: AppState
     let rank: Int
     var onClose: () -> Void
     
@@ -236,7 +237,7 @@ struct RankUpView: View {
                         .neonShadow(color: .white, radius: 10)
                     
                     if let info = rankData.first(where: { $0.level == rank }) {
-                        Text(info.name)
+                        Text(LocalizedStringKey(info.name))
                             .font(.system(size: 28, weight: .black, design: .rounded))
                             .foregroundColor(Theme.cyan)
                             .neonShadow(color: Theme.cyan, radius: 8)
@@ -260,7 +261,7 @@ struct RankUpView: View {
                                 Image(systemName: "flame.fill")
                                     .font(.system(size: 10))
                                     .foregroundColor(rank >= 4 ? .orange.opacity(0.7) : .gray.opacity(0.3))
-                                Text("アンチ: \(info.haters)")
+                                Text(appState.text("アンチ: \(info.haters)", "Haters: \(info.hatersEnglish)"))
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.gray.opacity(0.7))
                             }

@@ -5,6 +5,7 @@
 	<key>CFBundleLocalizations</key>
 	<array>
 		<string>ja</string>
+		<string>en</string>
 	</array>
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-1732522218412052~8421069623</string>
