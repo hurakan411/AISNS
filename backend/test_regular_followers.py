@@ -14,9 +14,11 @@ from main import (
     PostRequest,
     ReplyToAiRequest,
     ReplySchema,
+    build_user_name_instruction,
     localize_generated_author_names,
     rank_from_followers,
     regular_follower_limit_for_rank,
+    sanitize_user_display_name,
 )
 
 
@@ -40,6 +42,7 @@ class RegularFollowerApiTests(unittest.TestCase):
         request = PostRequest(user_id="user-1", content="hello", followers=0)
         self.assertEqual(request.regular_followers, [])
         self.assertEqual(request.language, "ja")
+        self.assertIsNone(request.user_display_name)
 
     def test_single_user_reply_payload_is_parsed(self):
         request = ReplyToAiRequest.model_validate({
@@ -52,6 +55,23 @@ class RegularFollowerApiTests(unittest.TestCase):
         self.assertEqual(request.ai_author_name, "ミカ")
         self.assertFalse(request.ai_is_hater)
         self.assertIsNone(request.target_regular_follower)
+        self.assertIsNone(request.user_display_name)
+
+    def test_profile_name_is_sanitized_for_prompt_context(self):
+        self.assertEqual(sanitize_user_display_name("  Mina\nSmith  "), "Mina Smith")
+        self.assertIsNone(sanitize_user_display_name("You"))
+        self.assertIsNone(sanitize_user_display_name("あなた"))
+        self.assertEqual(len(sanitize_user_display_name("a" * 50)), 30)
+
+    def test_profile_name_instruction_limits_mentions(self):
+        japanese = build_user_name_instruction("ja", "みな", True)
+        english = build_user_name_instruction("en", "Mina", True)
+        skipped = build_user_name_instruction("en", "Mina", False)
+        self.assertIn("1人だけ", japanese)
+        self.assertIn("アンチ", japanese)
+        self.assertIn("Exactly one", english)
+        self.assertIn("never let a critic use it", english)
+        self.assertIn("do not address the user by name", skipped)
 
     def test_reply_thread_payload_includes_other_ai_context(self):
         request = ReplyToAiRequest.model_validate({
@@ -216,12 +236,14 @@ class RegularFollowerApiTests(unittest.TestCase):
         with (
             patch.object(backend_main, "openai_client", capture_client),
             patch.object(backend_main, "resolve_avatar_url", return_value="https://example.com/avatar.png"),
+            patch.object(backend_main.random, "random", return_value=0.0),
         ):
             asyncio.run(backend_main.generate_ai_replies(
                 content="A quiet morning walk helped me reset.",
                 followers=0,
                 is_hater_enabled=False,
                 language="en",
+                user_display_name="Mina",
             ))
 
         messages = capture_client.calls[0]["messages"]
@@ -229,6 +251,8 @@ class RegularFollowerApiTests(unittest.TestCase):
         user_text = messages[1]["content"][0]["text"]
         self.assertIn("OUTPUT LANGUAGE — HIGHEST PRIORITY", system_prompt)
         self.assertIn("ENGLISH-LANGUAGE SOCIAL MEDIA", system_prompt)
+        self.assertIn('profile name is "Mina"', system_prompt)
+        self.assertIn("Exactly one suitable", system_prompt)
         self.assertIn("User's post:", user_text)
         self.assertIsNone(re.search(r"[ぁ-んァ-ヶ一-龠]", system_prompt))
 
@@ -267,11 +291,13 @@ class RegularFollowerApiTests(unittest.TestCase):
             "ai_reply_content": "That sounds like a good way to slow down.",
             "user_reply": "It was. I left my phone in my pocket the whole time.",
             "language": "en",
+            "user_display_name": "Mina",
         })
 
         with (
             patch.object(backend_main, "openai_client", capture_client),
             patch.object(backend_main, "resolve_avatar_url", return_value="https://example.com/avatar.png"),
+            patch.object(backend_main.random, "random", return_value=0.0),
         ):
             replies, _ = asyncio.run(backend_main.generate_ai_reply_to_user(request))
 
@@ -279,6 +305,7 @@ class RegularFollowerApiTests(unittest.TestCase):
         system_prompt = messages[0]["content"]
         user_message = messages[1]["content"]
         self.assertIn("OUTPUT LANGUAGE — HIGHEST PRIORITY", system_prompt)
+        self.assertIn('profile name is "Mina"', system_prompt)
         self.assertIn("Original post:", user_message)
         self.assertIsNone(re.search(r"[ぁ-んァ-ヶ一-龠]", system_prompt))
         self.assertEqual(replies[0]["author_name"], "Alex")

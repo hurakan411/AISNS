@@ -866,6 +866,7 @@ class AppState: ObservableObject {
 
         var body: [String: Any] = [
             "user_id": userId,
+            "user_display_name": userName,
             "post_content": posts[postIndex].content,
             "ai_author_name": reply.authorName,
             "ai_author_img": reply.img,
@@ -1006,6 +1007,7 @@ class AppState: ObservableObject {
         
         var body: [String: Any] = [
             "user_id": userId,
+            "user_display_name": userName,
             "content": content,
             "followers": followers,
             "is_hater_enabled": isHaterEnabled,
@@ -1094,6 +1096,7 @@ class AppState: ObservableObject {
         
         let body: [String: Any] = [
             "user_id": userId,
+            "user_display_name": userName,
             "content": content,
             "followers": followers,
             "is_hater_enabled": isHaterEnabled,
