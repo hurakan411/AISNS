@@ -193,7 +193,7 @@ struct AppUpdateNotice {
     let items: [Item]
 
     static let current = AppUpdateNotice(
-        version: "1.1.0",
+        version: "1.1.1",
         items: [
             Item(
                 id: "regular-followers",
