@@ -592,6 +592,44 @@ struct ProfileView: View {
                     .padding(.vertical, 24)
 
                 VStack(alignment: .leading, spacing: 16) {
+                    Text("SUPPORT")
+                        .font(.system(size: 14, weight: .black))
+                        .foregroundColor(.gray)
+                        .tracking(2)
+
+                    Link(destination: URL(string: "https://docs.google.com/forms/d/e/1FAIpQLSc4bsVO9vTgucDU0w-RviLQK4Ap1tQxD45JlZ4OZplu35ouRw/viewform?hl=ja")!) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "envelope.fill")
+                                .foregroundColor(Theme.hotPink)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(appState.text("お問い合わせ", "Contact Us"))
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundColor(.white.opacity(0.9))
+                                Text(appState.text("不具合の報告・ご意見・ご要望はこちら", "Report a problem or share feedback"))
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(.gray)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "arrow.up.right")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(Theme.lavender)
+                        }
+                        .padding(14)
+                        .background(Theme.aiCardBackground.opacity(0.7))
+                        .cornerRadius(14)
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.subtleBorder, lineWidth: 1))
+                    }
+                }
+                .padding(.horizontal, 32)
+
+                Divider()
+                    .background(Color.white.opacity(0.1))
+                    .padding(.vertical, 24)
+
+                VStack(alignment: .leading, spacing: 16) {
                     Text("LEGAL")
                         .font(.system(size: 14, weight: .black))
                         .foregroundColor(.gray)

@@ -11,7 +11,9 @@ struct ContentView: View {
     @State private var activeTab: Tab = .home
 
     @AppStorage("lastSeenRank") private var lastSeenRank: Int = 1
+    @AppStorage("lastSeenUpdateNoticeVersion") private var lastSeenUpdateNoticeVersion: String = ""
     @State private var showRankUpPopup: Bool = false
+    @State private var showUpdateNotice: Bool = false
     @State private var newlyAchievedRank: Int = 1
 
     /// プライバシーポリシー同意フラグ（未同意ならまず同意画面を表示）
@@ -37,7 +39,8 @@ struct ContentView: View {
     
     private var mainContent: some View {
         ZStack {
-            Theme.bgDeepBlack.ignoresSafeArea()
+            ParticleNetworkBackground()
+                .ignoresSafeArea()
             
             VStack(spacing: 0) {
                 if !storeManager.isAdsRemoved {
@@ -98,6 +101,20 @@ struct ContentView: View {
                 }
                 .zIndex(100)
             }
+
+            if showUpdateNotice {
+                UpdateNoticeView(notice: AppUpdateNotice.current) {
+                    lastSeenUpdateNoticeVersion = AppUpdateNotice.current.version
+                    UPMEAnalytics.capture("update_notice_dismissed", properties: [
+                        "version": AppUpdateNotice.current.version
+                    ])
+                    withAnimation(.easeOut(duration: 0.25)) {
+                        showUpdateNotice = false
+                    }
+                }
+                .transition(.opacity.combined(with: .scale(scale: 0.94)))
+                .zIndex(110)
+            }
         }
         .safeAreaInset(edge: .bottom) {
             HStack(spacing: 0) {
@@ -114,6 +131,18 @@ struct ContentView: View {
             .padding(.bottom, 8)
             .background(Theme.bgDeepBlack.opacity(0.94).background(Material.ultraThin).ignoresSafeArea(edges: .bottom))
             .overlay(Rectangle().frame(height: 1).foregroundColor(Theme.subtleBorder), alignment: .top)
+        }
+        .onAppear {
+            guard lastSeenUpdateNoticeVersion != AppUpdateNotice.current.version else { return }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                UPMEAnalytics.capture("update_notice_viewed", properties: [
+                    "version": AppUpdateNotice.current.version
+                ])
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) {
+                    showUpdateNotice = true
+                }
+            }
         }
         .onChange(of: appState.currentRank) { newRank in
             if newRank > lastSeenRank {
@@ -147,6 +176,161 @@ struct ContentView: View {
             }
             UPMEAnalytics.capture("tab_viewed", properties: ["tab": tabName])
         }
+    }
+}
+
+struct AppUpdateNotice {
+    struct Item: Identifiable {
+        let id: String
+        let icon: String
+        let titleJapanese: String
+        let titleEnglish: String
+        let detailJapanese: String
+        let detailEnglish: String
+    }
+
+    let version: String
+    let items: [Item]
+
+    static let current = AppUpdateNotice(
+        version: "1.1.0",
+        items: [
+            Item(
+                id: "regular-followers",
+                icon: "star.bubble.fill",
+                titleJapanese: "常連AIフォロワー",
+                titleEnglish: "Regular AI Followers",
+                detailJapanese: "お気に入りのAIが、これまでの会話を覚えて返信するようになりました。",
+                detailEnglish: "Your favorite AI followers can now remember past conversations when they reply."
+            ),
+            Item(
+                id: "reply-threads",
+                icon: "bubble.left.and.bubble.right.fill",
+                titleJapanese: "返信から続く会話",
+                titleEnglish: "Continue the Conversation",
+                detailJapanese: "AIからの返信に一度だけ返事をして、その先の会話を楽しめます。",
+                detailEnglish: "Reply once to an AI response and see the conversation continue."
+            ),
+            Item(
+                id: "english",
+                icon: "globe",
+                titleJapanese: "英語表示に対応",
+                titleEnglish: "English Support",
+                detailJapanese: "端末の言語に合わせて表示し、プロフィールからいつでも切り替えられます。",
+                detailEnglish: "The app follows your device language, and you can switch it anytime from your profile."
+            ),
+            Item(
+                id: "visual-and-support",
+                icon: "sparkles",
+                titleJapanese: "新しいビジュアルとお問い合わせ",
+                titleEnglish: "New Visuals and Support",
+                detailJapanese: "光がつながる背景演出と、プロフィールのお問い合わせ窓口を追加しました。",
+                detailEnglish: "Enjoy the new connected-light background and a contact option in your profile."
+            )
+        ]
+    )
+}
+
+struct UpdateNoticeView: View {
+    @EnvironmentObject private var appState: AppState
+    let notice: AppUpdateNotice
+    let onClose: () -> Void
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.78)
+                .background(.ultraThinMaterial)
+                .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                ZStack(alignment: .topTrailing) {
+                    LinearGradient(
+                        colors: [Theme.deepPurple.opacity(0.95), Theme.cardBackground],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+
+                    Circle()
+                        .fill(Theme.hotPink.opacity(0.12))
+                        .frame(width: 150, height: 150)
+                        .blur(radius: 18)
+                        .offset(x: 45, y: -60)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("WHAT'S NEW  ·  v\(notice.version)")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .foregroundColor(Theme.lavender)
+                            .tracking(1.5)
+
+                        Text(appState.text("UPME!が\nアップデートされました", "UPME! just\ngot better"))
+                            .font(.system(size: 26, weight: .black, design: .rounded))
+                            .foregroundColor(.white)
+                            .lineSpacing(2)
+
+                        Text(appState.text("もっと会話が続く、もっと自分らしい場所へ。", "More conversation. More of your own space."))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.white.opacity(0.62))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(24)
+                }
+                .frame(height: 178)
+                .clipped()
+
+                ScrollView {
+                    VStack(spacing: 16) {
+                        ForEach(notice.items) { item in
+                            HStack(alignment: .top, spacing: 14) {
+                                Image(systemName: item.icon)
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundColor(Theme.hotPink)
+                                    .frame(width: 36, height: 36)
+                                    .background(Theme.hotPink.opacity(0.11))
+                                    .clipShape(Circle())
+
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text(appState.text(item.titleJapanese, item.titleEnglish))
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundColor(.white)
+                                    Text(appState.text(item.detailJapanese, item.detailEnglish))
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundColor(.gray)
+                                        .lineSpacing(3)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+
+                                Spacer(minLength: 0)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 20)
+                }
+                .frame(maxHeight: 310)
+
+                Button(action: onClose) {
+                    Text(appState.text("アップデートを楽しむ", "Explore the Update"))
+                        .font(.system(size: 14, weight: .black))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 15)
+                        .background(Theme.accentGradient)
+                        .cornerRadius(14)
+                }
+                .padding(.horizontal, 22)
+                .padding(.bottom, 22)
+            }
+            .background(Theme.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    .stroke(Theme.purpleAccent.opacity(0.42), lineWidth: 1)
+            )
+            .shadow(color: Theme.purpleAccent.opacity(0.22), radius: 30, y: 12)
+            .padding(.horizontal, 22)
+            .frame(maxWidth: 410)
+        }
+        .accessibilityAddTraits(.isModal)
     }
 }
 

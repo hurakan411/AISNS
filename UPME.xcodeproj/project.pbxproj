@@ -27,6 +27,7 @@
 		F1A2B3C4D5E6F7A8B9C0D1E2 /* PrivacyConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2D1C0B9A8F7E6D5C4B3A2F1 /* PrivacyConsentView.swift */; };
 		C5C5C5C5C5C5C5C5C5C5C5C5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F5F5F5F5F5F5F5F5F5F5F5F5 /* Assets.xcassets */; };
 		EBEAB8ED130D48049C060815 /* FeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42F591A2378E46F9B89E408C /* FeedView.swift */; };
+		F341A6AA2E5C4B5D8C119101 /* ParticleNetworkBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = F341A6AA2E5C4B5D8C119102 /* ParticleNetworkBackground.swift */; };
 		C0DEC0DEC0DEC0DEC0DEC001 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C0DEC0DEC0DEC0DEC0DEC002 /* Localizable.xcstrings */; };
 /* End PBXBuildFile section */
 
@@ -36,6 +37,7 @@
 		02B87FF62FACBAD200EE22FD /* Configuration.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Configuration.storekit; sourceTree = "<group>"; };
 		34CB6FF724D9490C9E88CFB5 /* UPME.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UPME.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		42F591A2378E46F9B89E408C /* FeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedView.swift; sourceTree = "<group>"; };
+		F341A6AA2E5C4B5D8C119102 /* ParticleNetworkBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParticleNetworkBackground.swift; sourceTree = "<group>"; };
 		4A02DA3ED7EB4E9A9678417B /* UPMEApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UPMEApp.swift; sourceTree = "<group>"; };
 		64E52FB6E7A34377A3ACF664 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		9DA65D7295CA448E93A20D5C /* PostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostView.swift; sourceTree = "<group>"; };
@@ -89,6 +91,7 @@
 				64E52FB6E7A34377A3ACF664 /* AppState.swift */,
 				D9DB664272BB4D1E8098979F /* ContentView.swift */,
 				42F591A2378E46F9B89E408C /* FeedView.swift */,
+				F341A6AA2E5C4B5D8C119102 /* ParticleNetworkBackground.swift */,
 				9DA65D7295CA448E93A20D5C /* PostView.swift */,
 				C51046D075014E4CBF8EACBA /* SecondaryViews.swift */,
 				A9327DAFDB9248029C821B10 /* Theme.swift */,
@@ -207,6 +210,7 @@
 				5ABC075934814A25B8723777 /* AppState.swift in Sources */,
 				3B02D31439904229838973F9 /* ContentView.swift in Sources */,
 				EBEAB8ED130D48049C060815 /* FeedView.swift in Sources */,
+				F341A6AA2E5C4B5D8C119101 /* ParticleNetworkBackground.swift in Sources */,
 				1C771121EAF546A88F19E9DE /* PostView.swift in Sources */,
 				143B2E14DCAA4229B3348DBE /* SecondaryViews.swift in Sources */,
 				4473766EDC7C4CCBB6FC4DB3 /* Theme.swift in Sources */,

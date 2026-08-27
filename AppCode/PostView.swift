@@ -48,6 +48,7 @@ struct PostView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
             .background(Theme.bgDeepBlack)
+            .overlay(Rectangle().fill(Theme.subtleBorder).frame(height: 1), alignment: .bottom)
             
             ScrollView {
                 VStack(spacing: 24) {
@@ -58,16 +59,16 @@ struct PostView: View {
                                 .scaledToFill()
                                 .frame(width: 50, height: 50)
                                 .clipShape(Circle())
-                                .overlay(Circle().stroke(Color.purple, lineWidth: 2))
+                                .overlay(Circle().stroke(Theme.hotPink.opacity(0.75), lineWidth: 2))
                         } else {
                             AsyncImage(url: URL(string: Theme.myAvatar)) { img in
                                 img.resizable().scaledToFill()
                             } placeholder: {
-                                Circle().fill(Color.purple)
+                                Circle().fill(Theme.deepPurple)
                             }
                             .frame(width: 50, height: 50)
                             .clipShape(Circle())
-                            .overlay(Circle().stroke(Color.purple, lineWidth: 2))
+                            .overlay(Circle().stroke(Theme.hotPink.opacity(0.75), lineWidth: 2))
                         }
                         
                         if #available(iOS 16.0, *) {
@@ -87,7 +88,11 @@ struct PostView: View {
                                 .frame(minHeight: 180)
                         }
                     }
-                    .padding(.horizontal, 24)
+                    .padding(18)
+                    .background(Theme.cardBackground)
+                    .cornerRadius(18)
+                    .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.subtleBorder, lineWidth: 1))
+                    .padding(.horizontal, 16)
                     .padding(.top, 16)
                     
                     // Attached Image preview
@@ -127,10 +132,10 @@ struct PostView: View {
                                 }
                                 .padding(.horizontal, 20)
                                 .padding(.vertical, 12)
-                                .background(Color.white.opacity(0.08))
+                                .background(Theme.deepPurple)
                                 .foregroundColor(Theme.cyan)
-                                .cornerRadius(24)
-                                .overlay(RoundedRectangle(cornerRadius: 24).stroke(Color.white.opacity(0.15), lineWidth: 1))
+                                .cornerRadius(16)
+                                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.subtleBorder, lineWidth: 1))
                             }
                             .onChange(of: selectedItem) { newItem in
                                 Task {
