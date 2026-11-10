@@ -1,8 +1,10 @@
 import json
+import logging
 import os
 import random
 import re
 import requests
+import time
 from typing import List, Optional, Any, Tuple
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -39,6 +41,70 @@ except Exception as e:
     supabase = None
 
 openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+OPENAI_MODEL = "gpt-6-luna"
+LOG_OPENAI_USAGE = os.getenv("LOG_OPENAI_USAGE", "false").strip().lower() in {"1", "true", "yes", "on"}
+logger = logging.getLogger(__name__)
+
+
+def log_openai_usage(completion: Any, operation: str, started_at: float) -> None:
+    """トークン数と推定API料金だけをログへ記録する。本文・画像・ユーザーIDは記録しない。"""
+    if not LOG_OPENAI_USAGE:
+        return
+
+    usage = getattr(completion, "usage", None)
+    if usage is None:
+        logger.warning("openai_usage %s", json.dumps({"operation": operation, "usage_available": False}))
+        return
+
+    input_tokens = int(getattr(usage, "prompt_tokens", 0) or 0)
+    output_tokens = int(getattr(usage, "completion_tokens", 0) or 0)
+    prompt_details = getattr(usage, "prompt_tokens_details", None)
+    cached_input_tokens = min(
+        input_tokens,
+        int(getattr(prompt_details, "cached_tokens", 0) or 0),
+    )
+    completion_details = getattr(usage, "completion_tokens_details", None)
+    reasoning_tokens = int(getattr(completion_details, "reasoning_tokens", 0) or 0)
+
+    # GPT-6 Luna Standard pricing (USD per 1M tokens).
+    # Cache-write counts are not always reported, so retain an upper estimate too.
+    uncached_input_tokens = input_tokens - cached_input_tokens
+    cache_write_tokens = getattr(prompt_details, "cache_write_tokens", None)
+    reported_cache_writes = (
+        min(uncached_input_tokens, max(0, int(cache_write_tokens)))
+        if cache_write_tokens is not None else None
+    )
+    estimated_cost_usd = (
+        uncached_input_tokens * 0.10
+        + cached_input_tokens * 0.01
+        + output_tokens * 0.50
+        + (reported_cache_writes or 0) * 0.025
+    ) / 1_000_000
+    estimated_cost_upper_usd = estimated_cost_usd + (
+        uncached_input_tokens * 0.025 / 1_000_000
+        if reported_cache_writes is None else 0
+    )
+
+    logger.info(
+        "openai_usage %s",
+        json.dumps(
+            {
+                "operation": operation,
+                "model": getattr(completion, "model", OPENAI_MODEL),
+                "input_tokens": input_tokens,
+                "cached_input_tokens": cached_input_tokens,
+                "cache_write_tokens": reported_cache_writes,
+                "output_tokens": output_tokens,
+                "reasoning_tokens": reasoning_tokens,
+                "total_tokens": input_tokens + output_tokens,
+                "estimated_cost_usd": round(estimated_cost_usd, 8),
+                "estimated_cost_upper_usd": round(estimated_cost_upper_usd, 8),
+                "latency_ms": round((time.perf_counter() - started_at) * 1000),
+            },
+            separators=(",", ":"),
+            sort_keys=True,
+        ),
+    )
 
 
 # -------- 2. データモデル定義 (Pydantic / OpenAI Structured Outputs) --------
@@ -296,6 +362,50 @@ LENGTH_BAND_EN = {
 }
 
 
+def build_reply_style_instruction(language: str, image_attached: Optional[bool] = None) -> str:
+    """投稿と会話スレッドで共通の、落ち着いた肯定と画像の扱い。"""
+    if language == "en":
+        instruction = """
+[GROUNDED, NATURAL REPLY STYLE]
+- Support means paying attention and accepting the user's feelings, not praising everything extravagantly. Match the post's mood and scale; respond gently to distress without forcing positivity.
+- Distinguish people through what they notice, their vocabulary, and conversational distance. A persona's age or job is background, not a catchphrase or a reason to discuss their own profession.
+- Use ordinary language. Do not force youth slang, hype, gaming metaphors, motivational slogans, or repeated exclamation marks. A gaming interest does not turn unrelated posts into quests or boss fights.
+- Most replies should have no emoji; otherwise use at most one natural emoji per reply. Do not stack emoji or emoticons.
+- A short, specific reaction is enough. Do not pad replies to reach a length target, analyze punctuation, or repeat the user's entire sentence.
+- Do not make everyone offer the same advice to rest, drink water, or put their phone away. Give advice or ask a question only when it genuinely follows from the post. Never invent circumstances just to fill space.
+- Only regular followers may refer to shared memories, and only to facts supplied for that follower. Other people must not claim to remember previous posts.
+- Keep all existing language, identity, role, ordering, and memory-output rules. These instructions govern expression, not a change in critic/defender roles.
+Tone examples, not reusable templates: for a flower photo, “That red really stands out. I'd stop for a photo too.” For finishing a workday, “A whole day done. Hope you get a quiet evening.” Do not copy an example onto unrelated posts.
+"""
+        if image_attached is True:
+            instruction += "\n[ATTACHED IMAGE]\nThe image is already attached and visible in this request. Look at it before replying. Ground visual remarks in visible details; never ask to see the photo, ask the user to send it, or ask what its composition looks like. Do not invent unseen details.\n"
+        elif image_attached is False:
+            instruction += "\n[NO ATTACHED IMAGE]\nNo image was provided. Do not claim to have seen a photo or invent visual details.\n"
+        else:
+            instruction += "\n[THREAD IMAGE CONTEXT]\nThis thread contains text only. Do not invent visual details or ask the user to resend a photo that the conversation says was already shared.\n"
+        return instruction
+
+    instruction = """
+【地に足のついた自然な返信】
+- 肯定とは、投稿をちゃんと受け止めること。何でも大げさに絶賛することではない。投稿の温度感に合わせ、落ち込みには無理に前向きな意味をつけず寄り添う。
+- 人物の違いは、着目する点・語彙・距離感で出す。年齢や職業は背景情報であり、決め台詞や自分の職業の話を毎回差し込む理由にしない。
+- 普通の言葉で話す。無理な若者言葉、煽るようなハイテンション、取ってつけたゲームの比喩、応援スローガン、感嘆符の連打は避ける。ゲーム好きでも無関係な投稿をクエストや勝ち確に例えない。
+- 絵文字なしの返信を大半にする。使う場合も1返信につき自然な1個まで。絵文字や顔文字を連打しない。
+- 短く具体的な反応で十分。文字数の目安を満たすために話を膨らませたり、句読点や感嘆符を分析したり、投稿全文を復唱したりしない。
+- 全員が「休んで」「水分補給して」「スマホを置いて」と同じ助言をしない。助言や質問は文脈上必要な場合だけにし、埋め草のために事情を想像して断定しない。
+- 過去の投稿を覚えていると言えるのは、対応する記憶が渡された常連だけ。常連以外は以前から知っているふりをしない。
+- 言語・人物・配役・並び順・記憶出力のルールは維持する。この指示は表現を調整するもので、アンチや擁護の役割を変更しない。
+温度感の参考例（定型文として使い回さない）：花の写真には「この赤、きれいだね。散歩中に見つけたら足止めちゃう。」、仕事を終えた報告には「一日やり切ったね。今夜はゆっくりできるといいな。」。無関係な投稿に例文をコピーしない。
+"""
+    if image_attached is True:
+        instruction += "\n【添付画像あり】\nこのリクエストには画像がすでに添付されている。画像を確認してから、見えている特徴に基づいて反応する。「写真も見たい」「写真を送って」「どんな構図に撮れたの？」など、未添付であるかのような要求・質問は禁止。見えない細部は想像で補わない。\n"
+    elif image_attached is False:
+        instruction += "\n【添付画像なし】\n画像は渡されていない。写真を見たふりや、見えていない色・構図の描写は禁止。\n"
+    else:
+        instruction += "\n【会話スレッドの画像情報】\nこのスレッドにはテキストだけが渡される。画像の細部を捏造せず、会話ですでに共有された写真を再要求しない。\n"
+    return instruction
+
+
 def extract_normal_and_hater_defender_pairs(
     all_replies: List[ReplySchema],
 ) -> Tuple[List[ReplySchema], List[List[ReplySchema]]]:
@@ -411,24 +521,24 @@ async def generate_ai_replies(
     if language == "en":
         label_names = {"短文": "short", "中文": "medium", "長文": "long"}
         length_plan_lines = "\n".join(
-            f"    - Reply **{i}** (JSON index {i-1}) must be **{length_band[label]}** ({label_names[label]})."
+            f"    - Reply **{i}** (JSON index {i-1}): aim for **{length_band[label]}** ({label_names[label]}); shorter is fine when natural."
             for i, label in enumerate(length_labels, start=1)
         )
-        length_and_tone = f"""[LENGTH REQUIREMENTS — STRICT]
+        length_and_tone = f"""[LENGTH GUIDANCE]
 The {total_replies} replies have already been assigned short, medium, and long labels in an approximate 3:4:3 ratio and shuffled.
-Keep every replies[i].content inside its assigned word-count range. Count the words after drafting and revise anything outside its range.
+Use the assigned range as a guide and respect its upper limit. A shorter reply is welcome when the post offers little detail; never pad a reaction to meet a minimum.
 
 {length_plan_lines}
 
 The labels control length only. Every reply must still reference the user's actual wording or situation and sound like its assigned persona."""
     else:
         length_plan_lines = "\n".join(
-            f"    - replies配列の **{i}件目**（JSONではインデックス {i-1}）の content は **{length_band[label]}** に必ず収める（{label}）"
+            f"    - replies配列の **{i}件目**（JSONではインデックス {i-1}）の content の目安は **{length_band[label]}**（{label}。自然なら短くても可）"
             for i, label in enumerate(length_labels, start=1)
         )
-        length_and_tone = f"""【文字数（厳守）】
+        length_and_tone = f"""【文字数の目安】
 全{total_replies}件の返信について、**短文:中文:長文 = 3:4:3 の件数**になるようラベルを割り当て、順序はランダムにシャッフル済みです。
-**下の「各返信の文字数帯」に従い、replies[i].content の文字数が帯から外れないようにしてください。**（各 content 生成後に文字数を数え、帯外なら短くするか長くして調整すること）
+下の文字数帯は目安とし、上限は守ってください。情報の少ない投稿では下限より短い自然な返信で構いません。最低文字数のための水増しはしないでください。
 
 {length_plan_lines}
 
@@ -525,26 +635,26 @@ One critic must later reconsider after seeing the other followers' reactions and
 
     # キャラクターリストを毎回シャッフルしてからプロンプトに埋め込む（AIが番号順に選ぶのを防止）
     character_pool = [
-        "17歳・女子高校生（友達とのLINEノリで話す。「まじで」「やば」など短い感嘆詞が多く、絵文字をよく使う）",
-        "21歳・男子大学生（サークルやバイトの話題に敏感。軽い口調で共感してくれる。「わかる」「それな」が口癖）",
+        "17歳・女子高校生（友達に話すような短く親しみやすい口調。大げさに騒がない）",
+        "21歳・男子大学生（軽い口調で身近な感想を返す。流行語や決め台詞に頼らない）",
         "24歳・新卒OL（社会人1年目。仕事の疲れから深夜にSNSを見て癒されている。丁寧だけど親しみやすい口調）",
-        "28歳・男性フリーランスデザイナー（クリエイティブな視点で褒める。「構図がいい」「センスある」など具体的に褒める）",
-        "32歳・女性・2児のママ（育児の合間にSNSを見る。温かく応援してくれる。「わかるー！」「うちもそう！」と共感型）",
-        "19歳・男性・専門学生（ゲームやアニメが好きだが普通の子。「すげー」「マジか」などシンプルな反応）",
+        "28歳・男性フリーランスデザイナー（実際に見える色や形に気づく。見えない構図やセンスを勝手に評価しない）",
+        "32歳・女性・2児のママ（温かく共感するが、無関係な育児の話に持っていかない）",
+        "19歳・男性・専門学生（ゲームやアニメも好き。日常には日常の言葉で素直に反応する）",
         "35歳・男性会社員（営業職。仕事帰りの電車でSNSを見る。落ち着いた口調で的確に褒める）",
-        "26歳・女性看護師（夜勤明けにSNSを流し見。優しい言葉をかけてくれる。「無理しないでね」と気遣いも）",
-        "45歳・男性・中小企業の部長（少しおじさんっぽい文体。句読点が多め。でも言ってることは温かい）",
-        "22歳・女性・美容系インフルエンサー志望（写真や見た目を具体的に褒める。「かわいい！」「映えてる！」が多い）",
-        "30歳・男性エンジニア（論理的に「これがすごい理由」を分析して褒めてくれる。少し理屈っぽいが悪意はない）",
-        "40歳・女性・パート主婦（近所のおばさん的な温かさ。「えらいねぇ」「すごいわぁ」と素朴に褒める）",
-        "16歳・男子高校生（部活帰りにスマホを見る。「かっけぇ」「やべぇ」などストレートな感想）",
+        "26歳・女性看護師（静かに気遣う口調。必要のない健康アドバイスはしない）",
+        "45歳・男性・中小企業の部長（落ち着いた文体で温かく反応する。説教や年齢の演技をしない）",
+        "22歳・女性・美容系インフルエンサー志望（写真の実際に見える特徴に、素直な言葉で感想を返す）",
+        "30歳・男性エンジニア（具体的な出来事に着目する。投稿の言い回しを論評しない）",
+        "40歳・女性・パート主婦（飾らない温かい口調。上から子ども扱いしない）",
+        "16歳・男子高校生（部活帰りにスマホを見る。短く率直だが、不自然な若者言葉は使わない）",
         "27歳・女性・カフェ店員（おしゃれなものが好き。「雰囲気いいね」「素敵」など柔らかい表現）",
-        "50歳・男性・自営業（人生経験からの深い共感。「若い頃の自分を思い出す」など味のあるコメント）",
-        "23歳・女性・大学院生（知的だが堅すぎない。「興味深い」「面白い視点」など少しアカデミックな褒め方）",
+        "50歳・男性・自営業（落ち着いて受け止める。毎回昔話や人生訓にしない）",
+        "23歳・女性・大学院生（気づいたことを日常の言葉で伝える。学術的な分析や大仰な評価はしない）",
         "38歳・男性・トラック運転手（休憩中にSNSを見る。飾らない言葉で素直に感想を言う。「いいじゃん」がシンプル）",
-        "20歳・女性・アパレル店員（トレンドに敏感。「おしゃれ！」「真似したい！」とポジティブ）",
+        "20歳・女性・アパレル店員（明るく身近な口調。服や流行を無関係な投稿に持ち込まない）",
         "33歳・男性・公務員（真面目な性格が文章に出る。丁寧語ベースだが心からの称賛が伝わる）",
-        "29歳・女性・ヨガインストラクター（ポジティブなエネルギーに溢れる。「素敵なエネルギー感じる！」など前向き）",
+        "29歳・女性・ヨガインストラクター（穏やかで押しつけない。抽象的なエネルギーや呼吸の話にすり替えない）",
     ]
     if language == "en":
         character_pool = [
@@ -717,16 +827,6 @@ One critic must later reconsider after seeing the other followers' reactions and
     投稿が「頑張った報告」「成果報告」の場合は、通常返信では褒め・称賛を多めに。日常系は中立・質問を多めに。
     **全体として、友達のタイムラインを見ているような自然なリアクション**を目指す（ただし批判者・擁護者は展開ルール優先）。
 
-    【絵文字・顔文字（キャラの個性を強調・日本のSNSらしさ）】
-    実際のX・LINE・Instagramのリプを模倣するため、**ペルソナ（10代〜20代の若者、ギャル、オタク、ハイテンションな人、おじさん等）によっては、普段よりもさらに大げさに、顔文字や絵文字をたくさん（3〜5個以上）使わせてください。**
-    
-    ・ **若年層や陽キャ**：🔥✨🥺😭🫶❤️‍🔥 などの絵文字を連打したり、語尾に大量につける。
-    ・ **オタク層・ネット民**：( ﾟДﾟ) (´；ω；`) (｀・ω・´) などの顔文字や、「草」「ｗｗｗ」「〜ンゴ」を多用する。
-    ・ **おじさん構文**：😅💦🙇‍♂️‼️ などを文章の途中に独特のテンポで挟む。
-    ・ **年配層や真面目な人**：「笑」「^^」「(笑)」や句読点のみで、対比を作る。
-    
-    **種類を返信ごとに変え、キャラの個性が一目でわかるレベルまで絵文字・顔文字の量を極端に調整**してください。プレーンテキストのキャラと、記号だらけのキャラの激しいコントラストをつけること。
-
     【ペルソナダイバーシティ（多様性）の強制】
     常連以外の返信は、すべて**異なるペルソナ（年齢・性別・職業）**を持つ、現実のSNSにいそうな普通の人間として作成してください。以下のペルソナリストの**上から順番に**1件ずつ使用してください（リストは毎回ランダムにシャッフルされています）。それぞれのペルソナの年齢や職業にふさわしい自然な口調・語彙で書くこと。
     **is_hater=true の行**は、割り当てペルソナの口調（若者言葉・丁寧語など）を保ちつつ、内容だけ**批判・皮肉・否定**に振ること（説明文の「褒める」「共感」は無視してよい）。
@@ -734,12 +834,12 @@ One critic must later reconsider after seeing the other followers' reactions and
 
     【最重要ルール1: 投稿内容への具体的言及（必須）】
     **全返信は、ユーザーの投稿に書かれた具体的なキーワード・主張・感情・状況のいずれかに直接反応すること。**
-    - 投稿の中の**単語やフレーズを引用・言い換え**て、それに対するリアクションを書く。
+    - 投稿の具体的な出来事や気持ちに反応する。引用は必須ではなく、文章表現や記号の分析はしない。
     - 「いいね」「すごい」「最高」など、**どの投稿にも使い回せる汎用的な反応だけで終わらせることは厳禁**。
     - 投稿が「今日カレー食べた」なら「カレー」「何カレー？」に言及する。「仕事疲れた」なら「仕事」の何が疲れたかに触れる。**投稿の内容を読んでいなければ書けない返信**にすること。
 
     【最重要ルール2: AI定型文の絶対禁止】
-    「最高すぎます」「素晴らしいですね」「お疲れ様です」「頑張って」などのAIが書きがちな無難な定型文は**絶対に使用しないでください**。
+    「最高すぎます」「素晴らしいですね」など中身のない称賛を並べない。「おつかれ」など普通の言葉は文脈に合えば使ってよいが、それだけの使い回しで終わらせない。
     X(旧Twitter)やInstagramで実際の人間が書き込むような、その人の年齢や立場がにじみ出る自然なコメントを徹底してください。
 
     【最重要ルール3: 返信内容の重複禁止】
@@ -784,14 +884,6 @@ One critic must later reconsider after seeing the other followers' reactions and
 
     When the user reports an achievement or hard work, normal replies may lean more supportive. For everyday updates, use more neutral reactions and questions. The overall result should feel like checking a varied group of friends' replies, while critic–defender story rules still take priority.
 
-    [EMOJI AND TEXTING STYLE — ENGLISH-LANGUAGE SOCIAL MEDIA]
-    Vary emoji and punctuation by persona instead of adding the same emoji to everyone.
-
-    - Younger or high-energy personas may use repeated emoji such as 🔥✨😭🫶, lowercase text, stretched words, or emphatic punctuation.
-    - Gamers and highly online personas may use restrained internet slang such as “lol,” “ngl,” “fr,” or “tbh” when age-appropriate.
-    - Older or more formal personas should use fewer emoji, fuller sentences, or slightly old-fashioned punctuation.
-    - Some people should use no emoji at all. Others may use several. Make the contrast visible but believable, and avoid caricatures.
-
     [PERSONA DIVERSITY — REQUIRED]
     Every non-regular follower must be a different believable person with a distinct age, background, vocabulary, and texting rhythm. Use the shuffled persona list below from top to bottom, one persona per reply. Do not mention the persona description in the reply.
     If a row has is_hater=true, preserve that persona's voice but make the content skeptical, sarcastic, or critical. Ignore any supportive trait in the persona description for that row.
@@ -799,7 +891,7 @@ One critic must later reconsider after seeing the other followers' reactions and
 
     [CRITICAL RULE 1 — REACT TO THE ACTUAL POST]
     Every reply must directly react to a concrete word, claim, emotion, image detail, or situation from the user's post.
-    - Quote or naturally paraphrase a specific detail and react to it.
+    - React to a specific event or feeling. Quoting is optional; do not analyze the post's punctuation or phrasing.
     - Never end with a reusable generic response such as only “nice,” “amazing,” or “love this.”
     - Write something that could not have been produced without reading this exact post.
 
@@ -814,6 +906,8 @@ One critic must later reconsider after seeing the other followers' reactions and
     2. {name_instruction}
     """
 
+    system_prompt += build_reply_style_instruction(language, bool(image_base64))
+
     try:
         post_label = "User's post" if language == "en" else "ユーザーの投稿"
         user_message_content: List[dict[str, Any]] = [{"type": "text", "text": f"{post_label}: {content}"}]
@@ -827,14 +921,17 @@ One critic must later reconsider after seeing the other followers' reactions and
             })
 
         # OpenAI API Structured Outputs を使って確実にJSONスキーマで返却させる
+        generation_started_at = time.perf_counter()
         completion = await openai_client.beta.chat.completions.parse(
-            model="gpt-5.4-mini",
+            model=OPENAI_MODEL,
+            reasoning_effort="none",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message_content}
             ],
             response_format=GenerateRepliesResponse,
         )
+        log_openai_usage(completion, "post_replies", generation_started_at)
         
         parsed_data = completion.choices[0].message.parsed
         if parsed_data is None:
@@ -1082,14 +1179,19 @@ User's reply:
 {request.user_reply}
 """
 
+    system_prompt += build_reply_style_instruction(language)
+
+    generation_started_at = time.perf_counter()
     completion = await openai_client.beta.chat.completions.parse(
-        model="gpt-5.4-mini",
+        model=OPENAI_MODEL,
+        reasoning_effort="none",
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_message},
         ],
         response_format=GenerateReplyThreadResponse,
     )
+    log_openai_usage(completion, "reply_thread", generation_started_at)
     parsed_data = completion.choices[0].message.parsed
     if parsed_data is None or not parsed_data.replies:
         raise RuntimeError("OpenAI response did not contain parsed reply thread data")

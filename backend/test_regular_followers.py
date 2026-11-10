@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import re
 import unittest
@@ -14,6 +15,7 @@ from main import (
     PostRequest,
     ReplyToAiRequest,
     ReplySchema,
+    build_reply_style_instruction,
     build_user_name_instruction,
     localize_generated_author_names,
     rank_from_followers,
@@ -38,6 +40,65 @@ class PromptCaptureClient:
 
 
 class RegularFollowerApiTests(unittest.TestCase):
+    def test_active_model_is_luna(self):
+        self.assertEqual(backend_main.OPENAI_MODEL, "gpt-6-luna")
+
+    def test_post_generation_uses_luna_for_text_images_and_onboarding(self):
+        for language in ("ja", "en"):
+            for image, onboarding in ((None, False), ("test-image", False), (None, True)):
+                with self.subTest(language=language, image=image, onboarding=onboarding):
+                    capture_client = PromptCaptureClient(GenerateRepliesResponse(
+                        replies=[], memory_updates=[],
+                    ))
+                    with patch.object(backend_main, "openai_client", capture_client):
+                        asyncio.run(backend_main.generate_ai_replies(
+                            content="Test post", followers=0, is_hater_enabled=False,
+                            language=language, image_base64=image, is_onboarding=onboarding,
+                        ))
+                    call = capture_client.calls[0]
+                    self.assertEqual(call["model"], "gpt-6-luna")
+                    self.assertEqual(call["reasoning_effort"], "none")
+                    self.assertIs(call["response_format"], GenerateRepliesResponse)
+                    prompt = call["messages"][0]["content"]
+                    self.assertIn(build_reply_style_instruction(language, bool(image)), prompt)
+                    self.assertNotIn("3〜5個以上", prompt)
+                    self.assertNotIn("may use repeated emoji", prompt)
+                    if image:
+                        self.assertEqual(call["messages"][1]["content"][1], {
+                            "type": "image_url",
+                            "image_url": {"url": "data:image/jpeg;base64,test-image"},
+                        })
+
+    def test_reply_style_distinguishes_images_and_thread_context_in_both_languages(self):
+        for language in ("ja", "en"):
+            with self.subTest(language=language):
+                attached = build_reply_style_instruction(language, True)
+                absent = build_reply_style_instruction(language, False)
+                thread = build_reply_style_instruction(language)
+                self.assertNotEqual(attached, absent)
+                self.assertNotEqual(attached, thread)
+                self.assertIn("1返信につき" if language == "ja" else "at most one", attached)
+                self.assertIn("すでに添付" if language == "ja" else "already attached", attached)
+                self.assertIn("画像は渡されていない" if language == "ja" else "No image", absent)
+                self.assertIn("テキストだけ" if language == "ja" else "text only", thread)
+
+    def test_usage_log_uses_luna_rates_and_cache_write_estimates(self):
+        for writes, expected, upper in ((None, 0.000132, 0.000152), (400, 0.000142, 0.000142)):
+            with self.subTest(cache_write_tokens=writes):
+                completion = SimpleNamespace(model="gpt-6-luna", usage=SimpleNamespace(
+                    prompt_tokens=1000, completion_tokens=100,
+                    prompt_tokens_details=SimpleNamespace(cached_tokens=200, cache_write_tokens=writes),
+                    completion_tokens_details=SimpleNamespace(reasoning_tokens=0),
+                ))
+                with (
+                    patch.object(backend_main, "LOG_OPENAI_USAGE", True),
+                    patch.object(backend_main.logger, "info") as logged,
+                ):
+                    backend_main.log_openai_usage(completion, "post_replies", 0)
+                payload = json.loads(logged.call_args.args[1])
+                self.assertAlmostEqual(payload["estimated_cost_usd"], expected)
+                self.assertAlmostEqual(payload["estimated_cost_upper_usd"], upper)
+
     def test_old_post_payload_remains_compatible(self):
         request = PostRequest(user_id="user-1", content="hello", followers=0)
         self.assertEqual(request.regular_followers, [])
@@ -246,11 +307,13 @@ class RegularFollowerApiTests(unittest.TestCase):
                 user_display_name="Mina",
             ))
 
+        self.assertEqual(capture_client.calls[0]["model"], "gpt-6-luna")
+        self.assertEqual(capture_client.calls[0]["reasoning_effort"], "none")
         messages = capture_client.calls[0]["messages"]
         system_prompt = messages[0]["content"]
         user_text = messages[1]["content"][0]["text"]
         self.assertIn("OUTPUT LANGUAGE — HIGHEST PRIORITY", system_prompt)
-        self.assertIn("ENGLISH-LANGUAGE SOCIAL MEDIA", system_prompt)
+        self.assertIn("English-language social timeline", system_prompt)
         self.assertIn('profile name is "Mina"', system_prompt)
         self.assertIn("Exactly one suitable", system_prompt)
         self.assertIn("User's post:", user_text)
@@ -301,8 +364,12 @@ class RegularFollowerApiTests(unittest.TestCase):
         ):
             replies, _ = asyncio.run(backend_main.generate_ai_reply_to_user(request))
 
+        self.assertEqual(capture_client.calls[0]["model"], "gpt-6-luna")
+        self.assertEqual(capture_client.calls[0]["reasoning_effort"], "none")
+        self.assertIs(capture_client.calls[0]["response_format"], GenerateReplyThreadResponse)
         messages = capture_client.calls[0]["messages"]
         system_prompt = messages[0]["content"]
+        self.assertIn(build_reply_style_instruction("en"), system_prompt)
         user_message = messages[1]["content"]
         self.assertIn("OUTPUT LANGUAGE — HIGHEST PRIORITY", system_prompt)
         self.assertIn('profile name is "Mina"', system_prompt)
