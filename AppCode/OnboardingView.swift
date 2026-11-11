@@ -311,18 +311,59 @@ struct OnboardingView: View {
                 .padding(.vertical, 12)
                 .background(Theme.bgDeepBlack)
                 
-                ScrollView {
-                    VStack(spacing: 0) {
-                        if let post = appState.posts.first {
-                            PostCard(post: post)
+                GeometryReader { viewport in
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            if let post = appState.posts.first {
+                                PostCard(post: post)
+                            }
                         }
+                        .padding(.vertical, 24)
+                        .padding(.bottom, 100)
                     }
-                    .padding(.vertical, 24)
-                    .padding(.bottom, 100)
+                    .modifier(AIReplyVisibilityTracker(viewportSize: viewport.size))
                 }
             }
             
-            if showStartButton {
+            if let error = appState.onboardingReplyError {
+                VStack(spacing: 14) {
+                    Text(error)
+                        .font(.system(size: 14))
+                        .foregroundColor(.white.opacity(0.85))
+                        .multilineTextAlignment(.center)
+                    Button(action: appState.retryOnboardingReplies) {
+                        Text(appState.text("もう一度試す", "Try again"))
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Theme.hotPink)
+                            .clipShape(Capsule())
+                    }
+                    Button {
+                        withAnimation { appState.completeOnboarding() }
+                    } label: {
+                        Text(appState.text("あとで試して、UPMEを始める", "Continue to UPME"))
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white.opacity(0.75))
+                    }
+                }
+                .padding(20)
+                .background(Theme.cardBackground, in: RoundedRectangle(cornerRadius: 20))
+                .padding(.horizontal, 24)
+                .padding(.bottom, 24)
+            } else if appState.onboardingRepliesRequestInFlight {
+                HStack(spacing: 12) {
+                    ProgressView().tint(Theme.hotPink)
+                    Text(appState.text("AIが返信を準備しています…", "Your AI followers are getting ready…"))
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white.opacity(0.85))
+                }
+                .padding(20)
+                .background(Theme.cardBackground, in: RoundedRectangle(cornerRadius: 20))
+                .padding(.horizontal, 24)
+                .padding(.bottom, 24)
+            } else if showStartButton {
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.5)) {
                         appState.completeOnboarding()
@@ -345,21 +386,26 @@ struct OnboardingView: View {
             }
         }
         .background(Theme.bgDeepBlack.ignoresSafeArea())
-        .onAppear { scheduleBurstStartButton() }
+        .task(id: appState.onboardingReplyError) { await waitForBurstStartButton() }
     }
 
-    private func scheduleBurstStartButton() {
-        func checkOrWait() {
-            let shown = appState.posts.first?.replies.count ?? 0
-            let total = appState.onboardingExpectedReplies
-            let threshold = total > 0 ? Int(ceil(Double(total) * 0.8)) : 8
-            if shown >= threshold {
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) { showStartButton = true }
-            } else {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { checkOrWait() }
+    private func waitForBurstStartButton() async {
+        do {
+            try await Task.sleep(for: .seconds(3))
+            while !Task.isCancelled && appState.isInOnboarding {
+                guard appState.onboardingReplyError == nil else { return }
+                let shown = appState.posts.first?.replies.count ?? 0
+                let total = appState.onboardingExpectedReplies
+                let threshold = total > 0 ? Int(ceil(Double(total) * 0.8)) : 8
+                if shown >= threshold {
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) { showStartButton = true }
+                    return
+                }
+                try await Task.sleep(for: .seconds(1))
             }
+        } catch {
+            // 画面遷移・再試行によるtaskのキャンセル時は待機を終える。
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { checkOrWait() }
     }
 }
 

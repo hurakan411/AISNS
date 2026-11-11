@@ -12,6 +12,7 @@ class StoreManager: ObservableObject {
     @Published var products: [Product] = []
     
     init() {
+        guard !DesignPreview.isActive else { return }
         Task {
             await fetchProducts()
             await updatePurchasedStatus()

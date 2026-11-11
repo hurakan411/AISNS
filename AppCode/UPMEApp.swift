@@ -9,7 +9,9 @@ struct UPMEAISNSApp: App {
     @Environment(\.scenePhase) private var scenePhase
     
     init() {
-        GADMobileAds.sharedInstance().start(completionHandler: nil)
+        if !DesignPreview.isActive {
+            GADMobileAds.sharedInstance().start(completionHandler: nil)
+        }
     }
     
     var body: some Scene {

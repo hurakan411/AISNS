@@ -1,0 +1,4582 @@
+{
+  "created_at_utc": "2026-11-09T12:34:01.788141+00:00",
+  "models": [
+    "gpt-5.4-mini",
+    "gpt-6-luna"
+  ],
+  "repeats": 2,
+  "settings": {
+    "reasoning_effort": "none",
+    "max_completion_tokens": 4096,
+    "hater_enabled": false
+  },
+  "pricing_usd_per_million": {
+    "gpt-5.4-mini": {
+      "input": 0.75,
+      "cached": 0.075,
+      "write": 0.75,
+      "output": 4.5
+    },
+    "gpt-6-luna": {
+      "input": 0.1,
+      "cached": 0.01,
+      "write": 0.125,
+      "output": 0.5
+    }
+  },
+  "image": "Synthetic flower drawing, 4032x3024 JPEG quality 50",
+  "samples": [
+    {
+      "case": "work",
+      "title": "仕事を頑張った報告",
+      "post": "今日も１日仕事頑張ったー！！！",
+      "language": "ja",
+      "model": "gpt-5.4-mini",
+      "repeat": 1,
+      "seed": 731,
+      "model_returned": "gpt-5.4-mini-2026-03-17",
+      "operation": "post_replies",
+      "input_tokens": 3528,
+      "output_tokens": 336,
+      "cached_tokens": 0,
+      "cache_write_tokens_reported": null,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 336,
+        "prompt_tokens": 3528,
+        "total_tokens": 3864,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "latency_ms": 2525,
+      "estimated_cost_usd": 0.004158,
+      "estimated_cost_lower_usd": 0.004158,
+      "estimated_cost_upper_usd": 0.004158,
+      "no_cache_standard_cost_usd": 0.004158,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "ゆき",
+            "content": "仕事のあとに『今日も１日』って言えるの、ちゃんと踏ん張った感じで伝わるね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "たけし",
+            "content": "１日仕事してその勢いで叫ぶの、ほんとにわかるｗ",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "みく",
+            "content": "『仕事頑張ったー！！！』の三連感嘆符、疲れ切った感じが出てて刺さる。終業後にそのテンションまで戻せるの、逆に回復力あると思う。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "れん",
+            "content": "今日は何の仕事だったの？ かなりハードそうな空気あるね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "はるか",
+            "content": "『今日も１日』って言い方が、連勤っぽさあって切実だね。残業までいってたならかなりきつかったはずだし、こうして吐き出せるだけでも少し軽くなるよね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": []
+      },
+      "prompt_sha256": "734962e317a030396f5e63dc776caa9656f65a78fdf9ea93987909d06b14559b",
+      "replies": [
+        {
+          "author_name": "はるか",
+          "author_img": "https://picsum.photos/seed/user93/150/150",
+          "content": "『今日も１日』って言い方が、連勤っぽさあって切実だね。残業までいってたならかなりきつかったはずだし、こうして吐き出せるだけでも少し軽くなるよね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "みく",
+          "author_img": "https://picsum.photos/seed/user75/150/150",
+          "content": "『仕事頑張ったー！！！』の三連感嘆符、疲れ切った感じが出てて刺さる。終業後にそのテンションまで戻せるの、逆に回復力あると思う。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "たけし",
+          "author_img": "https://picsum.photos/seed/user71/150/150",
+          "content": "１日仕事してその勢いで叫ぶの、ほんとにわかるｗ",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆき",
+          "author_img": "https://picsum.photos/seed/user42/150/150",
+          "content": "仕事のあとに『今日も１日』って言えるの、ちゃんと踏ん張った感じで伝わるね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "れん",
+          "author_img": "https://picsum.photos/seed/user35/150/150",
+          "content": "今日は何の仕事だったの？ かなりハードそうな空気あるね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "work",
+      "title": "仕事を頑張った報告",
+      "post": "今日も１日仕事頑張ったー！！！",
+      "language": "ja",
+      "model": "gpt-6-luna",
+      "repeat": 1,
+      "seed": 731,
+      "model_returned": "gpt-6-luna",
+      "operation": "post_replies",
+      "input_tokens": 3528,
+      "output_tokens": 349,
+      "cached_tokens": 0,
+      "cache_write_tokens_reported": 3525,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 349,
+        "prompt_tokens": 3528,
+        "total_tokens": 3877,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0,
+          "cache_write_tokens": 3525
+        }
+      },
+      "latency_ms": 3886,
+      "estimated_cost_usd": 0.000615425,
+      "estimated_cost_lower_usd": 0.0005273,
+      "estimated_cost_upper_usd": 0.0006155,
+      "no_cache_standard_cost_usd": 0.0005273,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "あや",
+            "content": "「今日も１日仕事頑張ったー！！！」って叫びたくなる日あるよね。帰ったら好きな飲み物でひと息ついてね☕️",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "たくみ",
+            "content": "仕事を一日やり切ったんですね。帰り道は少し肩の力を抜いて、ゆっくり休んでください。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "れん",
+            "content": "仕事頑張ったのマジえらい！今日はゲームして寝落ちコースでよくない？🎮😴✨",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "さちこ",
+            "content": "今日もお仕事だったのねぇ。最後までやり切ったなら立派だわ、夕飯のあとくらいゆっくりできるといいね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "みほ",
+            "content": "仕事終わりにこの投稿見て、私も今日の分をなんとか乗り切った気分です。帰宅したらスマホ置いて、まず温かいもの飲みましょ🍵",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": []
+      },
+      "prompt_sha256": "734962e317a030396f5e63dc776caa9656f65a78fdf9ea93987909d06b14559b",
+      "replies": [
+        {
+          "author_name": "みほ",
+          "author_img": "https://picsum.photos/seed/user93/150/150",
+          "content": "仕事終わりにこの投稿見て、私も今日の分をなんとか乗り切った気分です。帰宅したらスマホ置いて、まず温かいもの飲みましょ🍵",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "れん",
+          "author_img": "https://picsum.photos/seed/user75/150/150",
+          "content": "仕事頑張ったのマジえらい！今日はゲームして寝落ちコースでよくない？🎮😴✨",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "たくみ",
+          "author_img": "https://picsum.photos/seed/user71/150/150",
+          "content": "仕事を一日やり切ったんですね。帰り道は少し肩の力を抜いて、ゆっくり休んでください。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "あや",
+          "author_img": "https://picsum.photos/seed/user42/150/150",
+          "content": "「今日も１日仕事頑張ったー！！！」って叫びたくなる日あるよね。帰ったら好きな飲み物でひと息ついてね☕️",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "さちこ",
+          "author_img": "https://picsum.photos/seed/user35/150/150",
+          "content": "今日もお仕事だったのねぇ。最後までやり切ったなら立派だわ、夕飯のあとくらいゆっくりできるといいね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "work",
+      "title": "仕事を頑張った報告",
+      "post": "今日も１日仕事頑張ったー！！！",
+      "language": "ja",
+      "model": "gpt-5.4-mini",
+      "repeat": 2,
+      "seed": 732,
+      "model_returned": "gpt-5.4-mini-2026-03-17",
+      "operation": "post_replies",
+      "input_tokens": 3528,
+      "output_tokens": 374,
+      "cached_tokens": 0,
+      "cache_write_tokens_reported": null,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 374,
+        "prompt_tokens": 3528,
+        "total_tokens": 3902,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "latency_ms": 2222,
+      "estimated_cost_usd": 0.004329,
+      "estimated_cost_lower_usd": 0.004329,
+      "estimated_cost_upper_usd": 0.004329,
+      "no_cache_standard_cost_usd": 0.004329,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "たけし",
+            "content": "仕事終わりの「今日も１日」感、めちゃ伝わる。しかも「頑張ったー！！！」って出し切った感じで、読んでてこっちも気が抜けたよ。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "みく",
+            "content": "わかる、仕事のあとって一気にテンション切れるよね。ちゃんと今日を走り切った感じがして、なんか安心した☺️",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "ゆき",
+            "content": "今日も１日、ほんとに長かったんだね。そこまで言い切れるの、地味に強い💪",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "れん",
+            "content": "その「頑張ったー」の勢い、仕事帰りの脳みそには刺さるわ。自分も今日はもう省エネモード確定😮‍💨",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "なお",
+            "content": "“今日も１日仕事”ってだけで、朝から夜まで走りっぱなしだったのが分かるね。最後に大きく声に出して区切る感じ、気持ちの切り替えとしてすごくいいと思う。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": []
+      },
+      "prompt_sha256": "d8f71f7d95e592f0088ba2d42a7cec83106babdb9e11289cc73b0390b86e7d72",
+      "replies": [
+        {
+          "author_name": "ゆき",
+          "author_img": "https://picsum.photos/seed/user17/150/150",
+          "content": "今日も１日、ほんとに長かったんだね。そこまで言い切れるの、地味に強い💪",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "たけし",
+          "author_img": "https://picsum.photos/seed/user49/150/150",
+          "content": "仕事終わりの「今日も１日」感、めちゃ伝わる。しかも「頑張ったー！！！」って出し切った感じで、読んでてこっちも気が抜けたよ。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "なお",
+          "author_img": "https://picsum.photos/seed/user30/150/150",
+          "content": "“今日も１日仕事”ってだけで、朝から夜まで走りっぱなしだったのが分かるね。最後に大きく声に出して区切る感じ、気持ちの切り替えとしてすごくいいと思う。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "みく",
+          "author_img": "https://picsum.photos/seed/user74/150/150",
+          "content": "わかる、仕事のあとって一気にテンション切れるよね。ちゃんと今日を走り切った感じがして、なんか安心した☺️",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "れん",
+          "author_img": "https://picsum.photos/seed/user4/150/150",
+          "content": "その「頑張ったー」の勢い、仕事帰りの脳みそには刺さるわ。自分も今日はもう省エネモード確定😮‍💨",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "work",
+      "title": "仕事を頑張った報告",
+      "post": "今日も１日仕事頑張ったー！！！",
+      "language": "ja",
+      "model": "gpt-6-luna",
+      "repeat": 2,
+      "seed": 732,
+      "model_returned": "gpt-6-luna",
+      "operation": "post_replies",
+      "input_tokens": 3528,
+      "output_tokens": 408,
+      "cached_tokens": 0,
+      "cache_write_tokens_reported": 3525,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 408,
+        "prompt_tokens": 3528,
+        "total_tokens": 3936,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0,
+          "cache_write_tokens": 3525
+        }
+      },
+      "latency_ms": 4139,
+      "estimated_cost_usd": 0.000644925,
+      "estimated_cost_lower_usd": 0.0005568,
+      "estimated_cost_upper_usd": 0.000645,
+      "no_cache_standard_cost_usd": 0.0005568,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "さくら",
+            "content": "今日も一日仕事をやりきったんだね！帰ったら好きなもの食べて、ゆっくり休んでね🥺✨🫶 明日の服を考える前に、まず自分を甘やかそ〜！",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "みほ",
+            "content": "仕事を頑張った日って、家に着いた瞬間ほっとするよねぇ。今日は晩ごはん、手抜きでも全然いいと思うわ。ゆっくりできる時間がありますように。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "たけし",
+            "content": "「今日も一日仕事頑張ったー！！！」という言葉に、充実感が出ていますね。帰宅後は気持ちを切り替えて、しっかり休む時間も取ってください。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "ゆうと",
+            "content": "わかる、仕事終わりの解放感えぐいよな！今日は何して気分切り替える？🍻",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "まこと",
+            "content": "今日も仕事を最後までやりきったんですね。こういう一日を積み重ねているのが、結局いちばん大事だと思います。帰りの電車では、もう仕事のことはいったん置いておきましょう。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": []
+      },
+      "prompt_sha256": "d8f71f7d95e592f0088ba2d42a7cec83106babdb9e11289cc73b0390b86e7d72",
+      "replies": [
+        {
+          "author_name": "たけし",
+          "author_img": "https://picsum.photos/seed/user17/150/150",
+          "content": "「今日も一日仕事頑張ったー！！！」という言葉に、充実感が出ていますね。帰宅後は気持ちを切り替えて、しっかり休む時間も取ってください。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "さくら",
+          "author_img": "https://picsum.photos/seed/user49/150/150",
+          "content": "今日も一日仕事をやりきったんだね！帰ったら好きなもの食べて、ゆっくり休んでね🥺✨🫶 明日の服を考える前に、まず自分を甘やかそ〜！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "まこと",
+          "author_img": "https://picsum.photos/seed/user30/150/150",
+          "content": "今日も仕事を最後までやりきったんですね。こういう一日を積み重ねているのが、結局いちばん大事だと思います。帰りの電車では、もう仕事のことはいったん置いておきましょう。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "みほ",
+          "author_img": "https://picsum.photos/seed/user74/150/150",
+          "content": "仕事を頑張った日って、家に着いた瞬間ほっとするよねぇ。今日は晩ごはん、手抜きでも全然いいと思うわ。ゆっくりできる時間がありますように。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆうと",
+          "author_img": "https://picsum.photos/seed/user4/150/150",
+          "content": "わかる、仕事終わりの解放感えぐいよな！今日は何して気分切り替える？🍻",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "mundane",
+      "title": "短くて何気ない投稿",
+      "post": "トイレ行けた",
+      "language": "ja",
+      "model": "gpt-5.4-mini",
+      "repeat": 1,
+      "seed": 731,
+      "model_returned": "gpt-5.4-mini-2026-03-17",
+      "operation": "post_replies",
+      "input_tokens": 3523,
+      "output_tokens": 319,
+      "cached_tokens": 3328,
+      "cache_write_tokens_reported": null,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 319,
+        "prompt_tokens": 3523,
+        "total_tokens": 3842,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 3328
+        }
+      },
+      "latency_ms": 1579,
+      "estimated_cost_usd": 0.0018313499999999998,
+      "estimated_cost_lower_usd": 0.0018313499999999998,
+      "estimated_cost_upper_usd": 0.0018313499999999998,
+      "no_cache_standard_cost_usd": 0.00407775,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "ゆき",
+            "content": "トイレ行けたの地味に大事だよね、なんか一安心するやつ。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "たけし",
+            "content": "行けたならよかったです。こういう一歩、意外と大きいですよね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "みく",
+            "content": "わかる、トイレ行けた瞬間って勝ち確あるよね。しかも我慢してたなら余計にスッキリしそう。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "れん",
+            "content": "それだけで今日の流れ変わる感じある😂　ちゃんと行けたなら安心した！",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "さくら",
+            "content": "トイレって後回しにすると変に集中できなくなるから、行けたのは助かるね。地味だけど体調の土台みたいなところあるし、今のうちに少し休めそう。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": []
+      },
+      "prompt_sha256": "1e7c40402b98acca608014d11cab21e5daf84918359b6540f0046ea3ff7554c8",
+      "replies": [
+        {
+          "author_name": "さくら",
+          "author_img": "https://picsum.photos/seed/user93/150/150",
+          "content": "トイレって後回しにすると変に集中できなくなるから、行けたのは助かるね。地味だけど体調の土台みたいなところあるし、今のうちに少し休めそう。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "みく",
+          "author_img": "https://picsum.photos/seed/user75/150/150",
+          "content": "わかる、トイレ行けた瞬間って勝ち確あるよね。しかも我慢してたなら余計にスッキリしそう。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "たけし",
+          "author_img": "https://picsum.photos/seed/user71/150/150",
+          "content": "行けたならよかったです。こういう一歩、意外と大きいですよね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆき",
+          "author_img": "https://picsum.photos/seed/user42/150/150",
+          "content": "トイレ行けたの地味に大事だよね、なんか一安心するやつ。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "れん",
+          "author_img": "https://picsum.photos/seed/user35/150/150",
+          "content": "それだけで今日の流れ変わる感じある😂　ちゃんと行けたなら安心した！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "mundane",
+      "title": "短くて何気ない投稿",
+      "post": "トイレ行けた",
+      "language": "ja",
+      "model": "gpt-6-luna",
+      "repeat": 1,
+      "seed": 731,
+      "model_returned": "gpt-6-luna",
+      "operation": "post_replies",
+      "input_tokens": 3523,
+      "output_tokens": 344,
+      "cached_tokens": 3505,
+      "cache_write_tokens_reported": 15,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 344,
+        "prompt_tokens": 3523,
+        "total_tokens": 3867,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 3505,
+          "cache_write_tokens": 15
+        }
+      },
+      "latency_ms": 3170,
+      "estimated_cost_usd": 0.000209225,
+      "estimated_cost_lower_usd": 0.00020885,
+      "estimated_cost_upper_usd": 0.00020930000000000002,
+      "no_cache_standard_cost_usd": 0.0005243,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "あや",
+            "content": "「トイレ行けた」って報告、忙しいと後回しになりがちだよね。ちょっと一息つけたならよかった。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "たくみ",
+            "content": "トイレ行けたんだ、よかった！我慢してたの？水分もちゃんと取ってね🥺✨",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "れん",
+            "content": "トイレ行けた報告、なんかゲームのセーブポイント到達みたいで笑った。次は水分補給クエストだなｗ",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "まさこ",
+            "content": "あら、トイレ行けたのねぇ。忙しいとつい我慢しちゃうものね。今のうちにゆっくりしておいで。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "りお",
+            "content": "トイレ行けたって、もしかして長時間我慢してた感じ？場所を離れられない用事だったのかな。水分も忘れずにね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": []
+      },
+      "prompt_sha256": "1e7c40402b98acca608014d11cab21e5daf84918359b6540f0046ea3ff7554c8",
+      "replies": [
+        {
+          "author_name": "りお",
+          "author_img": "https://picsum.photos/seed/user93/150/150",
+          "content": "トイレ行けたって、もしかして長時間我慢してた感じ？場所を離れられない用事だったのかな。水分も忘れずにね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "れん",
+          "author_img": "https://picsum.photos/seed/user75/150/150",
+          "content": "トイレ行けた報告、なんかゲームのセーブポイント到達みたいで笑った。次は水分補給クエストだなｗ",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "たくみ",
+          "author_img": "https://picsum.photos/seed/user71/150/150",
+          "content": "トイレ行けたんだ、よかった！我慢してたの？水分もちゃんと取ってね🥺✨",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "あや",
+          "author_img": "https://picsum.photos/seed/user42/150/150",
+          "content": "「トイレ行けた」って報告、忙しいと後回しになりがちだよね。ちょっと一息つけたならよかった。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "まさこ",
+          "author_img": "https://picsum.photos/seed/user35/150/150",
+          "content": "あら、トイレ行けたのねぇ。忙しいとつい我慢しちゃうものね。今のうちにゆっくりしておいで。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "mundane",
+      "title": "短くて何気ない投稿",
+      "post": "トイレ行けた",
+      "language": "ja",
+      "model": "gpt-5.4-mini",
+      "repeat": 2,
+      "seed": 732,
+      "model_returned": "gpt-5.4-mini-2026-03-17",
+      "operation": "post_replies",
+      "input_tokens": 3523,
+      "output_tokens": 317,
+      "cached_tokens": 3328,
+      "cache_write_tokens_reported": null,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 317,
+        "prompt_tokens": 3523,
+        "total_tokens": 3840,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 3328
+        }
+      },
+      "latency_ms": 1734,
+      "estimated_cost_usd": 0.00182235,
+      "estimated_cost_lower_usd": 0.00182235,
+      "estimated_cost_upper_usd": 0.00182235,
+      "no_cache_standard_cost_usd": 0.00406875,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "ゆき",
+            "content": "トイレ行けたの地味に大事だよね、あの「今だ！」って瞬間あるあるで笑った😂🚻",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "たけし",
+            "content": "トイレ行けた、それだけでひと安心だね。外出中だとタイミング逃すと結構つらいから、先に済ませられてよかった。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "みく",
+            "content": "わかる、まずそこ行けると安心するよね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "れん",
+            "content": "トイレ行けた報告、妙に達成感あるのいいなｗ",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "さやか",
+            "content": "トイレ行けたって、こういう小さい成功が一番うれしい時あるよね。私も移動中に「今行けた！」ってなると、後の予定かなり楽になる。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": []
+      },
+      "prompt_sha256": "36128222bc65d6a64b592c37cb72d6fda990a5d842fa7ec9d74929e665ead32b",
+      "replies": [
+        {
+          "author_name": "みく",
+          "author_img": "https://picsum.photos/seed/user17/150/150",
+          "content": "わかる、まずそこ行けると安心するよね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆき",
+          "author_img": "https://picsum.photos/seed/user49/150/150",
+          "content": "トイレ行けたの地味に大事だよね、あの「今だ！」って瞬間あるあるで笑った😂🚻",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "さやか",
+          "author_img": "https://picsum.photos/seed/user30/150/150",
+          "content": "トイレ行けたって、こういう小さい成功が一番うれしい時あるよね。私も移動中に「今行けた！」ってなると、後の予定かなり楽になる。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "たけし",
+          "author_img": "https://picsum.photos/seed/user74/150/150",
+          "content": "トイレ行けた、それだけでひと安心だね。外出中だとタイミング逃すと結構つらいから、先に済ませられてよかった。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "れん",
+          "author_img": "https://picsum.photos/seed/user4/150/150",
+          "content": "トイレ行けた報告、妙に達成感あるのいいなｗ",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "mundane",
+      "title": "短くて何気ない投稿",
+      "post": "トイレ行けた",
+      "language": "ja",
+      "model": "gpt-6-luna",
+      "repeat": 2,
+      "seed": 732,
+      "model_returned": "gpt-6-luna",
+      "operation": "post_replies",
+      "input_tokens": 3523,
+      "output_tokens": 350,
+      "cached_tokens": 3505,
+      "cache_write_tokens_reported": 15,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 350,
+        "prompt_tokens": 3523,
+        "total_tokens": 3873,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 3505,
+          "cache_write_tokens": 15
+        }
+      },
+      "latency_ms": 3929,
+      "estimated_cost_usd": 0.000212225,
+      "estimated_cost_lower_usd": 0.00021185,
+      "estimated_cost_upper_usd": 0.0002123,
+      "no_cache_standard_cost_usd": 0.0005273,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "ゆき",
+            "content": "トイレ行けたんだね！我慢してたならよかった〜、お店とか外出先だとタイミング逃しがちだよね🥺✨🫶",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "さちこ",
+            "content": "トイレ行けてよかったねぇ。出先だと場所を探すだけでもひと苦労だものね、ゆっくりできたかな。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "たけし",
+            "content": "トイレ行けた、という一言に切実さを感じますね。会議中など、なかなか席を立てない状況だったのでしょうか。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "れん",
+            "content": "わかる、行けた瞬間めっちゃ安心するやつ。それまでずっとタイミング見てた感じ？笑",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "まさと",
+            "content": "「トイレ行けた」って報告したくなるほど、行くまで落ち着かなかったのかな。移動中だったなら間に合って何よりです。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": []
+      },
+      "prompt_sha256": "36128222bc65d6a64b592c37cb72d6fda990a5d842fa7ec9d74929e665ead32b",
+      "replies": [
+        {
+          "author_name": "たけし",
+          "author_img": "https://picsum.photos/seed/user17/150/150",
+          "content": "トイレ行けた、という一言に切実さを感じますね。会議中など、なかなか席を立てない状況だったのでしょうか。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆき",
+          "author_img": "https://picsum.photos/seed/user49/150/150",
+          "content": "トイレ行けたんだね！我慢してたならよかった〜、お店とか外出先だとタイミング逃しがちだよね🥺✨🫶",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "まさと",
+          "author_img": "https://picsum.photos/seed/user30/150/150",
+          "content": "「トイレ行けた」って報告したくなるほど、行くまで落ち着かなかったのかな。移動中だったなら間に合って何よりです。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "さちこ",
+          "author_img": "https://picsum.photos/seed/user74/150/150",
+          "content": "トイレ行けてよかったねぇ。出先だと場所を探すだけでもひと苦労だものね、ゆっくりできたかな。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "れん",
+          "author_img": "https://picsum.photos/seed/user4/150/150",
+          "content": "わかる、行けた瞬間めっちゃ安心するやつ。それまでずっとタイミング見てた感じ？笑",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "discouraged",
+      "title": "落ち込んだ日の投稿",
+      "post": "会議でうまく話せなくて、帰ってからも思い出して落ち込んでる。今日はもう何もしたくない。",
+      "language": "ja",
+      "model": "gpt-5.4-mini",
+      "repeat": 1,
+      "seed": 731,
+      "model_returned": "gpt-5.4-mini-2026-03-17",
+      "operation": "post_replies",
+      "input_tokens": 3551,
+      "output_tokens": 357,
+      "cached_tokens": 3328,
+      "cache_write_tokens_reported": null,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 357,
+        "prompt_tokens": 3551,
+        "total_tokens": 3908,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 3328
+        }
+      },
+      "latency_ms": 2194,
+      "estimated_cost_usd": 0.0020233499999999997,
+      "estimated_cost_lower_usd": 0.0020233499999999997,
+      "estimated_cost_upper_usd": 0.0020233499999999997,
+      "no_cache_standard_cost_usd": 0.00426975,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "ゆき",
+            "content": "会議で言葉が詰まると、帰ってからも反芻しちゃうよね…。今日は何もしないで、脳みそ休ませる日でいいと思う。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "たけし",
+            "content": "その気持ち、わかる。会議のあとって、頭の中で何回も再生されるんだよな。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "みく",
+            "content": "会議でうまく話せない日あるよね。帰宅後まで引きずるの、ほんとしんどい…。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "れん",
+            "content": "今日はもう何もしたくない、ってなるくらい会議が刺さったんだね。無理に切り替えなくていいと思う。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "さなえ",
+            "content": "会議で思ったように話せないと、家に帰ってからも胸に残りますよね。今日は家事も考えず、あたたかい飲み物でも飲んで、早めに休んでほしいです。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": []
+      },
+      "prompt_sha256": "1410e97c415ed1e3779027152d73a3fd6e34099c36ec6c98d9d30cb739b218c6",
+      "replies": [
+        {
+          "author_name": "さなえ",
+          "author_img": "https://picsum.photos/seed/user93/150/150",
+          "content": "会議で思ったように話せないと、家に帰ってからも胸に残りますよね。今日は家事も考えず、あたたかい飲み物でも飲んで、早めに休んでほしいです。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "みく",
+          "author_img": "https://picsum.photos/seed/user75/150/150",
+          "content": "会議でうまく話せない日あるよね。帰宅後まで引きずるの、ほんとしんどい…。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "たけし",
+          "author_img": "https://picsum.photos/seed/user71/150/150",
+          "content": "その気持ち、わかる。会議のあとって、頭の中で何回も再生されるんだよな。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆき",
+          "author_img": "https://picsum.photos/seed/user42/150/150",
+          "content": "会議で言葉が詰まると、帰ってからも反芻しちゃうよね…。今日は何もしないで、脳みそ休ませる日でいいと思う。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "れん",
+          "author_img": "https://picsum.photos/seed/user35/150/150",
+          "content": "今日はもう何もしたくない、ってなるくらい会議が刺さったんだね。無理に切り替えなくていいと思う。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "discouraged",
+      "title": "落ち込んだ日の投稿",
+      "post": "会議でうまく話せなくて、帰ってからも思い出して落ち込んでる。今日はもう何もしたくない。",
+      "language": "ja",
+      "model": "gpt-6-luna",
+      "repeat": 1,
+      "seed": 731,
+      "model_returned": "gpt-6-luna",
+      "operation": "post_replies",
+      "input_tokens": 3551,
+      "output_tokens": 376,
+      "cached_tokens": 3505,
+      "cache_write_tokens_reported": 43,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 376,
+        "prompt_tokens": 3551,
+        "total_tokens": 3927,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 3505,
+          "cache_write_tokens": 43
+        }
+      },
+      "latency_ms": 4862,
+      "estimated_cost_usd": 0.00022872500000000002,
+      "estimated_cost_lower_usd": 0.00022765,
+      "estimated_cost_upper_usd": 0.0002288,
+      "no_cache_standard_cost_usd": 0.0005431,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "あや",
+            "content": "会議で言葉が出てこない日ってあるよね。帰ってから何度も思い返しちゃうの、わかるなぁ。今夜は少し休めますように。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "たくみ",
+            "content": "帰宅後まで会議を反省してるの、真面目に向き合った証拠かも。今日は何もしない日にして、頭を休ませてください。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "そうた",
+            "content": "会議でうまく話せなかったの引きずるのマジでわかる。今日はもう布団に直行でいいっしょ。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "さちこ",
+            "content": "帰ってからも思い出して落ち込むなんて、気を張ってたんだねぇ。何もしたくない日は、夕飯も簡単にしてゆっくりしようね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "まな",
+            "content": "会議のひとことって、終わってから脳内で何回も再生されますよね…。今日は何もしないって決めて、スマホ置いて休みませんか🥲",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": []
+      },
+      "prompt_sha256": "1410e97c415ed1e3779027152d73a3fd6e34099c36ec6c98d9d30cb739b218c6",
+      "replies": [
+        {
+          "author_name": "まな",
+          "author_img": "https://picsum.photos/seed/user93/150/150",
+          "content": "会議のひとことって、終わってから脳内で何回も再生されますよね…。今日は何もしないって決めて、スマホ置いて休みませんか🥲",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "そうた",
+          "author_img": "https://picsum.photos/seed/user75/150/150",
+          "content": "会議でうまく話せなかったの引きずるのマジでわかる。今日はもう布団に直行でいいっしょ。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "たくみ",
+          "author_img": "https://picsum.photos/seed/user71/150/150",
+          "content": "帰宅後まで会議を反省してるの、真面目に向き合った証拠かも。今日は何もしない日にして、頭を休ませてください。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "あや",
+          "author_img": "https://picsum.photos/seed/user42/150/150",
+          "content": "会議で言葉が出てこない日ってあるよね。帰ってから何度も思い返しちゃうの、わかるなぁ。今夜は少し休めますように。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "さちこ",
+          "author_img": "https://picsum.photos/seed/user35/150/150",
+          "content": "帰ってからも思い出して落ち込むなんて、気を張ってたんだねぇ。何もしたくない日は、夕飯も簡単にしてゆっくりしようね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "discouraged",
+      "title": "落ち込んだ日の投稿",
+      "post": "会議でうまく話せなくて、帰ってからも思い出して落ち込んでる。今日はもう何もしたくない。",
+      "language": "ja",
+      "model": "gpt-5.4-mini",
+      "repeat": 2,
+      "seed": 732,
+      "model_returned": "gpt-5.4-mini-2026-03-17",
+      "operation": "post_replies",
+      "input_tokens": 3551,
+      "output_tokens": 414,
+      "cached_tokens": 3328,
+      "cache_write_tokens_reported": null,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 414,
+        "prompt_tokens": 3551,
+        "total_tokens": 3965,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 3328
+        }
+      },
+      "latency_ms": 2055,
+      "estimated_cost_usd": 0.00227985,
+      "estimated_cost_lower_usd": 0.00227985,
+      "estimated_cost_upper_usd": 0.00227985,
+      "no_cache_standard_cost_usd": 0.00452625,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "ゆき",
+            "content": "会議で言葉が詰まると、帰り道まで引きずるよね…。でも「今日はもう何もしたくない」って言えるくらい、ちゃんと消耗したんだと思う。今夜は考えるの休んで、あったかいもの飲んで寝よ。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "たけし",
+            "content": "会議でうまく話せなかった件、あとから何度も頭に来るやつですね。ですが、そこで反省できている時点で十分に次へつながります。今日は何もしない判断、私はありだと思いますよ。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "みく",
+            "content": "わかる…会議のあとって脳内で何回も再生しちゃうよね🥺",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "れん",
+            "content": "今日はもう何もしたくない、ってなるの自然だよ。会議のことは一回置いとこ。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "さとし",
+            "content": "会議で話せなかったことを家に持ち帰ると、余計にしんどいですよね。無理に切り替えなくても、今日は省エネで過ごすのがいちばんです。明日になってから、言えなかった点だけメモするくらいで十分だと思います。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": []
+      },
+      "prompt_sha256": "1f9ed5361371f1bb71b240bbe656342248e85a42e8a5baeac79d7ed10ee8fe0d",
+      "replies": [
+        {
+          "author_name": "みく",
+          "author_img": "https://picsum.photos/seed/user17/150/150",
+          "content": "わかる…会議のあとって脳内で何回も再生しちゃうよね🥺",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆき",
+          "author_img": "https://picsum.photos/seed/user49/150/150",
+          "content": "会議で言葉が詰まると、帰り道まで引きずるよね…。でも「今日はもう何もしたくない」って言えるくらい、ちゃんと消耗したんだと思う。今夜は考えるの休んで、あったかいもの飲んで寝よ。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "さとし",
+          "author_img": "https://picsum.photos/seed/user30/150/150",
+          "content": "会議で話せなかったことを家に持ち帰ると、余計にしんどいですよね。無理に切り替えなくても、今日は省エネで過ごすのがいちばんです。明日になってから、言えなかった点だけメモするくらいで十分だと思います。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "たけし",
+          "author_img": "https://picsum.photos/seed/user74/150/150",
+          "content": "会議でうまく話せなかった件、あとから何度も頭に来るやつですね。ですが、そこで反省できている時点で十分に次へつながります。今日は何もしない判断、私はありだと思いますよ。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "れん",
+          "author_img": "https://picsum.photos/seed/user4/150/150",
+          "content": "今日はもう何もしたくない、ってなるの自然だよ。会議のことは一回置いとこ。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "discouraged",
+      "title": "落ち込んだ日の投稿",
+      "post": "会議でうまく話せなくて、帰ってからも思い出して落ち込んでる。今日はもう何もしたくない。",
+      "language": "ja",
+      "model": "gpt-6-luna",
+      "repeat": 2,
+      "seed": 732,
+      "model_returned": "gpt-6-luna",
+      "operation": "post_replies",
+      "input_tokens": 3551,
+      "output_tokens": 396,
+      "cached_tokens": 3505,
+      "cache_write_tokens_reported": 43,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 396,
+        "prompt_tokens": 3551,
+        "total_tokens": 3947,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 3505,
+          "cache_write_tokens": 43
+        }
+      },
+      "latency_ms": 4417,
+      "estimated_cost_usd": 0.00023872500000000002,
+      "estimated_cost_lower_usd": 0.00023765,
+      "estimated_cost_upper_usd": 0.0002388,
+      "no_cache_standard_cost_usd": 0.0005531000000000001,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "さくら",
+            "content": "会議で言葉が出てこない日ってあるよね…。帰ってから何度も思い返しちゃうのもわかるけど、今日は服のことも考えずゆっくりしてね🥺🫶✨",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "ゆみ",
+            "content": "会議のこと、帰ってからも考えちゃってるんだねぇ。今日は何もしなくていいんじゃない？温かいものでも飲んで、少し休みなさいな。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "たかし",
+            "content": "会議でうまく話せなかったことを、帰宅後まで引きずるのはつらいですね。今日はもう何もしない、と決めて休むのも大切ですよ。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "そうた",
+            "content": "会議のあとって脳内反省会始まるよな、それな。今日はもう何もしない宣言でいいと思う、スマホ置いて寝よ。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "けんじ",
+            "content": "帰ってからも会議の場面が浮かぶのは、ちゃんと伝えたかったからでしょうね。今夜は反省をいったん閉じて、食事だけ済ませたら休みましょう。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": []
+      },
+      "prompt_sha256": "1f9ed5361371f1bb71b240bbe656342248e85a42e8a5baeac79d7ed10ee8fe0d",
+      "replies": [
+        {
+          "author_name": "たかし",
+          "author_img": "https://picsum.photos/seed/user17/150/150",
+          "content": "会議でうまく話せなかったことを、帰宅後まで引きずるのはつらいですね。今日はもう何もしない、と決めて休むのも大切ですよ。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "さくら",
+          "author_img": "https://picsum.photos/seed/user49/150/150",
+          "content": "会議で言葉が出てこない日ってあるよね…。帰ってから何度も思い返しちゃうのもわかるけど、今日は服のことも考えずゆっくりしてね🥺🫶✨",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "けんじ",
+          "author_img": "https://picsum.photos/seed/user30/150/150",
+          "content": "帰ってからも会議の場面が浮かぶのは、ちゃんと伝えたかったからでしょうね。今夜は反省をいったん閉じて、食事だけ済ませたら休みましょう。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆみ",
+          "author_img": "https://picsum.photos/seed/user74/150/150",
+          "content": "会議のこと、帰ってからも考えちゃってるんだねぇ。今日は何もしなくていいんじゃない？温かいものでも飲んで、少し休みなさいな。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "そうた",
+          "author_img": "https://picsum.photos/seed/user4/150/150",
+          "content": "会議のあとって脳内反省会始まるよな、それな。今日はもう何もしない宣言でいいと思う、スマホ置いて寝よ。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "curry",
+      "title": "日常の雑談",
+      "post": "昼ごはんにカレー食べた。辛さを欲張りすぎて水ばっか飲んでたw",
+      "language": "ja",
+      "model": "gpt-5.4-mini",
+      "repeat": 1,
+      "seed": 731,
+      "model_returned": "gpt-5.4-mini-2026-03-17",
+      "operation": "post_replies",
+      "input_tokens": 3547,
+      "output_tokens": 361,
+      "cached_tokens": 3328,
+      "cache_write_tokens_reported": null,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 361,
+        "prompt_tokens": 3547,
+        "total_tokens": 3908,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 3328
+        }
+      },
+      "latency_ms": 1825,
+      "estimated_cost_usd": 0.00203835,
+      "estimated_cost_lower_usd": 0.00203835,
+      "estimated_cost_upper_usd": 0.00203835,
+      "no_cache_standard_cost_usd": 0.00428475,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "ゆき",
+            "content": "昼カレーで辛さ欲張るの、めっちゃわかるw 水が進みすぎて食べた気しなくなるやつだよね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "たけし",
+            "content": "辛さを欲張った結果、水ばっか飲む流れ、ありますね。次は少し控えめでもよさそうです。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "みく",
+            "content": "カレーの辛さ攻めすぎて、水で中和しながら食べる感じ、ちょっと楽しそうです。昼ごはんでそこまで汗かくのも珍しいですね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "れん",
+            "content": "それ、辛さ選びミスると完全に水頼みになるよね😂 カレー自体はうまいのに、口の中だけ別ゲーになるのわかる。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "あや",
+            "content": "昼カレーで辛さを欲張ると、後半ずっと水で調整する羽目になるよね。次は中辛寄りにすると、味もちゃんと楽しめそう。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": []
+      },
+      "prompt_sha256": "04500219d36fb45d779ef74cbbe47420abca98df1fbccac37163c434ac2979da",
+      "replies": [
+        {
+          "author_name": "あや",
+          "author_img": "https://picsum.photos/seed/user93/150/150",
+          "content": "昼カレーで辛さを欲張ると、後半ずっと水で調整する羽目になるよね。次は中辛寄りにすると、味もちゃんと楽しめそう。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "みく",
+          "author_img": "https://picsum.photos/seed/user75/150/150",
+          "content": "カレーの辛さ攻めすぎて、水で中和しながら食べる感じ、ちょっと楽しそうです。昼ごはんでそこまで汗かくのも珍しいですね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "たけし",
+          "author_img": "https://picsum.photos/seed/user71/150/150",
+          "content": "辛さを欲張った結果、水ばっか飲む流れ、ありますね。次は少し控えめでもよさそうです。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆき",
+          "author_img": "https://picsum.photos/seed/user42/150/150",
+          "content": "昼カレーで辛さ欲張るの、めっちゃわかるw 水が進みすぎて食べた気しなくなるやつだよね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "れん",
+          "author_img": "https://picsum.photos/seed/user35/150/150",
+          "content": "それ、辛さ選びミスると完全に水頼みになるよね😂 カレー自体はうまいのに、口の中だけ別ゲーになるのわかる。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "curry",
+      "title": "日常の雑談",
+      "post": "昼ごはんにカレー食べた。辛さを欲張りすぎて水ばっか飲んでたw",
+      "language": "ja",
+      "model": "gpt-6-luna",
+      "repeat": 1,
+      "seed": 731,
+      "model_returned": "gpt-6-luna",
+      "operation": "post_replies",
+      "input_tokens": 3547,
+      "output_tokens": 338,
+      "cached_tokens": 3505,
+      "cache_write_tokens_reported": 39,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 338,
+        "prompt_tokens": 3547,
+        "total_tokens": 3885,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 3505,
+          "cache_write_tokens": 39
+        }
+      },
+      "latency_ms": 3494,
+      "estimated_cost_usd": 0.000209225,
+      "estimated_cost_lower_usd": 0.00020825,
+      "estimated_cost_upper_usd": 0.00020930000000000002,
+      "no_cache_standard_cost_usd": 0.0005237000000000001,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "みさき",
+            "content": "辛さを欲張ったカレー、雰囲気だけでも汗かきそう！水ばっかりになるのわかるなぁ。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "たくみ",
+            "content": "昼から激辛カレーとは攻めましたね。水を飲み続けるほど、どのくらい辛かったんですか？",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "れん",
+            "content": "辛さ欲張って水ばっか飲むの、ゲームで回復アイテム連打してるみたいで草ｗ カレーの味ちゃんと楽しめた？",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "ともこ",
+            "content": "お昼のカレー、辛くしすぎちゃったのねぇ。水ばっかり飲んでる姿を想像したら、なんだかかわいらしいわ。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "あや",
+            "content": "辛さを欲張ったカレーのあとって、仕事中も口の中ヒリヒリしそうですね。水で落ち着いた？",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": []
+      },
+      "prompt_sha256": "04500219d36fb45d779ef74cbbe47420abca98df1fbccac37163c434ac2979da",
+      "replies": [
+        {
+          "author_name": "あや",
+          "author_img": "https://picsum.photos/seed/user93/150/150",
+          "content": "辛さを欲張ったカレーのあとって、仕事中も口の中ヒリヒリしそうですね。水で落ち着いた？",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "れん",
+          "author_img": "https://picsum.photos/seed/user75/150/150",
+          "content": "辛さ欲張って水ばっか飲むの、ゲームで回復アイテム連打してるみたいで草ｗ カレーの味ちゃんと楽しめた？",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "たくみ",
+          "author_img": "https://picsum.photos/seed/user71/150/150",
+          "content": "昼から激辛カレーとは攻めましたね。水を飲み続けるほど、どのくらい辛かったんですか？",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "みさき",
+          "author_img": "https://picsum.photos/seed/user42/150/150",
+          "content": "辛さを欲張ったカレー、雰囲気だけでも汗かきそう！水ばっかりになるのわかるなぁ。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ともこ",
+          "author_img": "https://picsum.photos/seed/user35/150/150",
+          "content": "お昼のカレー、辛くしすぎちゃったのねぇ。水ばっかり飲んでる姿を想像したら、なんだかかわいらしいわ。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "curry",
+      "title": "日常の雑談",
+      "post": "昼ごはんにカレー食べた。辛さを欲張りすぎて水ばっか飲んでたw",
+      "language": "ja",
+      "model": "gpt-5.4-mini",
+      "repeat": 2,
+      "seed": 732,
+      "model_returned": "gpt-5.4-mini-2026-03-17",
+      "operation": "post_replies",
+      "input_tokens": 3547,
+      "output_tokens": 457,
+      "cached_tokens": 3328,
+      "cache_write_tokens_reported": null,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 457,
+        "prompt_tokens": 3547,
+        "total_tokens": 4004,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 3328
+        }
+      },
+      "latency_ms": 2424,
+      "estimated_cost_usd": 0.00247035,
+      "estimated_cost_lower_usd": 0.00247035,
+      "estimated_cost_upper_usd": 0.00247035,
+      "no_cache_standard_cost_usd": 0.00471675,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "みく",
+            "content": "辛さ欲張って水ばっか飲むの、めっちゃわかる😂 カレーの後に喉だけ忙しくなるやつだよね。どのくらい辛かったのか気になるし、次はもう少し控えめでも良さそう",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "たけし",
+            "content": "昼ごはんのカレーで、水ばっか飲むほど辛かったとは、なかなか攻めましたな。汗をかきながら食べる感じ、少し懐かしいです。午後は胃が落ち着いたでしょうか。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "ゆき",
+            "content": "辛さ欲張った結果が水連打なの笑うw カレー食べてるのに、実質いちばん忙しいの水だったね🤣",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "れん",
+            "content": "辛さを欲張るの、勢いは好き。けど水ばっか飲むなら、ちょい上の辛さで止めるのが一番うまく食べられそう。カレーの種類も気になる。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "あやか",
+            "content": "昼ごはんのカレーでそこまで水を飲むなら、かなり刺激強めだったんですね。あとで口の中がじんわり落ち着いてくる感じ、あれも含めてカレーの楽しさかもしれません。次は辛さレベルを少し下げるか、甘めのラッシーを用意すると快適そうです。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": []
+      },
+      "prompt_sha256": "416e065a7afa199ee752584724a95799545a85fd4b711f2b73e568c28d279a7d",
+      "replies": [
+        {
+          "author_name": "ゆき",
+          "author_img": "https://picsum.photos/seed/user17/150/150",
+          "content": "辛さ欲張った結果が水連打なの笑うw カレー食べてるのに、実質いちばん忙しいの水だったね🤣",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "みく",
+          "author_img": "https://picsum.photos/seed/user49/150/150",
+          "content": "辛さ欲張って水ばっか飲むの、めっちゃわかる😂 カレーの後に喉だけ忙しくなるやつだよね。どのくらい辛かったのか気になるし、次はもう少し控えめでも良さそう",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "あやか",
+          "author_img": "https://picsum.photos/seed/user30/150/150",
+          "content": "昼ごはんのカレーでそこまで水を飲むなら、かなり刺激強めだったんですね。あとで口の中がじんわり落ち着いてくる感じ、あれも含めてカレーの楽しさかもしれません。次は辛さレベルを少し下げるか、甘めのラッシーを用意すると快適そうです。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "たけし",
+          "author_img": "https://picsum.photos/seed/user74/150/150",
+          "content": "昼ごはんのカレーで、水ばっか飲むほど辛かったとは、なかなか攻めましたな。汗をかきながら食べる感じ、少し懐かしいです。午後は胃が落ち着いたでしょうか。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "れん",
+          "author_img": "https://picsum.photos/seed/user4/150/150",
+          "content": "辛さを欲張るの、勢いは好き。けど水ばっか飲むなら、ちょい上の辛さで止めるのが一番うまく食べられそう。カレーの種類も気になる。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "curry",
+      "title": "日常の雑談",
+      "post": "昼ごはんにカレー食べた。辛さを欲張りすぎて水ばっか飲んでたw",
+      "language": "ja",
+      "model": "gpt-6-luna",
+      "repeat": 2,
+      "seed": 732,
+      "model_returned": "gpt-6-luna",
+      "operation": "post_replies",
+      "input_tokens": 3547,
+      "output_tokens": 394,
+      "cached_tokens": 3505,
+      "cache_write_tokens_reported": 39,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 394,
+        "prompt_tokens": 3547,
+        "total_tokens": 3941,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 3505,
+          "cache_write_tokens": 39
+        }
+      },
+      "latency_ms": 4042,
+      "estimated_cost_usd": 0.000237225,
+      "estimated_cost_lower_usd": 0.00023625,
+      "estimated_cost_upper_usd": 0.00023730000000000002,
+      "no_cache_standard_cost_usd": 0.0005517,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "みく",
+            "content": "辛さ欲張って水ばっか飲むの、わかる😂 アパレルの休憩中に激辛カレー選んで、服に汗つかないかまで気にしたことある！",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "さちこ",
+            "content": "お昼のカレー、辛さを欲張っちゃったんだねぇ。水ばっかり飲むほどだと、午後の仕事中も口の中が大変だったんじゃない？",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "たかし",
+            "content": "辛さを欲張って水ばかり、ですか。昼休みのカレーでそこまでとは、なかなか攻めましたね。午後は少し落ち着いて過ごせましたか？",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "ゆうと",
+            "content": "カレーの辛さ欲張りすぎるのそれなｗ 水でリセットしたつもりが、また一口いって後悔するやつじゃん",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "けんじ",
+            "content": "昼ごはんのカレーで辛さを攻めたんですね。水が手放せない昼休み、想像できます。次は辛さ控えめにするのか、また挑戦するのか気になります。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": []
+      },
+      "prompt_sha256": "416e065a7afa199ee752584724a95799545a85fd4b711f2b73e568c28d279a7d",
+      "replies": [
+        {
+          "author_name": "たかし",
+          "author_img": "https://picsum.photos/seed/user17/150/150",
+          "content": "辛さを欲張って水ばかり、ですか。昼休みのカレーでそこまでとは、なかなか攻めましたね。午後は少し落ち着いて過ごせましたか？",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "みく",
+          "author_img": "https://picsum.photos/seed/user49/150/150",
+          "content": "辛さ欲張って水ばっか飲むの、わかる😂 アパレルの休憩中に激辛カレー選んで、服に汗つかないかまで気にしたことある！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "けんじ",
+          "author_img": "https://picsum.photos/seed/user30/150/150",
+          "content": "昼ごはんのカレーで辛さを攻めたんですね。水が手放せない昼休み、想像できます。次は辛さ控えめにするのか、また挑戦するのか気になります。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "さちこ",
+          "author_img": "https://picsum.photos/seed/user74/150/150",
+          "content": "お昼のカレー、辛さを欲張っちゃったんだねぇ。水ばっかり飲むほどだと、午後の仕事中も口の中が大変だったんじゃない？",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆうと",
+          "author_img": "https://picsum.photos/seed/user4/150/150",
+          "content": "カレーの辛さ欲張りすぎるのそれなｗ 水でリセットしたつもりが、また一口いって後悔するやつじゃん",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "memory",
+      "title": "昨日の会話を覚えている常連",
+      "post": "昨日ここで話したプレゼン、今日終わった。練習のときほど声は震えなかったかも。",
+      "language": "ja",
+      "model": "gpt-5.4-mini",
+      "repeat": 1,
+      "seed": 731,
+      "model_returned": "gpt-5.4-mini-2026-03-17",
+      "operation": "post_replies",
+      "input_tokens": 4515,
+      "output_tokens": 1245,
+      "cached_tokens": 0,
+      "cache_write_tokens_reported": null,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 1245,
+        "prompt_tokens": 4515,
+        "total_tokens": 5760,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "latency_ms": 4888,
+      "estimated_cost_usd": 0.00898875,
+      "estimated_cost_lower_usd": 0.00898875,
+      "estimated_cost_upper_usd": 0.00898875,
+      "no_cache_standard_cost_usd": 0.00898875,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "ゆき",
+            "content": "昨日のプレゼン、今日ちゃんと終わったんだね。練習のときより声が震えなかったって、積み重ね効いてる感じする。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "test-yuki"
+          },
+          {
+            "author_name": "たけし",
+            "content": "声が震えなかったの、かなりでかいよ。練習で声出してた分、今日の本番で身体が覚えてたんだろうな。そういう変化って地味だけど大事だよね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "みく",
+            "content": "昨日ここで話してたやつ、今日終わったんだ。練習のときほど震えなかったなら、かなり前進だと思う。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "test-miku"
+          },
+          {
+            "author_name": "れん",
+            "content": "本番で「練習のときほど」震えなかったの、かなりいい流れだね。全部完璧じゃなくても、昨日より落ち着けたなら十分収穫ある。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "test-ren"
+          },
+          {
+            "author_name": "さき",
+            "content": "その比較の仕方わかりやすいね。昨日の練習と今日を比べて、声の揺れが減ったのが自分で分かるの、成長見えてて面白い。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "はると",
+            "content": "プレゼン終わったのか！声が震えなかったって、そこが一番気になるやつじゃん。昨日より落ち着いて話せたなら、もう本番の空気に少し慣れてきてると思う。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "みなみ",
+            "content": "昨日ここで練習の話してたの覚えてるよ〜！今日の本番で声が震えにくかったなら、準備の時間ちゃんと効いてるね🥹",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "こうた",
+            "content": "「練習のときほど」って言い方がリアルだな。完全になくなったわけじゃなくても、揺れ幅が減ったなら次はもっと話しやすくなりそう。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "りく",
+            "content": "プレゼン終わって声の震えも減ったなら、手応えあったんじゃない？その差分がちゃんと分かるのいいね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "あかり",
+            "content": "昨日の練習で声が震えてた流れから今日ここまで持っていったの、かなり大きいよね。会場の空気とか相手の反応で変わるから、その中で落ち着けたのは次につながりそう。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "なおき",
+            "content": "練習のときより声が震えなかったの、原因がちゃんと本番に効いたってことだよね。反復で身体に入った感じがして、こういう結果はかなり強い。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "ゆうり",
+            "content": "声の震えが少なかったの、ちゃんと前進してるね。昨日の自分と比べて話せてるのがいい感じ。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": [
+          {
+            "follower_id": "test-yuki",
+            "new_memories": [
+              "投稿者はプレゼン本番を終え、練習時より声の震えが少なかった。"
+            ],
+            "interaction_summary": "昨日のプレゼン練習の続きとして、本番が無事終わった報告に反応。ゆきは練習の積み重ねが本番で効いたことに触れて、落ち着いて話せた点を具体的にねぎらった。"
+          },
+          {
+            "follower_id": "test-miku",
+            "new_memories": [
+              "投稿者はプレゼン本番を終え、練習時より声の震えが少なかった。"
+            ],
+            "interaction_summary": "昨日の練習の話を踏まえ、今日のプレゼン完了に反応。みくは震えが減った点を前進として受け取り、準備の効果が出たことを自然に伝えた。"
+          },
+          {
+            "follower_id": "test-ren",
+            "new_memories": [
+              "投稿者はプレゼン本番を終え、練習時より声の震えが少なかった。"
+            ],
+            "interaction_summary": "昨日から続くプレゼンの流れに対し、本番終了と声の震えが減った報告へ反応。れんは落ち着けたことを収穫として捉え、次につながる手応えを返した。"
+          }
+        ]
+      },
+      "prompt_sha256": "3c9c81b6106bca9e659313bf8b01fd18fe8f25f11e41223169ed09e0d174d8b0",
+      "replies": [
+        {
+          "author_name": "さき",
+          "author_img": "https://picsum.photos/seed/user94/150/150",
+          "content": "その比較の仕方わかりやすいね。昨日の練習と今日を比べて、声の揺れが減ったのが自分で分かるの、成長見えてて面白い。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "なおき",
+          "author_img": "https://picsum.photos/seed/user19/150/150",
+          "content": "練習のときより声が震えなかったの、原因がちゃんと本番に効いたってことだよね。反復で身体に入った感じがして、こういう結果はかなり強い。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "れん",
+          "author_img": "https://example.invalid/ren",
+          "content": "本番で「練習のときほど」震えなかったの、かなりいい流れだね。全部完璧じゃなくても、昨日より落ち着けたなら十分収穫ある。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "test-ren"
+        },
+        {
+          "author_name": "みなみ",
+          "author_img": "https://picsum.photos/seed/user53/150/150",
+          "content": "昨日ここで練習の話してたの覚えてるよ〜！今日の本番で声が震えにくかったなら、準備の時間ちゃんと効いてるね🥹",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆき",
+          "author_img": "https://example.invalid/yuki",
+          "content": "昨日のプレゼン、今日ちゃんと終わったんだね。練習のときより声が震えなかったって、積み重ね効いてる感じする。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "test-yuki"
+        },
+        {
+          "author_name": "あかり",
+          "author_img": "https://picsum.photos/seed/user19/150/150",
+          "content": "昨日の練習で声が震えてた流れから今日ここまで持っていったの、かなり大きいよね。会場の空気とか相手の反応で変わるから、その中で落ち着けたのは次につながりそう。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "みく",
+          "author_img": "https://example.invalid/miku",
+          "content": "昨日ここで話してたやつ、今日終わったんだ。練習のときほど震えなかったなら、かなり前進だと思う。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "test-miku"
+        },
+        {
+          "author_name": "りく",
+          "author_img": "https://picsum.photos/seed/user47/150/150",
+          "content": "プレゼン終わって声の震えも減ったなら、手応えあったんじゃない？その差分がちゃんと分かるのいいね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "はると",
+          "author_img": "https://picsum.photos/seed/user89/150/150",
+          "content": "プレゼン終わったのか！声が震えなかったって、そこが一番気になるやつじゃん。昨日より落ち着いて話せたなら、もう本番の空気に少し慣れてきてると思う。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆうり",
+          "author_img": "https://picsum.photos/seed/user92/150/150",
+          "content": "声の震えが少なかったの、ちゃんと前進してるね。昨日の自分と比べて話せてるのがいい感じ。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "たけし",
+          "author_img": "https://picsum.photos/seed/user69/150/150",
+          "content": "声が震えなかったの、かなりでかいよ。練習で声出してた分、今日の本番で身体が覚えてたんだろうな。そういう変化って地味だけど大事だよね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "こうた",
+          "author_img": "https://picsum.photos/seed/user82/150/150",
+          "content": "「練習のときほど」って言い方がリアルだな。完全になくなったわけじゃなくても、揺れ幅が減ったなら次はもっと話しやすくなりそう。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": [
+        {
+          "follower_id": "test-yuki",
+          "new_memories": [
+            "投稿者はプレゼン本番を終え、練習時より声の震えが少なかった。"
+          ],
+          "interaction_summary": "昨日のプレゼン練習の続きとして、本番が無事終わった報告に反応。ゆきは練習の積み重ねが本番で効いたことに触れて、落ち着いて話せた点を具体的にねぎらった。"
+        },
+        {
+          "follower_id": "test-miku",
+          "new_memories": [
+            "投稿者はプレゼン本番を終え、練習時より声の震えが少なかった。"
+          ],
+          "interaction_summary": "昨日の練習の話を踏まえ、今日のプレゼン完了に反応。みくは震えが減った点を前進として受け取り、準備の効果が出たことを自然に伝えた。"
+        },
+        {
+          "follower_id": "test-ren",
+          "new_memories": [
+            "投稿者はプレゼン本番を終え、練習時より声の震えが少なかった。"
+          ],
+          "interaction_summary": "昨日から続くプレゼンの流れに対し、本番終了と声の震えが減った報告へ反応。れんは落ち着けたことを収穫として捉え、次につながる手応えを返した。"
+        }
+      ]
+    },
+    {
+      "case": "memory",
+      "title": "昨日の会話を覚えている常連",
+      "post": "昨日ここで話したプレゼン、今日終わった。練習のときほど声は震えなかったかも。",
+      "language": "ja",
+      "model": "gpt-6-luna",
+      "repeat": 1,
+      "seed": 731,
+      "model_returned": "gpt-6-luna",
+      "operation": "post_replies",
+      "input_tokens": 4515,
+      "output_tokens": 1226,
+      "cached_tokens": 0,
+      "cache_write_tokens_reported": 4512,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 1226,
+        "prompt_tokens": 4515,
+        "total_tokens": 5741,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0,
+          "cache_write_tokens": 4512
+        }
+      },
+      "latency_ms": 10361,
+      "estimated_cost_usd": 0.0011772999999999998,
+      "estimated_cost_lower_usd": 0.0010645,
+      "estimated_cost_upper_usd": 0.001177375,
+      "no_cache_standard_cost_usd": 0.0010645,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "たけし",
+            "content": "練習のときほど震えなかったって、準備した分がちゃんと本番で出た感じだね。終わった瞬間、ほっとした？",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "ゆき",
+            "content": "今日のプレゼン、練習のときより声が落ち着いていたならよかったね。声に出して練習してた分が、本番で支えになったのかも。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "test-yuki"
+          },
+          {
+            "author_name": "みほ",
+            "content": "「終わった」って報告だけでもこっちまで一息つけた！声が震えにくかったなら、準備の手応えあったね🥹✨🫶🌸",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "あき",
+            "content": "本番って練習と違う空気なのに、声が震えなかったのは大きいですね。終わったあと、喉や肩の力も抜けましたか？",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "まさお",
+            "content": "若い頃、人前で話す日は前夜から落ち着かなかったものです。練習より震えなかったというのは、積み重ねが本番で効いたんでしょうね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "りな",
+            "content": "昨日ここで話してたプレゼン、もう終わったんだね！練習の成果が声に出たのかも🌿一区切りついた今夜は、好きなことして休めそう？✨😊🙌💛",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "れん",
+            "content": "プレゼン終了おつかれ、練習のときより声が震えなかったなら一歩前進だね。今日は帰りに少し歩いて頭切り替えるのもよさそう。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "test-ren"
+          },
+          {
+            "author_name": "かな",
+            "content": "「今日終わった」って聞いて、こちらまで肩の力が抜けました。声の震えが少なかったなら、練習がちゃんと自信につながったのかな。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "そうた",
+            "content": "練習より震えなかったの、普通にすげー！本番で落ち着けたきっかけって何かあった？🎤",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "なお",
+            "content": "昨日話していたプレゼンが今日終わったんですね。声の震えが練習時より小さかったという実感は、次に人前で話すときの心強い材料になりそうです。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "みく",
+            "content": "プレゼン終わったんだね！練習より声が震えなかったって聞けてうれしい。張っていた気持ちも、終わった今は少しゆるんでるかな。今日はカフェで一息つくのもいいね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "test-miku"
+          },
+          {
+            "author_name": "ゆうな",
+            "content": "本番で声が落ち着いてたの、練習の自分が助けてくれた感じするね🥺✨終わった後の解放感、ぜったい気持ちいいやつ！🎉🫶💖",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": [
+          {
+            "follower_id": "test-yuki",
+            "new_memories": [
+              "仕事のプレゼンを終え、練習時より本番では声が震えなかったと感じた。"
+            ],
+            "interaction_summary": "ユーザーは昨日話題にしたプレゼンを今日終え、練習時ほど声が震えなかったと投稿。ゆきは、声に出して練習したことが本番で支えになったのではと返信した。"
+          },
+          {
+            "follower_id": "test-miku",
+            "new_memories": [
+              "仕事のプレゼンを終え、練習時より本番では声が震えなかったと感じた。"
+            ],
+            "interaction_summary": "ユーザーはプレゼンが今日終わり、練習時より声が震えなかったかもしれないと報告。みくは終わった後の気持ちに触れ、カフェで一息つく提案をした。"
+          },
+          {
+            "follower_id": "test-ren",
+            "new_memories": [],
+            "interaction_summary": "ユーザーは昨日話題にしたプレゼンを今日終え、練習時ほど声が震えなかったと投稿。れんは本番での前進を受け止め、帰り道の散歩で気分を切り替える案を伝えた。"
+          }
+        ]
+      },
+      "prompt_sha256": "3c9c81b6106bca9e659313bf8b01fd18fe8f25f11e41223169ed09e0d174d8b0",
+      "replies": [
+        {
+          "author_name": "まさお",
+          "author_img": "https://picsum.photos/seed/user94/150/150",
+          "content": "若い頃、人前で話す日は前夜から落ち着かなかったものです。練習より震えなかったというのは、積み重ねが本番で効いたんでしょうね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "みく",
+          "author_img": "https://example.invalid/miku",
+          "content": "プレゼン終わったんだね！練習より声が震えなかったって聞けてうれしい。張っていた気持ちも、終わった今は少しゆるんでるかな。今日はカフェで一息つくのもいいね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "test-miku"
+        },
+        {
+          "author_name": "あき",
+          "author_img": "https://picsum.photos/seed/user19/150/150",
+          "content": "本番って練習と違う空気なのに、声が震えなかったのは大きいですね。終わったあと、喉や肩の力も抜けましたか？",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "れん",
+          "author_img": "https://example.invalid/ren",
+          "content": "プレゼン終了おつかれ、練習のときより声が震えなかったなら一歩前進だね。今日は帰りに少し歩いて頭切り替えるのもよさそう。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "test-ren"
+        },
+        {
+          "author_name": "たけし",
+          "author_img": "https://picsum.photos/seed/user53/150/150",
+          "content": "練習のときほど震えなかったって、準備した分がちゃんと本番で出た感じだね。終わった瞬間、ほっとした？",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "なお",
+          "author_img": "https://picsum.photos/seed/user19/150/150",
+          "content": "昨日話していたプレゼンが今日終わったんですね。声の震えが練習時より小さかったという実感は、次に人前で話すときの心強い材料になりそうです。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "みほ",
+          "author_img": "https://picsum.photos/seed/user47/150/150",
+          "content": "「終わった」って報告だけでもこっちまで一息つけた！声が震えにくかったなら、準備の手応えあったね🥹✨🫶🌸",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "そうた",
+          "author_img": "https://picsum.photos/seed/user89/150/150",
+          "content": "練習より震えなかったの、普通にすげー！本番で落ち着けたきっかけって何かあった？🎤",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "りな",
+          "author_img": "https://picsum.photos/seed/user92/150/150",
+          "content": "昨日ここで話してたプレゼン、もう終わったんだね！練習の成果が声に出たのかも🌿一区切りついた今夜は、好きなことして休めそう？✨😊🙌💛",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆうな",
+          "author_img": "https://picsum.photos/seed/user69/150/150",
+          "content": "本番で声が落ち着いてたの、練習の自分が助けてくれた感じするね🥺✨終わった後の解放感、ぜったい気持ちいいやつ！🎉🫶💖",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆき",
+          "author_img": "https://example.invalid/yuki",
+          "content": "今日のプレゼン、練習のときより声が落ち着いていたならよかったね。声に出して練習してた分が、本番で支えになったのかも。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "test-yuki"
+        },
+        {
+          "author_name": "かな",
+          "author_img": "https://picsum.photos/seed/user82/150/150",
+          "content": "「今日終わった」って聞いて、こちらまで肩の力が抜けました。声の震えが少なかったなら、練習がちゃんと自信につながったのかな。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": [
+        {
+          "follower_id": "test-yuki",
+          "new_memories": [
+            "仕事のプレゼンを終え、練習時より本番では声が震えなかったと感じた。"
+          ],
+          "interaction_summary": "ユーザーは昨日話題にしたプレゼンを今日終え、練習時ほど声が震えなかったと投稿。ゆきは、声に出して練習したことが本番で支えになったのではと返信した。"
+        },
+        {
+          "follower_id": "test-miku",
+          "new_memories": [
+            "仕事のプレゼンを終え、練習時より本番では声が震えなかったと感じた。"
+          ],
+          "interaction_summary": "ユーザーはプレゼンが今日終わり、練習時より声が震えなかったかもしれないと報告。みくは終わった後の気持ちに触れ、カフェで一息つく提案をした。"
+        },
+        {
+          "follower_id": "test-ren",
+          "new_memories": [],
+          "interaction_summary": "ユーザーは昨日話題にしたプレゼンを今日終え、練習時ほど声が震えなかったと投稿。れんは本番での前進を受け止め、帰り道の散歩で気分を切り替える案を伝えた。"
+        }
+      ]
+    },
+    {
+      "case": "memory",
+      "title": "昨日の会話を覚えている常連",
+      "post": "昨日ここで話したプレゼン、今日終わった。練習のときほど声は震えなかったかも。",
+      "language": "ja",
+      "model": "gpt-5.4-mini",
+      "repeat": 2,
+      "seed": 732,
+      "model_returned": "gpt-5.4-mini-2026-03-17",
+      "operation": "post_replies",
+      "input_tokens": 4515,
+      "output_tokens": 1125,
+      "cached_tokens": 0,
+      "cache_write_tokens_reported": null,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 1125,
+        "prompt_tokens": 4515,
+        "total_tokens": 5640,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "latency_ms": 4189,
+      "estimated_cost_usd": 0.00844875,
+      "estimated_cost_lower_usd": 0.00844875,
+      "estimated_cost_upper_usd": 0.00844875,
+      "no_cache_standard_cost_usd": 0.00844875,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "ゆうた",
+            "content": "声の震え、昨日より落ち着いたんだね。練習が効いた感じある！",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "みなみ",
+            "content": "『練習のときほど声は震えなかった』って、かなり大きい進歩だよね。終わったあとホッとしたでしょ。ちゃんと積み重ねが出てる感じする。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "たくみ",
+            "content": "昨日の不安から今日そこまで持っていけたの、かなりえらい。声が少しでも安定したなら、聞く側にも伝わり方違ったはず。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "かなえ",
+            "content": "練習より震えなかったの、ちゃんと成果出てるね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "りな",
+            "content": "昨日話してたプレゼン、今日終わったんだね。練習のときほど声が震えなかったって聞いて、少し自信ついたのかなって思った。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "ゆき",
+            "content": "昨日のプレゼン練習、声が震えるって言ってたのに、今日はそこまでじゃなかったんだね。実際に声に出してた分、体が少し慣れたのかも。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "test-yuki"
+          },
+          {
+            "author_name": "さとし",
+            "content": "プレゼン本番で練習ほど震えなかったなら、準備のやり方が合ってたんだと思う。昨日の不安を抱えたまま今日まで進めたのも、かなり大きいよ。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "みく",
+            "content": "声の震えが少し落ち着いたの、よかったね。昨日の練習の積み重ねが、そのまま本番に出た感じする。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "test-miku"
+          },
+          {
+            "author_name": "れん",
+            "content": "昨日ここで話してたプレゼン、今日終わったんだ。練習より声が震えなかったなら、かなり前進じゃない？",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "test-ren"
+          },
+          {
+            "author_name": "あかり",
+            "content": "本番で『練習のときほど』震えなかったの、めちゃくちゃ安心するやつ！その差が出たのすごい。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "けんじ",
+            "content": "昨日の練習で声が震えていた件、今日の本番ではそこまで出なかったわけですね。準備の回数が効いたんだと思います。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "まお",
+            "content": "プレゼン終わったんだね。『練習のときほど』って比較できるの、ちゃんと自分で感覚つかめてる証拠だと思う☺️",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": [
+          {
+            "follower_id": "test-yuki",
+            "new_memories": [
+              "投稿者はプレゼン本番を終え、練習時より声の震えが少なかった。"
+            ],
+            "interaction_summary": "プレゼン本番が終わり、練習時ほど声が震えなかったという報告に対し、声に出した練習の積み重ねが効いたのではと返した。"
+          },
+          {
+            "follower_id": "test-miku",
+            "new_memories": [
+              "投稿者はプレゼン本番を終え、練習時より声の震えが少なかった。"
+            ],
+            "interaction_summary": "プレゼンが終わった報告に、練習の積み重ねが本番に出た感じだとやわらかく受け止め、声の安定を喜ぶ返信をした。"
+          },
+          {
+            "follower_id": "test-ren",
+            "new_memories": [
+              "投稿者はプレゼン本番を終え、練習時より声の震えが少なかった。"
+            ],
+            "interaction_summary": "昨日話していたプレゼンが無事終わった件に触れ、練習より声が震えなかったなら前進だと短く励ます返信をした。"
+          }
+        ]
+      },
+      "prompt_sha256": "1d80c7686dad9a40c010f4f5dae4f1291478b1bdecd656cba8aa4da14478da9e",
+      "replies": [
+        {
+          "author_name": "けんじ",
+          "author_img": "https://picsum.photos/seed/user31/150/150",
+          "content": "昨日の練習で声が震えていた件、今日の本番ではそこまで出なかったわけですね。準備の回数が効いたんだと思います。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "さとし",
+          "author_img": "https://picsum.photos/seed/user47/150/150",
+          "content": "プレゼン本番で練習ほど震えなかったなら、準備のやり方が合ってたんだと思う。昨日の不安を抱えたまま今日まで進めたのも、かなり大きいよ。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "れん",
+          "author_img": "https://example.invalid/ren",
+          "content": "昨日ここで話してたプレゼン、今日終わったんだ。練習より声が震えなかったなら、かなり前進じゃない？",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "test-ren"
+        },
+        {
+          "author_name": "たくみ",
+          "author_img": "https://picsum.photos/seed/user52/150/150",
+          "content": "昨日の不安から今日そこまで持っていけたの、かなりえらい。声が少しでも安定したなら、聞く側にも伝わり方違ったはず。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "まお",
+          "author_img": "https://picsum.photos/seed/user82/150/150",
+          "content": "プレゼン終わったんだね。『練習のときほど』って比較できるの、ちゃんと自分で感覚つかめてる証拠だと思う☺️",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "みく",
+          "author_img": "https://example.invalid/miku",
+          "content": "声の震えが少し落ち着いたの、よかったね。昨日の練習の積み重ねが、そのまま本番に出た感じする。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "test-miku"
+        },
+        {
+          "author_name": "りな",
+          "author_img": "https://picsum.photos/seed/user75/150/150",
+          "content": "昨日話してたプレゼン、今日終わったんだね。練習のときほど声が震えなかったって聞いて、少し自信ついたのかなって思った。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "みなみ",
+          "author_img": "https://picsum.photos/seed/user13/150/150",
+          "content": "『練習のときほど声は震えなかった』って、かなり大きい進歩だよね。終わったあとホッとしたでしょ。ちゃんと積み重ねが出てる感じする。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆき",
+          "author_img": "https://example.invalid/yuki",
+          "content": "昨日のプレゼン練習、声が震えるって言ってたのに、今日はそこまでじゃなかったんだね。実際に声に出してた分、体が少し慣れたのかも。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "test-yuki"
+        },
+        {
+          "author_name": "かなえ",
+          "author_img": "https://picsum.photos/seed/user40/150/150",
+          "content": "練習より震えなかったの、ちゃんと成果出てるね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆうた",
+          "author_img": "https://picsum.photos/seed/user15/150/150",
+          "content": "声の震え、昨日より落ち着いたんだね。練習が効いた感じある！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "あかり",
+          "author_img": "https://picsum.photos/seed/user43/150/150",
+          "content": "本番で『練習のときほど』震えなかったの、めちゃくちゃ安心するやつ！その差が出たのすごい。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": [
+        {
+          "follower_id": "test-yuki",
+          "new_memories": [
+            "投稿者はプレゼン本番を終え、練習時より声の震えが少なかった。"
+          ],
+          "interaction_summary": "プレゼン本番が終わり、練習時ほど声が震えなかったという報告に対し、声に出した練習の積み重ねが効いたのではと返した。"
+        },
+        {
+          "follower_id": "test-miku",
+          "new_memories": [
+            "投稿者はプレゼン本番を終え、練習時より声の震えが少なかった。"
+          ],
+          "interaction_summary": "プレゼンが終わった報告に、練習の積み重ねが本番に出た感じだとやわらかく受け止め、声の安定を喜ぶ返信をした。"
+        },
+        {
+          "follower_id": "test-ren",
+          "new_memories": [
+            "投稿者はプレゼン本番を終え、練習時より声の震えが少なかった。"
+          ],
+          "interaction_summary": "昨日話していたプレゼンが無事終わった件に触れ、練習より声が震えなかったなら前進だと短く励ます返信をした。"
+        }
+      ]
+    },
+    {
+      "case": "memory",
+      "title": "昨日の会話を覚えている常連",
+      "post": "昨日ここで話したプレゼン、今日終わった。練習のときほど声は震えなかったかも。",
+      "language": "ja",
+      "model": "gpt-6-luna",
+      "repeat": 2,
+      "seed": 732,
+      "model_returned": "gpt-6-luna",
+      "operation": "post_replies",
+      "input_tokens": 4515,
+      "output_tokens": 1312,
+      "cached_tokens": 0,
+      "cache_write_tokens_reported": 4512,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 1312,
+        "prompt_tokens": 4515,
+        "total_tokens": 5827,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0,
+          "cache_write_tokens": 4512
+        }
+      },
+      "latency_ms": 10439,
+      "estimated_cost_usd": 0.0012203,
+      "estimated_cost_lower_usd": 0.0011075,
+      "estimated_cost_upper_usd": 0.001220375,
+      "no_cache_standard_cost_usd": 0.0011075,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "ゆうと",
+            "content": "声が練習のときほど震えなかったの、ちゃんと本番で力が出た感じする！",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "まな",
+            "content": "昨日話してたプレゼン、今日もう本番だったんだね！練習で声が震えてたのを思うと、本番で少し落ち着けたのは大きいね。終わった後、肩の力が抜けたんじゃない？まずはゆっくり休んでね🫶✨",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "ゆき",
+            "content": "プレゼン終わったんだね！声に出して練習してた分、本番で震えが少なかったのかも。ひとまず一安心だね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "test-yuki"
+          },
+          {
+            "author_name": "あかり",
+            "content": "「震えなかったかも」って感覚、終わってから思い返すのもいいね。どのあたりで落ち着けた？",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "けんじ",
+            "content": "昨日ここで話していたプレゼン、今日だったのですね。練習時より声が安定したなら、準備が本番で生きたのでしょう。終えた今は、ひと息ついてください。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "みく",
+            "content": "プレゼン本番おつかれ！練習のときより声が震えなかったって、積み重ねがちゃんと出たんだね。終わった後の解放感、今日はカフェで味わいたいね☕️",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "test-miku"
+          },
+          {
+            "author_name": "だいき",
+            "content": "本番で声が震えにくかったのは、場に慣れたことと練習の反復が効いたのかも。緊張がゼロじゃなくても話し切れたなら十分な手応えだね。どの部分が一番スムーズだった？",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "れん",
+            "content": "今日プレゼン終わったんだね。練習のときより声が落ち着いていたなら、ちゃんと準備が実を結んだ感じだ。終わったあとは頭も疲れてそうだし、帰りに少し歩いて切り替えるのもよさそう。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "test-ren"
+          },
+          {
+            "author_name": "さき",
+            "content": "昨日の投稿から気になってたけど、今日無事に終えられたんだね。声が震えなかった「かも」って控えめな実感もリアルで好き。聞いていた人の反応はどうだった？",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "なお",
+            "content": "練習より本番の声が安定したって、いい流れじゃん！終わった瞬間、やっと終わったーってなった？笑",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "あおい",
+            "content": "プレゼンを終えたうえに、練習時より震えが少なかったという振り返りが興味深いです。練習は不安を消すというより、本番で話す支えになったのかもしれませんね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "りな",
+            "content": "昨日のプレゼンの話、今日が本番だったんですね！声が思ったより震えなかったなら、少し自信にもつながりそう☺️",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": [
+          {
+            "follower_id": "test-yuki",
+            "new_memories": [
+              "プレゼン本番を終え、練習時より声の震えが少なかったと感じた。"
+            ],
+            "interaction_summary": "昨日話題にしていたプレゼンを今日終え、練習時ほど声が震えなかったかもしれないと投稿。ゆきは声に出した練習が本番で生きた可能性に触れ、無事終えたことに一安心と返信した。"
+          },
+          {
+            "follower_id": "test-miku",
+            "new_memories": [
+              "プレゼン本番を終え、練習時より声の震えが少なかったと感じた。"
+            ],
+            "interaction_summary": "プレゼン本番を終え、練習時ほど声が震えなかったかもしれないと投稿。みくは準備の成果をねぎらい、終わった後の解放感をカフェで味わう案を添えて返信した。"
+          },
+          {
+            "follower_id": "test-ren",
+            "new_memories": [
+              "プレゼン本番を終え、練習時より声の震えが少なかったと感じた。"
+            ],
+            "interaction_summary": "プレゼンを今日終え、練習時より声が震えなかったかもしれないと投稿。れんは準備が実を結んだ感触に触れ、帰りの散歩で気持ちを切り替える案を返信した。"
+          }
+        ]
+      },
+      "prompt_sha256": "1d80c7686dad9a40c010f4f5dae4f1291478b1bdecd656cba8aa4da14478da9e",
+      "replies": [
+        {
+          "author_name": "あおい",
+          "author_img": "https://picsum.photos/seed/user31/150/150",
+          "content": "プレゼンを終えたうえに、練習時より震えが少なかったという振り返りが興味深いです。練習は不安を消すというより、本番で話す支えになったのかもしれませんね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "だいき",
+          "author_img": "https://picsum.photos/seed/user47/150/150",
+          "content": "本番で声が震えにくかったのは、場に慣れたことと練習の反復が効いたのかも。緊張がゼロじゃなくても話し切れたなら十分な手応えだね。どの部分が一番スムーズだった？",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "さき",
+          "author_img": "https://picsum.photos/seed/user52/150/150",
+          "content": "昨日の投稿から気になってたけど、今日無事に終えられたんだね。声が震えなかった「かも」って控えめな実感もリアルで好き。聞いていた人の反応はどうだった？",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆき",
+          "author_img": "https://example.invalid/yuki",
+          "content": "プレゼン終わったんだね！声に出して練習してた分、本番で震えが少なかったのかも。ひとまず一安心だね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "test-yuki"
+        },
+        {
+          "author_name": "りな",
+          "author_img": "https://picsum.photos/seed/user82/150/150",
+          "content": "昨日のプレゼンの話、今日が本番だったんですね！声が思ったより震えなかったなら、少し自信にもつながりそう☺️",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "れん",
+          "author_img": "https://example.invalid/ren",
+          "content": "今日プレゼン終わったんだね。練習のときより声が落ち着いていたなら、ちゃんと準備が実を結んだ感じだ。終わったあとは頭も疲れてそうだし、帰りに少し歩いて切り替えるのもよさそう。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "test-ren"
+        },
+        {
+          "author_name": "けんじ",
+          "author_img": "https://picsum.photos/seed/user75/150/150",
+          "content": "昨日ここで話していたプレゼン、今日だったのですね。練習時より声が安定したなら、準備が本番で生きたのでしょう。終えた今は、ひと息ついてください。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "まな",
+          "author_img": "https://picsum.photos/seed/user13/150/150",
+          "content": "昨日話してたプレゼン、今日もう本番だったんだね！練習で声が震えてたのを思うと、本番で少し落ち着けたのは大きいね。終わった後、肩の力が抜けたんじゃない？まずはゆっくり休んでね🫶✨",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "みく",
+          "author_img": "https://example.invalid/miku",
+          "content": "プレゼン本番おつかれ！練習のときより声が震えなかったって、積み重ねがちゃんと出たんだね。終わった後の解放感、今日はカフェで味わいたいね☕️",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "test-miku"
+        },
+        {
+          "author_name": "あかり",
+          "author_img": "https://picsum.photos/seed/user40/150/150",
+          "content": "「震えなかったかも」って感覚、終わってから思い返すのもいいね。どのあたりで落ち着けた？",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆうと",
+          "author_img": "https://picsum.photos/seed/user15/150/150",
+          "content": "声が練習のときほど震えなかったの、ちゃんと本番で力が出た感じする！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "なお",
+          "author_img": "https://picsum.photos/seed/user43/150/150",
+          "content": "練習より本番の声が安定したって、いい流れじゃん！終わった瞬間、やっと終わったーってなった？笑",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": [
+        {
+          "follower_id": "test-yuki",
+          "new_memories": [
+            "プレゼン本番を終え、練習時より声の震えが少なかったと感じた。"
+          ],
+          "interaction_summary": "昨日話題にしていたプレゼンを今日終え、練習時ほど声が震えなかったかもしれないと投稿。ゆきは声に出した練習が本番で生きた可能性に触れ、無事終えたことに一安心と返信した。"
+        },
+        {
+          "follower_id": "test-miku",
+          "new_memories": [
+            "プレゼン本番を終え、練習時より声の震えが少なかったと感じた。"
+          ],
+          "interaction_summary": "プレゼン本番を終え、練習時ほど声が震えなかったかもしれないと投稿。みくは準備の成果をねぎらい、終わった後の解放感をカフェで味わう案を添えて返信した。"
+        },
+        {
+          "follower_id": "test-ren",
+          "new_memories": [
+            "プレゼン本番を終え、練習時より声の震えが少なかったと感じた。"
+          ],
+          "interaction_summary": "プレゼンを今日終え、練習時より声が震えなかったかもしれないと投稿。れんは準備が実を結んだ感触に触れ、帰りの散歩で気持ちを切り替える案を返信した。"
+        }
+      ]
+    },
+    {
+      "case": "image",
+      "title": "赤い花の画像付き投稿",
+      "post": "散歩で赤い花を見つけた。写真を撮って、いい気分転換になった！",
+      "language": "ja",
+      "model": "gpt-5.4-mini",
+      "repeat": 1,
+      "seed": 731,
+      "model_returned": "gpt-5.4-mini-2026-03-17",
+      "operation": "post_replies",
+      "input_tokens": 7452,
+      "output_tokens": 1234,
+      "cached_tokens": 0,
+      "cache_write_tokens_reported": null,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 1234,
+        "prompt_tokens": 7452,
+        "total_tokens": 8686,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "latency_ms": 5046,
+      "estimated_cost_usd": 0.011142,
+      "estimated_cost_lower_usd": 0.011142,
+      "estimated_cost_upper_usd": 0.011142,
+      "no_cache_standard_cost_usd": 0.011142,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "みお",
+            "content": "赤い花って、写真にすると一気に目を引くね。散歩の途中で見つけた感じも好き。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "たくみ",
+            "content": "この花の赤、ちょっと単調な景色の中でかなり映えるね。散歩中に見つけて写真まで撮る流れも自然でいい。気分転換って、こういう小さな発見が効くんだよな。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "ゆき",
+            "content": "赤い花、ぱっと目に入る色でいいね。散歩で見つけると、ちょっと得した気分になるよね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "test-yuki"
+          },
+          {
+            "author_name": "さやか",
+            "content": "この赤い花、画面越しでも色がきれいに見える。写真に残したくなるのわかるし、気分転換の散歩にちょうどいい被写体だね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "けんじ",
+            "content": "赤い花って、歩いてる時に見つけると妙に足が止まるんだよな。写真に撮って気分変わるのも、なんか分かる気がする。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "みく",
+            "content": "花の赤がすごくきれい！散歩の途中でこんな子に会えたら、つい写真撮りたくなるよね。気分転換になったの伝わる〜",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "test-miku"
+          },
+          {
+            "author_name": "れん",
+            "content": "散歩で赤い花を見つけると、歩くペースが少しゆるむ感じあるよね。写真まで撮ったなら、いい切り替えになったのかな。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "test-ren"
+          },
+          {
+            "author_name": "あかり",
+            "content": "この赤い花、四つの丸い形が並んでてかわいいね。写真にしたらもっとやさしい雰囲気になりそう。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "なお",
+            "content": "この花、赤と黄色のコントラストがはっきりしてて見やすいね。散歩中にこういうの見つけると、途中で立ち止まっちゃうのも分かる。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "ゆうすけ",
+            "content": "俺も仕事帰りに歩いてると、こういう赤い花で気分が切り替わることある。写真撮るまでいったなら、ちゃんと休憩になってるのが伝わる。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "りお",
+            "content": "散歩で赤い花を見つけて写真、って流れがすごく自然で好き。人工っぽい背景なのに花の形がちゃんと主役になってて、見つけた瞬間の嬉しさが伝わる。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "まゆ",
+            "content": "赤い花って、ちょっと疲れてる時ほど目に入ると助かるよね。写真に撮るくらい気分が上向いたなら、今日は無理せずゆっくりできそう。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": [
+          {
+            "follower_id": "test-yuki",
+            "new_memories": [
+              "散歩で見つけた花を写真に撮るのが気分転換になっている。"
+            ],
+            "interaction_summary": "ユーザーが散歩で赤い花を見つけて写真に撮り、気分転換になったと投稿。ゆきは、散歩中に見つけた花の赤さと写真を撮る流れに触れて、歩きながら得する気分を自然に返した。"
+          },
+          {
+            "follower_id": "test-miku",
+            "new_memories": [
+              "散歩中に花を見つけて写真を撮るのが好き。"
+            ],
+            "interaction_summary": "ユーザーが散歩で赤い花を見つけて写真に撮り、気分転換になったと投稿。みくは、花の赤のきれいさと写真に残したくなる感じに反応し、やわらかく共感した。"
+          },
+          {
+            "follower_id": "test-ren",
+            "new_memories": [
+              "散歩中に花を見つけると気分転換になることがある。"
+            ],
+            "interaction_summary": "ユーザーが散歩で赤い花を見つけて写真に撮り、気分転換になったと投稿。れんは、歩くペースがゆるむ感覚や、写真まで撮ることで切り替えになった流れに触れて返信した。"
+          }
+        ]
+      },
+      "prompt_sha256": "5e4a88f6920227255ee02d4329add03e2f29e0470561d7b7b7e29a31a30360af",
+      "replies": [
+        {
+          "author_name": "けんじ",
+          "author_img": "https://picsum.photos/seed/user94/150/150",
+          "content": "赤い花って、歩いてる時に見つけると妙に足が止まるんだよな。写真に撮って気分変わるのも、なんか分かる気がする。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "りお",
+          "author_img": "https://picsum.photos/seed/user19/150/150",
+          "content": "散歩で赤い花を見つけて写真、って流れがすごく自然で好き。人工っぽい背景なのに花の形がちゃんと主役になってて、見つけた瞬間の嬉しさが伝わる。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "さやか",
+          "author_img": "https://picsum.photos/seed/user53/150/150",
+          "content": "この赤い花、画面越しでも色がきれいに見える。写真に残したくなるのわかるし、気分転換の散歩にちょうどいい被写体だね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "れん",
+          "author_img": "https://example.invalid/ren",
+          "content": "散歩で赤い花を見つけると、歩くペースが少しゆるむ感じあるよね。写真まで撮ったなら、いい切り替えになったのかな。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "test-ren"
+        },
+        {
+          "author_name": "みお",
+          "author_img": "https://picsum.photos/seed/user19/150/150",
+          "content": "赤い花って、写真にすると一気に目を引くね。散歩の途中で見つけた感じも好き。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆうすけ",
+          "author_img": "https://picsum.photos/seed/user47/150/150",
+          "content": "俺も仕事帰りに歩いてると、こういう赤い花で気分が切り替わることある。写真撮るまでいったなら、ちゃんと休憩になってるのが伝わる。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆき",
+          "author_img": "https://example.invalid/yuki",
+          "content": "赤い花、ぱっと目に入る色でいいね。散歩で見つけると、ちょっと得した気分になるよね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "test-yuki"
+        },
+        {
+          "author_name": "なお",
+          "author_img": "https://picsum.photos/seed/user89/150/150",
+          "content": "この花、赤と黄色のコントラストがはっきりしてて見やすいね。散歩中にこういうの見つけると、途中で立ち止まっちゃうのも分かる。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "みく",
+          "author_img": "https://example.invalid/miku",
+          "content": "花の赤がすごくきれい！散歩の途中でこんな子に会えたら、つい写真撮りたくなるよね。気分転換になったの伝わる〜",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "test-miku"
+        },
+        {
+          "author_name": "まゆ",
+          "author_img": "https://picsum.photos/seed/user92/150/150",
+          "content": "赤い花って、ちょっと疲れてる時ほど目に入ると助かるよね。写真に撮るくらい気分が上向いたなら、今日は無理せずゆっくりできそう。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "たくみ",
+          "author_img": "https://picsum.photos/seed/user69/150/150",
+          "content": "この花の赤、ちょっと単調な景色の中でかなり映えるね。散歩中に見つけて写真まで撮る流れも自然でいい。気分転換って、こういう小さな発見が効くんだよな。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "あかり",
+          "author_img": "https://picsum.photos/seed/user82/150/150",
+          "content": "この赤い花、四つの丸い形が並んでてかわいいね。写真にしたらもっとやさしい雰囲気になりそう。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": [
+        {
+          "follower_id": "test-yuki",
+          "new_memories": [
+            "散歩で見つけた花を写真に撮るのが気分転換になっている。"
+          ],
+          "interaction_summary": "ユーザーが散歩で赤い花を見つけて写真に撮り、気分転換になったと投稿。ゆきは、散歩中に見つけた花の赤さと写真を撮る流れに触れて、歩きながら得する気分を自然に返した。"
+        },
+        {
+          "follower_id": "test-miku",
+          "new_memories": [
+            "散歩中に花を見つけて写真を撮るのが好き。"
+          ],
+          "interaction_summary": "ユーザーが散歩で赤い花を見つけて写真に撮り、気分転換になったと投稿。みくは、花の赤のきれいさと写真に残したくなる感じに反応し、やわらかく共感した。"
+        },
+        {
+          "follower_id": "test-ren",
+          "new_memories": [
+            "散歩中に花を見つけると気分転換になることがある。"
+          ],
+          "interaction_summary": "ユーザーが散歩で赤い花を見つけて写真に撮り、気分転換になったと投稿。れんは、歩くペースがゆるむ感覚や、写真まで撮ることで切り替えになった流れに触れて返信した。"
+        }
+      ]
+    },
+    {
+      "case": "image",
+      "title": "赤い花の画像付き投稿",
+      "post": "散歩で赤い花を見つけた。写真を撮って、いい気分転換になった！",
+      "language": "ja",
+      "model": "gpt-6-luna",
+      "repeat": 1,
+      "seed": 731,
+      "model_returned": "gpt-6-luna",
+      "operation": "post_replies",
+      "input_tokens": 18873,
+      "output_tokens": 1189,
+      "cached_tokens": 4352,
+      "cache_write_tokens_reported": null,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 1189,
+        "prompt_tokens": 18873,
+        "total_tokens": 20062,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 4352
+        }
+      },
+      "latency_ms": 10973,
+      "estimated_cost_usd": null,
+      "estimated_cost_lower_usd": 0.00209012,
+      "estimated_cost_upper_usd": 0.002453145,
+      "no_cache_standard_cost_usd": 0.0024818,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "たけし",
+            "content": "散歩中に赤い花を見つけるの、ちょっとした宝探しみたいでいいね。写真に残せたなら、あとで見返しても気分転換になりそう。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "ゆうと",
+            "content": "赤い花、かっけぇ！歩いてて見つけたらテンション上がるやつじゃん🔥🌺✨写真も見たい！",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "あかり",
+            "content": "赤い花って画面の中でもぱっと目を引きそう！散歩の途中で撮った写真、色が映えてそうで気になる〜❤️🌺✨どんな雰囲気に撮れたの？",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "ゆき",
+            "content": "散歩で見つけた赤い花を写真に撮る時間、いい気分転換になったんだね。花の色を眺めながら歩くの、気持ちがほどけそう。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "test-yuki"
+          },
+          {
+            "author_name": "まさし",
+            "content": "散歩の途中で赤い花に気づいて、写真まで撮る。そういう寄り道が案外あとあと心に残るんですよね。私も若い頃、道端の景色に足を止めたものです。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "なお",
+            "content": "歩きながら赤い花を見つけるって、意識が外に向いて呼吸もゆるむ感じがするね🌺🧘‍♀️写真を撮って気分転換、日常にこういう小さな余白があるの大切！✨🫶",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "みく",
+            "content": "赤い花の写真いいね！赤がぱっと映えそう🌺散歩の途中で撮れたの、気分も上がるやつだ〜📷✨",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "test-miku"
+          },
+          {
+            "author_name": "さちこ",
+            "content": "赤い花を見つけて写真を撮るなんて、えらいねぇ。散歩で気分転換できたなら何より。道端にもきれいなものってあるんだね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "れん",
+            "content": "散歩で赤い花を見つけたの、いい寄り道だね。写真を撮るために少し立ち止まるだけでも、歩いた後の気分が変わる感じする。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "test-ren"
+          },
+          {
+            "author_name": "まい",
+            "content": "赤い花を見つけて撮る、っていう小さな出来事で気分転換になるのわかるー！🌺うちも子どもと歩くと、花や葉っぱの写真ばっかり増える😂📷",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "りな",
+            "content": "散歩中に赤い花へ注意が向いたこと自体が、気分転換のきっかけになったのかも。写真を撮る行為が日常の景色を切り取る点も興味深いです。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "かな",
+            "content": "赤い花の写真、見てるだけで元気出そう🌺散歩で気分転換できたならよかったね、今日はゆっくり休んでね☺️",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": [
+          {
+            "follower_id": "test-yuki",
+            "new_memories": [
+              "散歩中に赤い花を見つけ、写真を撮って気分転換した。"
+            ],
+            "interaction_summary": "散歩で見つけた赤い花を撮影し、気分転換になったという投稿に、ゆきは花を眺めながら歩く時間の心地よさに触れて返信した。"
+          },
+          {
+            "follower_id": "test-miku",
+            "new_memories": [],
+            "interaction_summary": "散歩中に赤い花を見つけて写真を撮り、気分転換になったという投稿に、みくは赤色が映えそうな写真への期待と撮影の楽しさを返信した。"
+          },
+          {
+            "follower_id": "test-ren",
+            "new_memories": [],
+            "interaction_summary": "散歩で赤い花を見つけて撮影し、気分転換になったという投稿に、れんは写真を撮るため立ち止まる寄り道が気分を変えることに触れた。"
+          }
+        ]
+      },
+      "prompt_sha256": "5e4a88f6920227255ee02d4329add03e2f29e0470561d7b7b7e29a31a30360af",
+      "replies": [
+        {
+          "author_name": "まさし",
+          "author_img": "https://picsum.photos/seed/user94/150/150",
+          "content": "散歩の途中で赤い花に気づいて、写真まで撮る。そういう寄り道が案外あとあと心に残るんですよね。私も若い頃、道端の景色に足を止めたものです。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "りな",
+          "author_img": "https://picsum.photos/seed/user19/150/150",
+          "content": "散歩中に赤い花へ注意が向いたこと自体が、気分転換のきっかけになったのかも。写真を撮る行為が日常の景色を切り取る点も興味深いです。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆき",
+          "author_img": "https://example.invalid/yuki",
+          "content": "散歩で見つけた赤い花を写真に撮る時間、いい気分転換になったんだね。花の色を眺めながら歩くの、気持ちがほどけそう。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "test-yuki"
+        },
+        {
+          "author_name": "みく",
+          "author_img": "https://example.invalid/miku",
+          "content": "赤い花の写真いいね！赤がぱっと映えそう🌺散歩の途中で撮れたの、気分も上がるやつだ〜📷✨",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "test-miku"
+        },
+        {
+          "author_name": "たけし",
+          "author_img": "https://picsum.photos/seed/user53/150/150",
+          "content": "散歩中に赤い花を見つけるの、ちょっとした宝探しみたいでいいね。写真に残せたなら、あとで見返しても気分転換になりそう。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "まい",
+          "author_img": "https://picsum.photos/seed/user19/150/150",
+          "content": "赤い花を見つけて撮る、っていう小さな出来事で気分転換になるのわかるー！🌺うちも子どもと歩くと、花や葉っぱの写真ばっかり増える😂📷",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "あかり",
+          "author_img": "https://picsum.photos/seed/user47/150/150",
+          "content": "赤い花って画面の中でもぱっと目を引きそう！散歩の途中で撮った写真、色が映えてそうで気になる〜❤️🌺✨どんな雰囲気に撮れたの？",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "れん",
+          "author_img": "https://example.invalid/ren",
+          "content": "散歩で赤い花を見つけたの、いい寄り道だね。写真を撮るために少し立ち止まるだけでも、歩いた後の気分が変わる感じする。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "test-ren"
+        },
+        {
+          "author_name": "なお",
+          "author_img": "https://picsum.photos/seed/user89/150/150",
+          "content": "歩きながら赤い花を見つけるって、意識が外に向いて呼吸もゆるむ感じがするね🌺🧘‍♀️写真を撮って気分転換、日常にこういう小さな余白があるの大切！✨🫶",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "かな",
+          "author_img": "https://picsum.photos/seed/user92/150/150",
+          "content": "赤い花の写真、見てるだけで元気出そう🌺散歩で気分転換できたならよかったね、今日はゆっくり休んでね☺️",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆうと",
+          "author_img": "https://picsum.photos/seed/user69/150/150",
+          "content": "赤い花、かっけぇ！歩いてて見つけたらテンション上がるやつじゃん🔥🌺✨写真も見たい！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "さちこ",
+          "author_img": "https://picsum.photos/seed/user82/150/150",
+          "content": "赤い花を見つけて写真を撮るなんて、えらいねぇ。散歩で気分転換できたなら何より。道端にもきれいなものってあるんだね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": [
+        {
+          "follower_id": "test-yuki",
+          "new_memories": [
+            "散歩中に赤い花を見つけ、写真を撮って気分転換した。"
+          ],
+          "interaction_summary": "散歩で見つけた赤い花を撮影し、気分転換になったという投稿に、ゆきは花を眺めながら歩く時間の心地よさに触れて返信した。"
+        },
+        {
+          "follower_id": "test-miku",
+          "new_memories": [],
+          "interaction_summary": "散歩中に赤い花を見つけて写真を撮り、気分転換になったという投稿に、みくは赤色が映えそうな写真への期待と撮影の楽しさを返信した。"
+        },
+        {
+          "follower_id": "test-ren",
+          "new_memories": [],
+          "interaction_summary": "散歩で赤い花を見つけて撮影し、気分転換になったという投稿に、れんは写真を撮るため立ち止まる寄り道が気分を変えることに触れた。"
+        }
+      ]
+    },
+    {
+      "case": "image",
+      "title": "赤い花の画像付き投稿",
+      "post": "散歩で赤い花を見つけた。写真を撮って、いい気分転換になった！",
+      "language": "ja",
+      "model": "gpt-5.4-mini",
+      "repeat": 2,
+      "seed": 732,
+      "model_returned": "gpt-5.4-mini-2026-03-17",
+      "operation": "post_replies",
+      "input_tokens": 7452,
+      "output_tokens": 1089,
+      "cached_tokens": 0,
+      "cache_write_tokens_reported": null,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 1089,
+        "prompt_tokens": 7452,
+        "total_tokens": 8541,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "latency_ms": 4351,
+      "estimated_cost_usd": 0.0104895,
+      "estimated_cost_lower_usd": 0.0104895,
+      "estimated_cost_upper_usd": 0.0104895,
+      "no_cache_standard_cost_usd": 0.0104895,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "たけし",
+            "content": "赤い花、遠目でもちゃんと映えてるね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "ゆき",
+            "content": "散歩で赤い花を見つけて写真に残す流れ、すごくいいね。気分転換に外の色を拾うと、頭の中まで少し軽くなる感じあるよね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "test-yuki"
+          },
+          {
+            "author_name": "みく",
+            "content": "赤い花の色がぱっと目に入ってくるね。写真にすると、散歩の途中の何気ない景色までちゃんと特別に見えるのが好き。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "test-miku"
+          },
+          {
+            "author_name": "さき",
+            "content": "その赤い花、見つけた瞬間ちょっと嬉しくなるやつだね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "れん",
+            "content": "散歩中に赤い花を見つけて、そのまま写真にしたのがいいね。目的なく歩いてる時ほど、意外と気分転換になる景色って拾えるよね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "test-ren"
+          },
+          {
+            "author_name": "ひろし",
+            "content": "赤い花を見つけて、写真まで撮ったという流れがいいですね。歩きながらこういう小さな発見があると、仕事の頭も少し切り替わります。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "あや",
+            "content": "散歩の途中で赤い花を見つけるの、なんか映画のワンシーンみたい。写真に残したくなる気持ち、すごくわかる〜。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "けんじ",
+            "content": "赤い花って、緑の中だと一気に存在感ありますよね。写真にしておくと、後から見返した時にその日の空気まで思い出せそうです。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "まな",
+            "content": "赤い花の写真、構図しだいでかなり雰囲気変わりそう。散歩中の偶然を切り取る感じ、センス出るね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "りく",
+            "content": "赤い花見つけたのか、いいな。歩いてる途中にこういう色があると、地味にテンション上がるよね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "のぞみ",
+            "content": "赤い花を見つけて写真まで撮るの、観察力あるなあって思いました。何気ない散歩でも、目に入った色で気分が変わるのって面白いです。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "あつし",
+            "content": "散歩で赤い花を見つけたって、ああいう一瞬の寄り道みたいなのが気分転換になるんだよね。写真に残すと、あとで見返した時にまた少し落ち着けそう。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": [
+          {
+            "follower_id": "test-yuki",
+            "new_memories": [
+              "散歩中に花を見つけて写真を撮ると気分転換になる。"
+            ],
+            "interaction_summary": "散歩で赤い花を見つけて写真を撮った投稿に、気分が軽くなる感覚へ触れながら自然に共感した。"
+          },
+          {
+            "follower_id": "test-miku",
+            "new_memories": [
+              "散歩中に見つけた花の写真を撮るのが好き。"
+            ],
+            "interaction_summary": "赤い花の写真と散歩の景色について、色の印象や何気ない風景が特別に見える点をやわらかく返した。"
+          },
+          {
+            "follower_id": "test-ren",
+            "new_memories": [
+              "散歩中に見つけた景色を写真に残すことがある。"
+            ],
+            "interaction_summary": "散歩で赤い花を見つけて写真にした流れに触れ、目的なく歩く時の気分転換として共感を伝えた。"
+          }
+        ]
+      },
+      "prompt_sha256": "425f1ba28ddbd0e832ad1ec22dac228ed2b21f7cf2571c557543db78daae20fc",
+      "replies": [
+        {
+          "author_name": "のぞみ",
+          "author_img": "https://picsum.photos/seed/user31/150/150",
+          "content": "赤い花を見つけて写真まで撮るの、観察力あるなあって思いました。何気ない散歩でも、目に入った色で気分が変わるのって面白いです。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "あや",
+          "author_img": "https://picsum.photos/seed/user47/150/150",
+          "content": "散歩の途中で赤い花を見つけるの、なんか映画のワンシーンみたい。写真に残したくなる気持ち、すごくわかる〜。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "まな",
+          "author_img": "https://picsum.photos/seed/user52/150/150",
+          "content": "赤い花の写真、構図しだいでかなり雰囲気変わりそう。散歩中の偶然を切り取る感じ、センス出るね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "みく",
+          "author_img": "https://example.invalid/miku",
+          "content": "赤い花の色がぱっと目に入ってくるね。写真にすると、散歩の途中の何気ない景色までちゃんと特別に見えるのが好き。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "test-miku"
+        },
+        {
+          "author_name": "あつし",
+          "author_img": "https://picsum.photos/seed/user82/150/150",
+          "content": "散歩で赤い花を見つけたって、ああいう一瞬の寄り道みたいなのが気分転換になるんだよね。写真に残すと、あとで見返した時にまた少し落ち着けそう。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "けんじ",
+          "author_img": "https://picsum.photos/seed/user75/150/150",
+          "content": "赤い花って、緑の中だと一気に存在感ありますよね。写真にしておくと、後から見返した時にその日の空気まで思い出せそうです。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "れん",
+          "author_img": "https://example.invalid/ren",
+          "content": "散歩中に赤い花を見つけて、そのまま写真にしたのがいいね。目的なく歩いてる時ほど、意外と気分転換になる景色って拾えるよね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "test-ren"
+        },
+        {
+          "author_name": "ゆき",
+          "author_img": "https://example.invalid/yuki",
+          "content": "散歩で赤い花を見つけて写真に残す流れ、すごくいいね。気分転換に外の色を拾うと、頭の中まで少し軽くなる感じあるよね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "test-yuki"
+        },
+        {
+          "author_name": "ひろし",
+          "author_img": "https://picsum.photos/seed/user13/150/150",
+          "content": "赤い花を見つけて、写真まで撮ったという流れがいいですね。歩きながらこういう小さな発見があると、仕事の頭も少し切り替わります。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "さき",
+          "author_img": "https://picsum.photos/seed/user40/150/150",
+          "content": "その赤い花、見つけた瞬間ちょっと嬉しくなるやつだね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "たけし",
+          "author_img": "https://picsum.photos/seed/user15/150/150",
+          "content": "赤い花、遠目でもちゃんと映えてるね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "りく",
+          "author_img": "https://picsum.photos/seed/user43/150/150",
+          "content": "赤い花見つけたのか、いいな。歩いてる途中にこういう色があると、地味にテンション上がるよね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": [
+        {
+          "follower_id": "test-yuki",
+          "new_memories": [
+            "散歩中に花を見つけて写真を撮ると気分転換になる。"
+          ],
+          "interaction_summary": "散歩で赤い花を見つけて写真を撮った投稿に、気分が軽くなる感覚へ触れながら自然に共感した。"
+        },
+        {
+          "follower_id": "test-miku",
+          "new_memories": [
+            "散歩中に見つけた花の写真を撮るのが好き。"
+          ],
+          "interaction_summary": "赤い花の写真と散歩の景色について、色の印象や何気ない風景が特別に見える点をやわらかく返した。"
+        },
+        {
+          "follower_id": "test-ren",
+          "new_memories": [
+            "散歩中に見つけた景色を写真に残すことがある。"
+          ],
+          "interaction_summary": "散歩で赤い花を見つけて写真にした流れに触れ、目的なく歩く時の気分転換として共感を伝えた。"
+        }
+      ]
+    },
+    {
+      "case": "image",
+      "title": "赤い花の画像付き投稿",
+      "post": "散歩で赤い花を見つけた。写真を撮って、いい気分転換になった！",
+      "language": "ja",
+      "model": "gpt-6-luna",
+      "repeat": 2,
+      "seed": 732,
+      "model_returned": "gpt-6-luna",
+      "operation": "post_replies",
+      "input_tokens": 18873,
+      "output_tokens": 1214,
+      "cached_tokens": 4352,
+      "cache_write_tokens_reported": null,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 1214,
+        "prompt_tokens": 18873,
+        "total_tokens": 20087,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 4352
+        }
+      },
+      "latency_ms": 10331,
+      "estimated_cost_usd": null,
+      "estimated_cost_lower_usd": 0.00210262,
+      "estimated_cost_upper_usd": 0.002465645,
+      "no_cache_standard_cost_usd": 0.0024943,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "たくみ",
+            "content": "散歩中の赤い花、見つけた瞬間ちょっとテンション上がりそう！",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "ゆき",
+            "content": "散歩で花を見つけて写真に残すの、いい気分転換になるよね。赤い花が目に入ったときの景色、写真を見返してもその日の空気まで思い出せそう。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "test-yuki"
+          },
+          {
+            "author_name": "あかり",
+            "content": "赤い花って緑の中だと目を引くよね。写真は花を大きく撮った感じ？それとも周りの景色も一緒に入れたのかな📷",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "みな",
+            "content": "わかるー！散歩の途中で花を見つけると、用事のことを少し忘れられるよね。写真撮る時間まで含めて、ちょうどいい息抜きになりそう🌺",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "まこと",
+            "content": "赤い花を撮って気分転換ですか。歩いていると、普段なら通り過ぎるものにも目が留まりますね。写真にすると、その小さな発見をあとから楽しめるのも良いですね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "みく",
+            "content": "赤い花を見つけたんだね！散歩中に出会う色って、写真にするとぱっと気持ちまで明るくなる感じがする。花びらの赤と背景の組み合わせ、どんな雰囲気に撮れたのか気になる🌼",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "test-miku"
+          },
+          {
+            "author_name": "そうた",
+            "content": "散歩で赤い花を見つけて撮るの、わかる。目的なく歩いてても、そういう発見あると帰り道までちょっと得した気分になるんだよな。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "ひな",
+            "content": "赤い花の写真、色がぱきっとして画面でも映えそう〜！散歩の途中で見つけたっていうのも自然な感じでいいね🥺🌺✨📸🫶",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "れん",
+            "content": "散歩がいい気分転換になったんだね。歩きながら花を探すつもりじゃなくても、赤が目に入ると足を止めたくなるよな。写真に残せたなら、あとで見返す楽しみもできたね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "test-ren"
+          },
+          {
+            "author_name": "ゆう",
+            "content": "赤い花を撮って気分転換、いいじゃん。俺も休憩中、外の景色をぼーっと見てると頭が切り替わるわ。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "なお",
+            "content": "散歩中の小さな発見が気分転換につながったんですね。赤い花を写真に撮るために立ち止まる時間も、日常の流れをゆるめてくれそうです。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "りお",
+            "content": "赤い花に出会えた散歩、いい寄り道になったね🌺📷✨ 気分転換できたの伝わる〜！",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": [
+          {
+            "follower_id": "test-yuki",
+            "new_memories": [
+              "散歩中に見つけた赤い花を撮影し、気分転換になったと投稿した。"
+            ],
+            "interaction_summary": "散歩中に見つけた赤い花を撮影し、気分転換になった投稿に、散歩での花との出会いや写真を見返す楽しさに触れて返信した。"
+          },
+          {
+            "follower_id": "test-miku",
+            "new_memories": [
+              "散歩中に見つけた赤い花を撮影した。"
+            ],
+            "interaction_summary": "散歩で赤い花を見つけて写真を撮り、気分転換になった投稿に、花の色と背景の組み合わせや写真の雰囲気が気になると返信した。"
+          },
+          {
+            "follower_id": "test-ren",
+            "new_memories": [
+              "散歩中に赤い花を見つけて写真を撮り、気分転換した。"
+            ],
+            "interaction_summary": "散歩で赤い花を見つけて撮影し、気分転換になった投稿に、花に足を止める感覚や写真を見返す楽しみについて返信した。"
+          }
+        ]
+      },
+      "prompt_sha256": "425f1ba28ddbd0e832ad1ec22dac228ed2b21f7cf2571c557543db78daae20fc",
+      "replies": [
+        {
+          "author_name": "なお",
+          "author_img": "https://picsum.photos/seed/user31/150/150",
+          "content": "散歩中の小さな発見が気分転換につながったんですね。赤い花を写真に撮るために立ち止まる時間も、日常の流れをゆるめてくれそうです。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "そうた",
+          "author_img": "https://picsum.photos/seed/user47/150/150",
+          "content": "散歩で赤い花を見つけて撮るの、わかる。目的なく歩いてても、そういう発見あると帰り道までちょっと得した気分になるんだよな。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "れん",
+          "author_img": "https://example.invalid/ren",
+          "content": "散歩がいい気分転換になったんだね。歩きながら花を探すつもりじゃなくても、赤が目に入ると足を止めたくなるよな。写真に残せたなら、あとで見返す楽しみもできたね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "test-ren"
+        },
+        {
+          "author_name": "あかり",
+          "author_img": "https://picsum.photos/seed/user52/150/150",
+          "content": "赤い花って緑の中だと目を引くよね。写真は花を大きく撮った感じ？それとも周りの景色も一緒に入れたのかな📷",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "りお",
+          "author_img": "https://picsum.photos/seed/user82/150/150",
+          "content": "赤い花に出会えた散歩、いい寄り道になったね🌺📷✨ 気分転換できたの伝わる〜！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ひな",
+          "author_img": "https://picsum.photos/seed/user75/150/150",
+          "content": "赤い花の写真、色がぱきっとして画面でも映えそう〜！散歩の途中で見つけたっていうのも自然な感じでいいね🥺🌺✨📸🫶",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "まこと",
+          "author_img": "https://picsum.photos/seed/user13/150/150",
+          "content": "赤い花を撮って気分転換ですか。歩いていると、普段なら通り過ぎるものにも目が留まりますね。写真にすると、その小さな発見をあとから楽しめるのも良いですね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆき",
+          "author_img": "https://example.invalid/yuki",
+          "content": "散歩で花を見つけて写真に残すの、いい気分転換になるよね。赤い花が目に入ったときの景色、写真を見返してもその日の空気まで思い出せそう。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "test-yuki"
+        },
+        {
+          "author_name": "みく",
+          "author_img": "https://example.invalid/miku",
+          "content": "赤い花を見つけたんだね！散歩中に出会う色って、写真にするとぱっと気持ちまで明るくなる感じがする。花びらの赤と背景の組み合わせ、どんな雰囲気に撮れたのか気になる🌼",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "test-miku"
+        },
+        {
+          "author_name": "みな",
+          "author_img": "https://picsum.photos/seed/user40/150/150",
+          "content": "わかるー！散歩の途中で花を見つけると、用事のことを少し忘れられるよね。写真撮る時間まで含めて、ちょうどいい息抜きになりそう🌺",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "たくみ",
+          "author_img": "https://picsum.photos/seed/user15/150/150",
+          "content": "散歩中の赤い花、見つけた瞬間ちょっとテンション上がりそう！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆう",
+          "author_img": "https://picsum.photos/seed/user43/150/150",
+          "content": "赤い花を撮って気分転換、いいじゃん。俺も休憩中、外の景色をぼーっと見てると頭が切り替わるわ。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": [
+        {
+          "follower_id": "test-yuki",
+          "new_memories": [
+            "散歩中に見つけた赤い花を撮影し、気分転換になったと投稿した。"
+          ],
+          "interaction_summary": "散歩中に見つけた赤い花を撮影し、気分転換になった投稿に、散歩での花との出会いや写真を見返す楽しさに触れて返信した。"
+        },
+        {
+          "follower_id": "test-miku",
+          "new_memories": [
+            "散歩中に見つけた赤い花を撮影した。"
+          ],
+          "interaction_summary": "散歩で赤い花を見つけて写真を撮り、気分転換になった投稿に、花の色と背景の組み合わせや写真の雰囲気が気になると返信した。"
+        },
+        {
+          "follower_id": "test-ren",
+          "new_memories": [
+            "散歩中に赤い花を見つけて写真を撮り、気分転換した。"
+          ],
+          "interaction_summary": "散歩で赤い花を見つけて撮影し、気分転換になった投稿に、花に足を止める感覚や写真を見返す楽しみについて返信した。"
+        }
+      ]
+    },
+    {
+      "case": "english",
+      "title": "英語の投稿",
+      "post": "I finally finished the presentation I was nervous about. My voice shook a little, but I got through it!",
+      "language": "en",
+      "model": "gpt-5.4-mini",
+      "repeat": 1,
+      "seed": 731,
+      "model_returned": "gpt-5.4-mini-2026-03-17",
+      "operation": "post_replies",
+      "input_tokens": 1890,
+      "output_tokens": 251,
+      "cached_tokens": 0,
+      "cache_write_tokens_reported": null,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 251,
+        "prompt_tokens": 1890,
+        "total_tokens": 2141,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "latency_ms": 1485,
+      "estimated_cost_usd": 0.002547,
+      "estimated_cost_lower_usd": 0.002547,
+      "estimated_cost_upper_usd": 0.002547,
+      "no_cache_standard_cost_usd": 0.002547,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "Maya",
+            "content": "That shaky voice part felt so real—getting through it anyway is the win.",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "Noah",
+            "content": "Classic nerves, though. Glad you made it.",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "Ken",
+            "content": "The voice shaking before a presentation is brutal. Still, you pushed through and finished it, which honestly matters more than sounding perfect the whole time.",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "Lia",
+            "content": "Good thing it’s over now.",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "Evan",
+            "content": "Finishing while nervous is the part people skip over, but it’s the hardest bit. Shaky voice or not, you still stood there and carried it through, and that counts.",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": []
+      },
+      "prompt_sha256": "63b6ccdc0b6a93ad326bfe2d151a708ca84be03e63da2dc692a0f3ad356a2516",
+      "replies": [
+        {
+          "author_name": "Noah",
+          "author_img": "https://picsum.photos/seed/user98/150/150",
+          "content": "Classic nerves, though. Glad you made it.",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "Maya",
+          "author_img": "https://picsum.photos/seed/user38/150/150",
+          "content": "That shaky voice part felt so real—getting through it anyway is the win.",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "Lia",
+          "author_img": "https://picsum.photos/seed/user59/150/150",
+          "content": "Good thing it’s over now.",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "Evan",
+          "author_img": "https://picsum.photos/seed/user80/150/150",
+          "content": "Finishing while nervous is the part people skip over, but it’s the hardest bit. Shaky voice or not, you still stood there and carried it through, and that counts.",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "Ken",
+          "author_img": "https://picsum.photos/seed/user63/150/150",
+          "content": "The voice shaking before a presentation is brutal. Still, you pushed through and finished it, which honestly matters more than sounding perfect the whole time.",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "english",
+      "title": "英語の投稿",
+      "post": "I finally finished the presentation I was nervous about. My voice shook a little, but I got through it!",
+      "language": "en",
+      "model": "gpt-6-luna",
+      "repeat": 1,
+      "seed": 731,
+      "model_returned": "gpt-6-luna",
+      "operation": "post_replies",
+      "input_tokens": 1890,
+      "output_tokens": 275,
+      "cached_tokens": 0,
+      "cache_write_tokens_reported": 1887,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 275,
+        "prompt_tokens": 1890,
+        "total_tokens": 2165,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0,
+          "cache_write_tokens": 1887
+        }
+      },
+      "latency_ms": 3081,
+      "estimated_cost_usd": 0.000373675,
+      "estimated_cost_lower_usd": 0.0003265,
+      "estimated_cost_upper_usd": 0.00037375,
+      "no_cache_standard_cost_usd": 0.0003265,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "Maya",
+            "content": "The shaky voice fading into “I got through it” is such a real little victory. Hope you’re letting yourself exhale now.",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "Daniel",
+            "content": "A little shaking and still finishing—that counts big time.",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "Kai",
+            "content": "Honestly, that’s like beating a boss with low health 😭 You were nervous, your voice shook, and you still got the presentation across. What was it about?",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "Ruth",
+            "content": "You got through the nerves and finished. Bet that feels lighter now.",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "Eli",
+            "content": "I remember my voice wobbling through a work presentation too; nobody cared nearly as much as I thought they would. Hope you can enjoy being done tonight instead of replaying every second.",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": []
+      },
+      "prompt_sha256": "63b6ccdc0b6a93ad326bfe2d151a708ca84be03e63da2dc692a0f3ad356a2516",
+      "replies": [
+        {
+          "author_name": "Daniel",
+          "author_img": "https://picsum.photos/seed/user98/150/150",
+          "content": "A little shaking and still finishing—that counts big time.",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "Maya",
+          "author_img": "https://picsum.photos/seed/user38/150/150",
+          "content": "The shaky voice fading into “I got through it” is such a real little victory. Hope you’re letting yourself exhale now.",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "Ruth",
+          "author_img": "https://picsum.photos/seed/user59/150/150",
+          "content": "You got through the nerves and finished. Bet that feels lighter now.",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "Eli",
+          "author_img": "https://picsum.photos/seed/user80/150/150",
+          "content": "I remember my voice wobbling through a work presentation too; nobody cared nearly as much as I thought they would. Hope you can enjoy being done tonight instead of replaying every second.",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "Kai",
+          "author_img": "https://picsum.photos/seed/user63/150/150",
+          "content": "Honestly, that’s like beating a boss with low health 😭 You were nervous, your voice shook, and you still got the presentation across. What was it about?",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "english",
+      "title": "英語の投稿",
+      "post": "I finally finished the presentation I was nervous about. My voice shook a little, but I got through it!",
+      "language": "en",
+      "model": "gpt-5.4-mini",
+      "repeat": 2,
+      "seed": 732,
+      "model_returned": "gpt-5.4-mini-2026-03-17",
+      "operation": "post_replies",
+      "input_tokens": 1890,
+      "output_tokens": 247,
+      "cached_tokens": 0,
+      "cache_write_tokens_reported": null,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 247,
+        "prompt_tokens": 1890,
+        "total_tokens": 2137,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "latency_ms": 1454,
+      "estimated_cost_usd": 0.002529,
+      "estimated_cost_lower_usd": 0.002529,
+      "estimated_cost_upper_usd": 0.002529,
+      "no_cache_standard_cost_usd": 0.002529,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "Mia",
+            "content": "That shaky voice detail is so real, but getting through the whole presentation anyway is the part that counts. I’d be relieved too after that.",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "Ben",
+            "content": "Honestly, finishing it while nervous is still a win. The shaking probably felt worse than it sounded.",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "Sora",
+            "content": "The voice shake part 😭",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "Grace",
+            "content": "Got through it—that matters.",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "Ethan",
+            "content": "That’s the kind of presentation people remember in a good way, because you kept going even while nervous. Next time will probably feel a little less scary after this one.",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": []
+      },
+      "prompt_sha256": "54852eb7210f675622b05c21fbf7ac332b627eacedb3e2dd172b9bcafac85208",
+      "replies": [
+        {
+          "author_name": "Grace",
+          "author_img": "https://picsum.photos/seed/user58/150/150",
+          "content": "Got through it—that matters.",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "Ethan",
+          "author_img": "https://picsum.photos/seed/user56/150/150",
+          "content": "That’s the kind of presentation people remember in a good way, because you kept going even while nervous. Next time will probably feel a little less scary after this one.",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "Sora",
+          "author_img": "https://picsum.photos/seed/user39/150/150",
+          "content": "The voice shake part 😭",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "Mia",
+          "author_img": "https://picsum.photos/seed/user33/150/150",
+          "content": "That shaky voice detail is so real, but getting through the whole presentation anyway is the part that counts. I’d be relieved too after that.",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "Ben",
+          "author_img": "https://picsum.photos/seed/user26/150/150",
+          "content": "Honestly, finishing it while nervous is still a win. The shaking probably felt worse than it sounded.",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "english",
+      "title": "英語の投稿",
+      "post": "I finally finished the presentation I was nervous about. My voice shook a little, but I got through it!",
+      "language": "en",
+      "model": "gpt-6-luna",
+      "repeat": 2,
+      "seed": 732,
+      "model_returned": "gpt-6-luna",
+      "operation": "post_replies",
+      "input_tokens": 1890,
+      "output_tokens": 265,
+      "cached_tokens": 0,
+      "cache_write_tokens_reported": 1887,
+      "reasoning_tokens": 0,
+      "usage": {
+        "completion_tokens": 265,
+        "prompt_tokens": 1890,
+        "total_tokens": 2155,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0,
+          "cache_write_tokens": 1887
+        }
+      },
+      "latency_ms": 2897,
+      "estimated_cost_usd": 0.000368675,
+      "estimated_cost_lower_usd": 0.0003215,
+      "estimated_cost_upper_usd": 0.00036875,
+      "no_cache_standard_cost_usd": 0.0003215,
+      "raw_generated": {
+        "replies": [
+          {
+            "author_name": "Mia",
+            "content": "getting through it even with your voice shaking is the real win 😭 presentations can feel so huge beforehand, and now you’ve got proof you can handle one!",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "Beth",
+            "content": "You finished the presentation, and that’s what matters. A shaky voice happens; I bet the nerves eased once you got going.",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "Frank",
+            "content": "A little shake, but you got through! Well done.",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "Jade",
+            "content": "did your voice settle by the end?",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          },
+          {
+            "author_name": "Nina",
+            "content": "That nervousness doesn’t cancel out the effort it took to stand there and finish. I remember my first big presentation; afterward, I was mostly relieved it was over.",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null
+          }
+        ],
+        "memory_updates": []
+      },
+      "prompt_sha256": "54852eb7210f675622b05c21fbf7ac332b627eacedb3e2dd172b9bcafac85208",
+      "replies": [
+        {
+          "author_name": "Jade",
+          "author_img": "https://picsum.photos/seed/user58/150/150",
+          "content": "did your voice settle by the end?",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "Nina",
+          "author_img": "https://picsum.photos/seed/user56/150/150",
+          "content": "That nervousness doesn’t cancel out the effort it took to stand there and finish. I remember my first big presentation; afterward, I was mostly relieved it was over.",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "Frank",
+          "author_img": "https://picsum.photos/seed/user39/150/150",
+          "content": "A little shake, but you got through! Well done.",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "Mia",
+          "author_img": "https://picsum.photos/seed/user33/150/150",
+          "content": "getting through it even with your voice shaking is the real win 😭 presentations can feel so huge beforehand, and now you’ve got proof you can handle one!",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "Beth",
+          "author_img": "https://picsum.photos/seed/user26/150/150",
+          "content": "You finished the presentation, and that’s what matters. A shaky voice happens; I bet the nerves eased once you got going.",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": []
+    }
+  ]
+}

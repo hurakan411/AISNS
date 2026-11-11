@@ -3,60 +3,162 @@ import PhotosUI
 
 struct StatsView: View {
     @EnvironmentObject var appState: AppState
-    
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 32) {
-                HStack(spacing: 12) {
-                    Image(systemName: "chart.line.uptrend.xyaxis").font(.largeTitle).foregroundColor(Theme.cyan)
-                    Text("統計").font(.title).fontWeight(.black).foregroundColor(.white)
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 24)
-                
-                HStack(spacing: 16) {
-                    StatCard(title: "フォロワー数", value: "\(appState.followers)", color: Theme.hotPink)
-                    StatCard(title: "承認ランク", value: "Lv.\(appState.currentRank)", color: Theme.cyan)
-                }
-                .padding(.horizontal, 24)
-                
-                HStack(spacing: 16) {
-                    StatCard(title: "累計投稿数", value: "\(appState.totalPosts)", color: Theme.lavender)
-                    let totalLikes = appState.posts.reduce(0) { $0 + $1.likes }
-                    StatCard(title: "累計いいね", value: "\(totalLikes)", color: Theme.hotPink)
-                    let totalReplies = appState.posts.reduce(0) { $0 + $1.replies.count }
-                    StatCard(title: "累計リプライ", value: "\(totalReplies)", color: Theme.purpleAccent)
-                }
-                .padding(.horizontal, 24)
-                
+    @State private var showsRankGuide = DesignPreview.argument("--ui-guide") == "true"
 
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("ランクステータス").font(.headline).foregroundColor(.gray).padding(.horizontal, 24)
-                    Text(appState.rankName).font(.title3).fontWeight(.bold).foregroundColor(Theme.cyan).padding(.horizontal, 24)
-                    
-                    if let nextRank = appState.nextRankFollowers {
-                        let diff = nextRank - appState.followers
-                        Text(appState.text("次のランクまであと **\(diff)** 人", "**\(diff)** followers to the next rank"))
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(.white.opacity(0.8))
-                            .padding(.horizontal, 24)
-                        
-                        ProgressView(value: Double(appState.followers), total: Double(nextRank))
-                            .tint(Theme.cyan)
-                            .padding(.horizontal, 24)
+    private var currentInfo: RankInfo { rankData[appState.currentRank - 1] }
+
+    var body: some View {
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(spacing: 0) {
+                    TactileHeader(title: "統計")
+
+                    VStack(spacing: 14) {
+                        RankProgressRing(rank: appState.currentRank,
+                                         progress: RankProgress.fraction(followers: appState.followers, rank: appState.currentRank))
+                            .frame(width: min(260, geometry.size.width * 0.60), height: min(260, geometry.size.width * 0.60))
+                            .padding(.top, 8)
+                            .padding(.bottom, 4)
+
+                        Text(appState.text("ランク \(appState.currentRank)", "Rank \(appState.currentRank)"))
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(StatsTheme.lavender)
+                            .padding(.horizontal, 12).padding(.vertical, 5)
+                            .background(StatsTheme.purpleAccent.opacity(0.14), in: Capsule())
+
+                        Text(LocalizedStringKey(currentInfo.name))
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        RankBenefits(info: currentInfo)
+                            .padding(.top, 14)
+                    }
+                    .padding(.horizontal, 24)
+
+                    statisticsSummary
+                        .padding(.horizontal, 24)
+                        .padding(.top, 30)
+
+                    Button { showsRankGuide = true } label: {
+                        HStack(spacing: 8) {
+                            Text(appState.text("ランク一覧を見る", "View all ranks"))
+                            Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold))
+                        }
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(StatsTheme.secondaryText)
+                        .frame(minHeight: 44)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(TactileButtonStyle())
+                    .accessibilityIdentifier("stats.rankGuide")
+                    .padding(.horizontal, 28)
+                    .padding(.top, 12)
+                    .padding(.bottom, 24)
+                }
+            }
+            .scrollIndicators(.hidden)
+            .refreshable { appState.fetchUser() }
+        }
+        .sheet(isPresented: $showsRankGuide) {
+            NavigationStack {
+                ScrollView { RankGuideSection(currentRank: appState.currentRank).padding(.bottom, 32) }
+                    .background(StatsTheme.bgDeepBlack)
+                    .navigationTitle(appState.text("ランク一覧", "All ranks"))
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("閉じる") { showsRankGuide = false }
+                                .tint(StatsTheme.hotPink)
+                        }
+                    }
+            }
+            .preferredColorScheme(.dark)
+        }
+    }
+
+    private var statisticsSummary: some View {
+        VStack(spacing: 22) {
+            HStack(alignment: .center, spacing: 16) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(appState.text("フォロワー", "Followers"))
+                        .font(.system(size: 12, weight: .medium)).foregroundStyle(StatsTheme.secondaryText)
+                    Text(appState.followers, format: .number.grouping(.automatic))
+                        .font(.system(size: 30, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white).contentTransition(.numericText())
+                        .lineLimit(1).minimumScaleFactor(0.65)
+                }
+                Spacer(minLength: 0)
+                VStack(alignment: .trailing, spacing: 8) {
+                    Text(appState.nextRankFollowers == nil ? appState.text("最高ランク", "Top rank") : appState.text("次のランクまで", "Next rank"))
+                        .font(.system(size: 11, weight: .medium)).foregroundStyle(StatsTheme.hotPink.opacity(0.85))
+                    if let next = appState.nextRankFollowers {
+                        Text(appState.text("あと\(max(0, next - appState.followers).formatted())人", "\(max(0, next - appState.followers).formatted()) to go"))
+                            .font(.system(size: 14, weight: .medium)).foregroundStyle(.white)
                     } else {
-                        Text("最高ランク到達済み").font(.subheadline).foregroundColor(.white.opacity(0.7)).padding(.horizontal, 24)
+                        Text("最高ランク到達済み").font(.system(size: 12)).foregroundStyle(.white)
                     }
                 }
-                .padding(.top, 16)
-
-                RankGuideSection(currentRank: appState.currentRank)
             }
-            .padding(.bottom, 40)
+            HStack(spacing: 12) {
+                summaryMetric(appState.text("いいね", "Likes"), value: appState.posts.reduce(0) { $0 + $1.likes })
+                summaryMetric(appState.text("返信", "Replies"), value: appState.posts.reduce(0) { $0 + $1.replies.count + $1.replyThreads.reduce(0) { $0 + $1.replies.filter { !$0.isUserReply }.count } })
+                summaryMetric(appState.text("累計投稿", "Total posts"), value: appState.totalPosts)
+            }
+            if appState.totalPosts > appState.posts.count {
+                Text(appState.text("いいね・返信は端末に保存された投稿の集計です", "Likes and replies reflect posts saved on this device."))
+                    .font(.system(size: 10)).foregroundStyle(StatsTheme.secondaryText)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
-        .refreshable {
-            appState.fetchUser()
+        .padding(22)
+        .background(StatsTheme.surfaceGradient, in: RoundedRectangle(cornerRadius: 34, style: .continuous))
+    }
+
+    private func summaryMetric(_ title: String, value: Int) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(title).font(.system(size: 11)).foregroundStyle(StatsTheme.secondaryText)
+            Text(value, format: .number.grouping(.automatic))
+                .font(.system(size: 20, weight: .medium, design: .rounded))
+                .foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.6)
+                .contentTransition(.numericText())
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct RankBenefits: View {
+    @EnvironmentObject private var appState: AppState
+    let info: RankInfo
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            benefit("heart", title: appState.text("いいね / 投稿", "Likes / post"), value: likesRange)
+            benefit("bubble.left", title: appState.text("返信 / 投稿", "Replies / post"), value: appState.text(info.replies, info.replies.replacingOccurrences(of: "〜", with: "–")))
+            benefit("star", title: appState.text("常連枠", "Regular slots"), value: appState.text("\(info.regularFollowerLimit)人", "\(info.regularFollowerLimit)"))
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityHint(appState.text("いいねと返信は1投稿あたりの目安です", "Likes and replies are estimates per post."))
+    }
+
+    private var likesRange: String {
+        info.likes.components(separatedBy: "〜").map { part in
+            guard let number = Int(part.replacingOccurrences(of: ",", with: "")), number >= 10_000 else { return part }
+            return number.formatted(.number.notation(.compactName).locale(appState.locale))
+        }.joined(separator: appState.text("〜", "–"))
+    }
+
+    private func benefit(_ icon: String, title: String, value: String) -> some View {
+        VStack(spacing: 7) {
+            Image(systemName: icon).font(.system(size: 18, weight: .regular))
+                .foregroundStyle(StatsTheme.hotPink.opacity(0.75))
+            Text(title).font(.system(size: 10)).foregroundStyle(StatsTheme.secondaryText)
+            Text(value).font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.65)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -112,9 +214,12 @@ struct RankGuideSection: View {
 
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
+                        RankArtwork(rank: info.level)
+                            .frame(width: 44, height: 44)
+                            .opacity(isHidden ? 0.12 : 1)
                         Text("Lv.\(info.level)")
                             .font(.system(size: 14, weight: .black, design: .monospaced))
-                            .foregroundColor(isCurrent ? Theme.hotPink : (isNext ? Theme.cyan : (isPast ? Theme.cyan : .gray.opacity(0.3))))
+                            .foregroundColor(isCurrent ? StatsTheme.hotPink : (isNext ? StatsTheme.cyan : (isPast ? StatsTheme.cyan : .gray.opacity(0.3))))
                         Text(isHidden ? LocalizedStringKey("？？？") : LocalizedStringKey(info.name))
                             .font(.system(size: 14, weight: .bold))
                             .foregroundColor(isCurrent ? .white : (isNext ? .white.opacity(0.8) : (isPast ? .white.opacity(0.8) : .gray.opacity(0.3))))
@@ -125,21 +230,21 @@ struct RankGuideSection: View {
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
-                                .background(Theme.hotPink)
+                                .background(StatsTheme.hotPink)
                                 .cornerRadius(6)
                         } else if isNext {
                             Text("NEXT")
                                 .font(.system(size: 10, weight: .black))
-                                .foregroundColor(Theme.cyan)
+                                .foregroundColor(StatsTheme.cyan)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
-                                .background(Theme.cyan.opacity(0.15))
+                                .background(StatsTheme.cyan.opacity(0.15))
                                 .cornerRadius(6)
-                                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.cyan.opacity(0.3), lineWidth: 1))
+                                .overlay(RoundedRectangle(cornerRadius: 6).stroke(StatsTheme.cyan.opacity(0.3), lineWidth: 1))
                         }
                     }
 
-                    HStack(spacing: 16) {
+                    VStack(alignment: .leading, spacing: 8) {
                         RankDetailLabel(icon: "person.2.fill", text: isHidden ? "???" : info.followers, dimmed: isHidden)
                         RankDetailLabel(icon: "bubble.left.fill", text: isHidden ? "???" : info.replies, dimmed: isHidden)
                         RankDetailLabel(icon: "heart.fill", text: isHidden ? "???" : info.likes, dimmed: isHidden)
@@ -165,13 +270,13 @@ struct RankGuideSection: View {
                 .padding(16)
                 .background(
                     isCurrent
-                        ? Theme.hotPink.opacity(0.08)
-                        : (isNext ? Theme.cyan.opacity(0.04) : Color.white.opacity(isHidden ? 0.008 : 0.03))
+                        ? StatsTheme.hotPink.opacity(0.08)
+                        : (isNext ? StatsTheme.cyan.opacity(0.04) : Color.white.opacity(isHidden ? 0.008 : 0.03))
                 )
-                .cornerRadius(16)
+                .cornerRadius(22)
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .stroke(isCurrent ? Theme.hotPink.opacity(0.3) : (isNext ? Theme.cyan.opacity(0.15) : Color.clear), lineWidth: 1)
+                        .stroke(isCurrent ? StatsTheme.hotPink.opacity(0.3) : (isNext ? StatsTheme.cyan.opacity(0.15) : Color.clear), lineWidth: 1)
                 )
             }
         }
@@ -189,7 +294,7 @@ struct RankDetailLabel: View {
         HStack(spacing: 4) {
             Image(systemName: icon)
                 .font(.system(size: 10))
-                .foregroundColor(dimmed ? .gray.opacity(0.3) : Theme.cyan.opacity(0.7))
+                .foregroundColor(dimmed ? .gray.opacity(0.3) : StatsTheme.cyan.opacity(0.7))
             Text(text)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundColor(dimmed ? .gray.opacity(0.3) : .white.opacity(0.6))
@@ -281,6 +386,7 @@ struct ProfileView: View {
                         Task {
                             if let data = try? await newItem?.loadTransferable(type: Data.self) {
                                 DispatchQueue.main.async {
+                                    guard selectedItem == newItem else { return }
                                     appState.userAvatarData = data
                                 }
                             }
@@ -597,7 +703,7 @@ struct ProfileView: View {
                         .foregroundColor(.gray)
                         .tracking(2)
 
-                    Link(destination: URL(string: "https://docs.google.com/forms/d/e/1FAIpQLSc4bsVO9vTgucDU0w-RviLQK4Ap1tQxD45JlZ4OZplu35ouRw/viewform?hl=ja")!) {
+                    Link(destination: URL(string: "https://docs.google.com/forms/d/e/1FAIpQLSc4bsVO9vTgucDU0w-RviLQK4Ap1tQxD45JlZ4OZplu35ouRw/viewform?hl=\(appState.appLanguage == .japanese ? "ja" : "en")")!) {
                         HStack(spacing: 12) {
                             Image(systemName: "envelope.fill")
                                 .foregroundColor(Theme.hotPink)

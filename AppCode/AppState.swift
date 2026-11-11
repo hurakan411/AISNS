@@ -121,6 +121,7 @@ struct ReplyThread: Identifiable, Equatable, Codable {
 
 struct PostModel: Identifiable, Codable {
     var id: UUID
+    var isOnboarding: Bool
     let content: String
     var imageData: Data?
     var likes: Int
@@ -135,9 +136,11 @@ struct PostModel: Identifiable, Codable {
         likes: Int,
         replies: [Reply],
         replyThreads: [ReplyThread] = [],
+        isOnboarding: Bool = false,
         time: String
     ) {
         self.id = id
+        self.isOnboarding = isOnboarding
         self.content = content
         self.imageData = imageData
         self.likes = likes
@@ -147,12 +150,13 @@ struct PostModel: Identifiable, Codable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, content, imageData, likes, replies, replyThreads, time
+        case id, isOnboarding, content, imageData, likes, replies, replyThreads, time
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        isOnboarding = try container.decodeIfPresent(Bool.self, forKey: .isOnboarding) ?? false
         content = try container.decode(String.self, forKey: .content)
         imageData = try container.decodeIfPresent(Data.self, forKey: .imageData)
         likes = try container.decodeIfPresent(Int.self, forKey: .likes) ?? 0
@@ -164,6 +168,7 @@ struct PostModel: Identifiable, Codable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
+        try container.encode(isOnboarding, forKey: .isOnboarding)
         try container.encode(content, forKey: .content)
         try container.encodeIfPresent(imageData, forKey: .imageData)
         try container.encode(likes, forKey: .likes)
@@ -197,6 +202,13 @@ private func jsonReplyBool(_ r: [String: Any], snake: String, camel: String) -> 
     return parseJSONBool(r[camel])
 }
 
+private enum OnboardingReplyFetchError: String, Error {
+    case invalidURL = "invalid_url"
+    case network
+    case invalidResponse = "invalid_response"
+    case emptyReplies = "empty_replies"
+}
+
 class AppState: ObservableObject {
     @Published var appLanguage: AppLanguage = {
         guard let saved = UserDefaults.standard.string(forKey: "appLanguage"),
@@ -206,6 +218,7 @@ class AppState: ObservableObject {
         return language
     }() {
         didSet {
+            guard !DesignPreview.isActive else { return }
             UserDefaults.standard.set(appLanguage.rawValue, forKey: "appLanguage")
             if userName == oldValue.defaultUserName {
                 userName = appLanguage.defaultUserName
@@ -235,7 +248,7 @@ class AppState: ObservableObject {
     }
     
     @Published var hasCompletedOnboarding: Bool = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
-        didSet { UserDefaults.standard.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding") }
+        didSet { if !DesignPreview.isActive { UserDefaults.standard.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding") } }
     }
     @Published var onboardingStatusReady: Bool = false
     @Published var isInOnboarding: Bool = false
@@ -246,23 +259,28 @@ class AppState: ObservableObject {
     @Published private(set) var loadingReplyThreadIDs: Set<UUID> = []
     @Published var replyErrorMessage: String?
     @Published var onboardingFirstReplyReceived: Bool = false
+    @Published private(set) var onboardingReplyError: String?
     
     // オンボーディング用プリフェッチ
     private var prefetchedOnboardingReplies: [Reply] = []
+    private var onboardingPostFlowID: UUID?
+    @Published private(set) var onboardingRepliesRequestInFlight = false
+    private var onboardingRepliesResponseFlowID: UUID?
     @Published var prefetchedOnboardingText: String = ""
     
     @Published var userName: String = UserDefaults.standard.string(forKey: "userName") ?? AppLanguage.deviceDefault.defaultUserName {
-        didSet { UserDefaults.standard.set(userName, forKey: "userName") }
+        didSet { if !DesignPreview.isActive { UserDefaults.standard.set(userName, forKey: "userName") } }
     }
     @Published var userAvatarData: Data? = nil {
         didSet { saveAvatar() }
     }
     @Published var userBio: String = UserDefaults.standard.string(forKey: "userBio") ?? AppLanguage.deviceDefault.defaultBio {
-        didSet { UserDefaults.standard.set(userBio, forKey: "userBio") }
+        didSet { if !DesignPreview.isActive { UserDefaults.standard.set(userBio, forKey: "userBio") } }
     }
     
     @Published var isHaterEnabled: Bool = UserDefaults.standard.object(forKey: "isHaterEnabled") as? Bool ?? true {
         didSet {
+            guard !DesignPreview.isActive else { return }
             UserDefaults.standard.set(isHaterEnabled, forKey: "isHaterEnabled")
         }
     }
@@ -310,7 +328,29 @@ class AppState: ObservableObject {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("regular_followers_v1.json")
     }
 
-    init() { 
+    init(restorePersistedState: Bool = true) {
+        guard restorePersistedState else {
+            onboardingStatusReady = true
+            return
+        }
+        #if DEBUG && targetEnvironment(simulator)
+        if DesignPreview.isActive {
+            appLanguage = DesignPreview.argument("--ui-language") == "en" ? .english : .japanese
+            hasCompletedOnboarding = true
+            onboardingStatusReady = true
+            userName = text("おんざべ", "Onzabe")
+            userBio = text("何気ない日も、ここに残していこう。", "A little space for my everyday moments.")
+            let rank = min(10, max(1, Int(DesignPreview.argument("--ui-rank") ?? "3") ?? 3))
+            followers = rank == 3 ? 1_482 : RankProgress.thresholds[rank - 1]
+            totalPosts = 2
+            let first = Reply(authorName: text("ゆき", "Yuki"), text: text("おつかれさま。今日はゆっくり休んでね。", "You made it through today. Hope you get a little time to rest."), img: avatars[0], isHater: false, isDefender: false, regularFollowerId: "preview-yuki")
+            let second = Reply(authorName: text("れん", "Ren"), text: text("帰り道に寄り道する時間、いいよね。", "Those little detours on the way home are the best."), img: avatars[1], isHater: false, isDefender: false)
+            regularFollowers = [RegularFollower(id: "preview-yuki", authorName: first.authorName, avatarURL: first.img, memories: [], recentInteractions: [text("今日のできごとを話しました", "Talked about your day")], createdAt: Date(), lastInteractionAt: nil)]
+            posts = [PostModel(content: text("今日も一日、がんばった。", "Made it through another day."), imageData: nil, likes: 128, replies: [first, second], time: text("今", "Now")), PostModel(content: text("帰り道、ちょっと寄り道。", "A little detour on the way home."), imageData: nil, likes: 256, replies: [], time: text("昨日", "Yesterday"))]
+            if DesignPreview.argument("--ui-empty") == "true" { posts = []; totalPosts = 0 }
+            return
+        }
+        #endif
         let bio = UserDefaults.standard.string(forKey: "userBio") ?? ""
         if bio.contains("ZEN-KOTEI") || bio.contains("全肯定") {
             let newBio = appLanguage.defaultBio
@@ -365,6 +405,7 @@ class AppState: ObservableObject {
     }
     
     private func savePosts() {
+        guard !DesignPreview.isActive else { return }
         let trimmed = Array(posts.prefix(5))
         if posts.count > 5 { posts = trimmed }
         if let data = try? JSONEncoder().encode(trimmed) {
@@ -380,6 +421,7 @@ class AppState: ObservableObject {
     }
     
     private func saveAvatar() {
+        guard !DesignPreview.isActive else { return }
         if let data = userAvatarData {
             try? data.write(to: avatarURL)
         } else {
@@ -396,6 +438,7 @@ class AppState: ObservableObject {
     }
 
     private func saveRegularFollowers() {
+        guard !DesignPreview.isActive else { return }
         if let data = try? JSONEncoder().encode(regularFollowers) {
             try? data.write(to: regularFollowersURL, options: .atomic)
         }
@@ -508,20 +551,24 @@ class AppState: ObservableObject {
     
     /// fakeCompose投稿時点でAIにリクエストを送り、返信を事前取得しておく
     func prefetchOnboardingReplies(text: String) {
+        guard !onboardingRepliesRequestInFlight else { return }
         prefetchedOnboardingText = text
         prefetchedOnboardingReplies = []
-        UPMEAnalytics.capture("onboarding_post_submitted")
-        // is_onboarding=true で送信（オンボ専用プロンプト）
-        fetchAiRepliesBackground(content: text, followers: 20_000_000) { [weak self] replies in
-            guard let self = self else { return }
-            self.prefetchedOnboardingReplies = replies
-        }
+        let postFlowID = UUID()
+        onboardingPostFlowID = postFlowID
+        onboardingRepliesResponseFlowID = nil
+        UPMEAnalytics.capture("onboarding_post_submitted", properties: [
+            "post_flow_id": postFlowID.uuidString.lowercased()
+        ])
+        loadOnboardingReplies(content: text, postFlowID: postFlowID)
     }
     
     func submitOnboardingPost(text: String) {
         isInOnboarding = true
         onboardingFirstReplyReceived = false
-        let newPost = PostModel(content: text, imageData: nil, likes: 0, replies: [], time: self.text("今", "Now"))
+        let postFlowID = onboardingPostFlowID ?? UUID()
+        onboardingPostFlowID = postFlowID
+        let newPost = PostModel(id: postFlowID, content: text, imageData: nil, likes: 0, replies: [], isOnboarding: true, time: self.text("今", "Now"))
         posts = [newPost]
         
         let targetFollowers = Int.random(in: 150000...300000)
@@ -545,18 +592,54 @@ class AppState: ObservableObject {
             self.followers = Int(Double(targetFollowers) * p)
         }
         
-        if !prefetchedOnboardingReplies.isEmpty {
-            // プリフェッチ済み返信をそのまま使う
+        if onboardingRepliesResponseFlowID == postFlowID {
+            // 取得に成功したプリフェッチ結果だけを再利用する。
             let replies = prefetchedOnboardingReplies
             prefetchedOnboardingReplies = []
             pendingReplies = replies
-            startReplyDrainTimer()
+            startReplyDrainTimer(postFlowID: postFlowID, isOnboarding: true)
+        } else if onboardingRepliesRequestInFlight {
+            // プリフェッチが進行中。完了時のコールバックが返信表示を開始する。
+            return
         } else {
-            // まだ取得中ならそのまま待つ（fetchAiRepliesBackgroundのコールバックで自動反映）
-            fetchAiRepliesBackground(content: text, followers: 20_000_000) { [weak self] replies in
-                guard let self = self else { return }
-                self.pendingReplies = replies
-                self.startReplyDrainTimer()
+            loadOnboardingReplies(content: text, postFlowID: postFlowID)
+        }
+    }
+
+    func retryOnboardingReplies() {
+        guard isInOnboarding,
+              !onboardingRepliesRequestInFlight,
+              let post = posts.first, post.isOnboarding else { return }
+        loadOnboardingReplies(content: post.content, postFlowID: post.id)
+    }
+
+    private func loadOnboardingReplies(content: String, postFlowID: UUID) {
+        guard !onboardingRepliesRequestInFlight else { return }
+        onboardingRepliesRequestInFlight = true
+        onboardingReplyError = nil
+        onboardingRepliesResponseFlowID = nil
+        fetchAiRepliesBackground(content: content, followers: 20_000_000, postFlowID: postFlowID) { [weak self] result in
+            guard let self = self, self.onboardingPostFlowID == postFlowID else { return }
+            self.onboardingRepliesRequestInFlight = false
+            switch result {
+            case .success(let replies):
+                self.prefetchedOnboardingReplies = replies
+                self.onboardingRepliesResponseFlowID = postFlowID
+                if self.isInOnboarding && self.posts.first?.id == postFlowID {
+                    self.pendingReplies = replies
+                    self.prefetchedOnboardingReplies = []
+                    self.startReplyDrainTimer(postFlowID: postFlowID, isOnboarding: true)
+                }
+            case .failure:
+                self.prefetchedOnboardingReplies = []
+                self.onboardingRepliesResponseFlowID = nil
+                self.onboardingReplyError = self.text(
+                    "AIの返信を取得できませんでした。もう一度試すか、このまま始められます。",
+                    "Couldn't load AI replies. You can try again or continue to UPME."
+                )
+                if self.isInOnboarding && self.posts.first?.id == postFlowID {
+                    self.likeTimer?.cancel()
+                }
             }
         }
     }
@@ -570,23 +653,41 @@ class AppState: ObservableObject {
         followers = 0
         totalPosts = 1
         hasCompletedOnboarding = true
-        UPMEAnalytics.capture("onboarding_completed", properties: [
-            "rank": currentRank
-        ])
+        UPMEAnalytics.seedPostCount(userID: userId, totalPosts: 1)
+        var properties: [String: Any] = [
+            "rank": currentRank,
+            "ai_reply_status": onboardingReplyError != nil ? "failed" : (onboardingFirstReplyReceived ? "received" : "pending")
+        ]
+        if let postFlowID = posts.first(where: \.isOnboarding)?.id.uuidString.lowercased() {
+            properties["post_flow_id"] = postFlowID
+        }
+        UPMEAnalytics.capture("onboarding_completed", properties: properties)
+        onboardingPostFlowID = nil
+        onboardingRepliesRequestInFlight = false
+        onboardingReplyError = nil
+        savePosts()
         syncUser(includeOnboarding: true)
     }
     
     func submitPost(text: String, imageData: Data? = nil) {
+        if DesignPreview.isActive {
+            posts.insert(PostModel(content: text, imageData: imageData, likes: 0, replies: [], time: self.text("今", "Now")), at: 0)
+            totalPosts += 1
+            return
+        }
         let newPost = PostModel(content: text, imageData: imageData, likes: 0, replies: [], time: self.text("今", "Now"))
         posts.insert(newPost, at: 0)
         
         let rank = currentRank
+        var postProperties = UPMEAnalytics.recordNormalPost(userID: userId)
         totalPosts += 1
-        UPMEAnalytics.capture("post_created", properties: [
+        postProperties.merge([
+            "post_flow_id": newPost.id.uuidString.lowercased(),
             "has_image": imageData != nil,
             "rank": rank,
             "regular_count": regularFollowers.count
-        ])
+        ], uniquingKeysWith: { _, new in new })
+        UPMEAnalytics.capture("post_created", properties: postProperties)
         
         // 確定した「累計〇回で昇格」を実現するため、必要な平均獲得フォロワー数を逆算して設定
         let totalFollowers: Int
@@ -614,13 +715,14 @@ class AppState: ObservableObject {
         buzzCurrentReply = 0
 
         // 実APIへ生成リクエスト
-        requestAiReplies(content: text, imageData: imageData, followers: self.followers)
+        requestAiReplies(content: text, imageData: imageData, followers: self.followers, postFlowID: newPost.id)
         savePosts()
     }
     
     // Debugは本番Renderへ影響しない開発Renderを使用する。
     // Xcode Schemeの UPME_API_BASE_URL でローカルAPI等へ上書き可能。
     private static let baseUrl: String = {
+        if DesignPreview.isActive { return "http://127.0.0.1:9" }
         if let override = ProcessInfo.processInfo.environment["UPME_API_BASE_URL"], !override.isEmpty {
             return override.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         }
@@ -635,6 +737,7 @@ class AppState: ObservableObject {
     private let userApiUrl = "\(baseUrl)/api/users"
     
     let userId: String = {
+        if DesignPreview.isActive { return "design-preview" }
         if let stored = UserDefaults.standard.string(forKey: "userId") {
             return stored
         } else {
@@ -645,15 +748,20 @@ class AppState: ObservableObject {
     }()
     
     func fetchUser() {
+        guard !DesignPreview.isActive else { return }
         guard let url = URL(string: "\(userApiUrl)/\(userId)") else { return }
         var request = URLRequest(url: url)
         request.cachePolicy = .reloadIgnoringLocalCacheData
-        URLSession.shared.dataTask(with: request) { [weak self] data, _, _ in
-            guard let self = self, let data = data else { return }
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            guard let self = self, error == nil,
+                  let status = (response as? HTTPURLResponse)?.statusCode, (200..<300).contains(status),
+                  let data = data else { return }
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let totalPosts = json["total_posts"] as? Int, totalPosts >= 0 {
                 DispatchQueue.main.async {
                     self.followers = json["total_followers"] as? Int ?? 0
-                    self.totalPosts = json["total_posts"] as? Int ?? 0
+                    self.totalPosts = max(self.totalPosts, totalPosts)
+                    UPMEAnalytics.seedPostCount(userID: self.userId, totalPosts: totalPosts)
                     // hasCompletedOnboarding はここでは更新しない
                     //（onboarding判定は registerUser() が唯一の責務）
                 }
@@ -780,6 +888,7 @@ class AppState: ObservableObject {
         if pending.isEmpty {
             loadingReplyThreadIDs.remove(targetReplyID)
             UPMEAnalytics.capture("ai_thread_replies_displayed", properties: [
+                "post_flow_id": postID.uuidString.lowercased(),
                 "reply_count": 1,
                 "is_regular": nextReply.regularFollowerId != nil
             ])
@@ -844,6 +953,7 @@ class AppState: ObservableObject {
         }
         onStarted()
         UPMEAnalytics.capture("user_reply_submitted", properties: [
+            "post_flow_id": postID.uuidString.lowercased(),
             "is_regular": regularFollowers.contains { follower in
                 if let regularID = reply.regularFollowerId { return follower.id == regularID }
                 return follower.authorName == reply.authorName && follower.avatarURL == reply.img
@@ -893,6 +1003,7 @@ class AppState: ObservableObject {
             ]
         }
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        let replyRequestStartedAt = Date()
 
         URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             guard let self = self else { return }
@@ -901,7 +1012,11 @@ class AppState: ObservableObject {
                 DispatchQueue.main.async {
                     self.isSubmittingUserReply = false
                     self.failReplyThread(postID: postID, targetReplyID: reply.id, message: self.text("通信状態を確認して、もう一度お試しください。", "Check your connection and try again."))
-                    UPMEAnalytics.capture("user_reply_failed", properties: ["reason": "network"])
+                    UPMEAnalytics.capture("user_reply_failed", properties: [
+                        "post_flow_id": postID.uuidString.lowercased(),
+                        "reason": "network",
+                        "duration_ms": Int(Date().timeIntervalSince(replyRequestStartedAt) * 1_000)
+                    ])
                     completion(false)
                 }
                 return
@@ -913,7 +1028,11 @@ class AppState: ObservableObject {
                 DispatchQueue.main.async {
                     self.isSubmittingUserReply = false
                     self.failReplyThread(postID: postID, targetReplyID: reply.id, message: self.text("AIから返信を取得できませんでした。", "Could not get replies from the AI."))
-                    UPMEAnalytics.capture("user_reply_failed", properties: ["reason": "invalid_response"])
+                    UPMEAnalytics.capture("user_reply_failed", properties: [
+                        "post_flow_id": postID.uuidString.lowercased(),
+                        "reason": "invalid_response",
+                        "duration_ms": Int(Date().timeIntervalSince(replyRequestStartedAt) * 1_000)
+                    ])
                     completion(false)
                 }
                 return
@@ -928,7 +1047,11 @@ class AppState: ObservableObject {
                 DispatchQueue.main.async {
                     self.isSubmittingUserReply = false
                     self.failReplyThread(postID: postID, targetReplyID: reply.id, message: self.text("AIから返信を取得できませんでした。", "Could not get replies from the AI."))
-                    UPMEAnalytics.capture("user_reply_failed", properties: ["reason": "missing_replies"])
+                    UPMEAnalytics.capture("user_reply_failed", properties: [
+                        "post_flow_id": postID.uuidString.lowercased(),
+                        "reason": "missing_replies",
+                        "duration_ms": Int(Date().timeIntervalSince(replyRequestStartedAt) * 1_000)
+                    ])
                     completion(false)
                 }
                 return
@@ -972,6 +1095,8 @@ class AppState: ObservableObject {
                 self.pendingReplyThreadReplies[reply.id] = followUps
                 self.isSubmittingUserReply = false
                 UPMEAnalytics.capture("ai_thread_reply_received", properties: [
+                    "post_flow_id": postID.uuidString.lowercased(),
+                    "duration_ms": Int(Date().timeIntervalSince(replyRequestStartedAt) * 1_000),
                     "reply_count": followUps.count,
                     "regular_reply_count": followUps.filter { $0.regularFollowerId != nil }.count
                 ])
@@ -985,11 +1110,13 @@ class AppState: ObservableObject {
         }.resume()
     }
 
-    private func requestAiReplies(content: String, imageData: Data?, followers: Int) {
+    private func requestAiReplies(content: String, imageData: Data?, followers: Int, postFlowID: UUID) {
         pendingReplies = []
         isRequestingReplies = true
         replyErrorMessage = nil
+        let requestStartedAt = Date()
         UPMEAnalytics.capture("ai_replies_request_started", properties: [
+            "post_flow_id": postFlowID.uuidString.lowercased(),
             "has_image": imageData != nil,
             "is_onboarding": isInOnboarding,
             "regular_count": regularFollowers.count
@@ -998,6 +1125,12 @@ class AppState: ObservableObject {
         guard let url = URL(string: apiUrl) else {
             isRequestingReplies = false
             replyErrorMessage = text("AI返信の接続先を確認できませんでした。", "The AI reply endpoint could not be resolved.")
+            UPMEAnalytics.capture("ai_replies_failed", properties: [
+                "post_flow_id": postFlowID.uuidString.lowercased(),
+                "reason": "invalid_url",
+                "is_onboarding": isInOnboarding,
+                "duration_ms": 0
+            ])
             return
         }
         var request = URLRequest(url: url)
@@ -1030,8 +1163,10 @@ class AppState: ObservableObject {
                     self?.isRequestingReplies = false
                     self?.replyErrorMessage = self?.text("AI返信を取得できませんでした。通信状態を確認して、もう一度お試しください。", "Could not load AI replies. Check your connection and try again.")
                     UPMEAnalytics.capture("ai_replies_failed", properties: [
+                        "post_flow_id": postFlowID.uuidString.lowercased(),
                         "reason": "network",
-                        "is_onboarding": self?.isInOnboarding ?? false
+                        "is_onboarding": self?.isInOnboarding ?? false,
+                        "duration_ms": Int(Date().timeIntervalSince(requestStartedAt) * 1_000)
                     ])
                 }
                 return
@@ -1041,6 +1176,12 @@ class AppState: ObservableObject {
                     self?.debugText = "NO DATA"
                     self?.isRequestingReplies = false
                     self?.replyErrorMessage = self?.text("AI返信のデータを受信できませんでした。もう一度お試しください。", "No AI reply data was received. Please try again.")
+                    UPMEAnalytics.capture("ai_replies_failed", properties: [
+                        "post_flow_id": postFlowID.uuidString.lowercased(),
+                        "reason": "missing_data",
+                        "is_onboarding": false,
+                        "duration_ms": Int(Date().timeIntervalSince(requestStartedAt) * 1_000)
+                    ])
                 }
                 return
             }
@@ -1066,12 +1207,14 @@ class AppState: ObservableObject {
                         pending.append(Reply(authorName: author, text: content, img: img, isHater: isHater, isDefender: isDefender, regularFollowerId: regularFollowerID))
                     }
                     UPMEAnalytics.capture("ai_replies_received", properties: [
+                        "post_flow_id": postFlowID.uuidString.lowercased(),
+                        "duration_ms": Int(Date().timeIntervalSince(requestStartedAt) * 1_000),
                         "reply_count": pending.count,
                         "regular_reply_count": pending.filter { $0.regularFollowerId != nil }.count,
                         "is_onboarding": self.isInOnboarding
                     ])
                     self.pendingReplies = pending
-                    self.startReplyDrainTimer()
+                    self.startReplyDrainTimer(postFlowID: postFlowID, isOnboarding: false)
                 }
             } else {
                 DispatchQueue.main.async {
@@ -1079,16 +1222,47 @@ class AppState: ObservableObject {
                     self.isRequestingReplies = false
                     self.replyErrorMessage = self.text("AI返信を読み込めませんでした。しばらくしてから、もう一度お試しください。", "AI replies could not be loaded. Please try again later.")
                     UPMEAnalytics.capture("ai_replies_failed", properties: [
+                        "post_flow_id": postFlowID.uuidString.lowercased(),
                         "reason": "invalid_response",
-                        "is_onboarding": self.isInOnboarding
+                        "is_onboarding": self.isInOnboarding,
+                        "duration_ms": Int(Date().timeIntervalSince(requestStartedAt) * 1_000)
                     ])
                 }
             }
         }.resume()
     }
     
-    private func fetchAiRepliesBackground(content: String, followers: Int, retryCount: Int = 0, completion: @escaping ([Reply]) -> Void) {
-        guard let url = URL(string: apiUrl) else { return }
+    private func fetchAiRepliesBackground(
+        content: String,
+        followers: Int,
+        postFlowID: UUID,
+        retryCount: Int = 0,
+        requestStartedAt: Date? = nil,
+        completion: @escaping (Result<[Reply], OnboardingReplyFetchError>) -> Void
+    ) {
+        let requestStartedAt = requestStartedAt ?? Date()
+        let fail: (OnboardingReplyFetchError) -> Void = { failure in
+            UPMEAnalytics.capture("ai_replies_failed", properties: [
+                "post_flow_id": postFlowID.uuidString.lowercased(),
+                "reason": failure.rawValue,
+                "is_onboarding": true,
+                "retry_count": retryCount,
+                "duration_ms": Int(Date().timeIntervalSince(requestStartedAt) * 1_000)
+            ])
+            DispatchQueue.main.async { completion(.failure(failure)) }
+        }
+        if retryCount == 0 {
+            UPMEAnalytics.capture("ai_replies_request_started", properties: [
+                "post_flow_id": postFlowID.uuidString.lowercased(),
+                "has_image": false,
+                "is_onboarding": true,
+                "regular_count": 0
+            ])
+        }
+        guard let url = URL(string: apiUrl) else {
+            fail(.invalidURL)
+            return
+        }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -1113,16 +1287,22 @@ class AppState: ObservableObject {
                 // ネットワーク切断などは2回までリトライ
                 if retryCount < 2 {
                     DispatchQueue.global().asyncAfter(deadline: .now() + 3.0) {
-                        self.fetchAiRepliesBackground(content: content, followers: followers, retryCount: retryCount + 1, completion: completion)
+                        self.fetchAiRepliesBackground(content: content, followers: followers, postFlowID: postFlowID, retryCount: retryCount + 1, requestStartedAt: requestStartedAt, completion: completion)
                     }
+                } else {
+                    fail(.network)
                 }
                 return
             }
             
-            guard let data = data,
+            guard let status = (response as? HTTPURLResponse)?.statusCode, (200..<300).contains(status),
+                  let data = data,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let st = json["status"] as? String, st == "success",
-                  let repliesJson = json["replies"] as? [[String: Any]] else { return }
+                  let repliesJson = json["replies"] as? [[String: Any]] else {
+                fail(.invalidResponse)
+                return
+            }
             
             var replies: [Reply] = []
             for r in repliesJson {
@@ -1134,16 +1314,22 @@ class AppState: ObservableObject {
                 let regularFollowerID = r["regular_follower_id"] as? String
                 replies.append(Reply(authorName: author, text: content, img: img, isHater: isHater, isDefender: isDefender, regularFollowerId: regularFollowerID))
             }
+            guard !replies.isEmpty else {
+                fail(.emptyReplies)
+                return
+            }
             UPMEAnalytics.capture("ai_replies_received", properties: [
+                "post_flow_id": postFlowID.uuidString.lowercased(),
+                "duration_ms": Int(Date().timeIntervalSince(requestStartedAt) * 1_000),
                 "reply_count": replies.count,
                 "regular_reply_count": replies.filter { $0.regularFollowerId != nil }.count,
                 "is_onboarding": true
             ])
-            DispatchQueue.main.async { completion(replies) }
+            DispatchQueue.main.async { completion(.success(replies)) }
         }.resume()
     }
     
-    private func startReplyDrainTimer() {
+    private func startReplyDrainTimer(postFlowID: UUID, isOnboarding: Bool) {
         replyTimer?.cancel()
         likeTimer?.cancel()
         
@@ -1152,7 +1338,7 @@ class AppState: ObservableObject {
         
         buzzTotalReplies = count
         buzzCurrentReply = 0
-        if isInOnboarding { onboardingExpectedReplies = count }
+        if isOnboarding { onboardingExpectedReplies = count }
         
         // リプライの推定所要時間を計算（1件目は即時、残りは10〜30秒 → 平均20秒）
         let estimatedDuration = Double(max(count - 1, 1)) * 20.0
@@ -1178,7 +1364,7 @@ class AppState: ObservableObject {
             guard !self.pendingReplies.isEmpty, !self.posts.isEmpty else { return }
             
             let reply = self.pendingReplies.removeFirst()
-            let animation: Animation = self.isInOnboarding
+            let animation: Animation = isOnboarding
                 ? .easeIn(duration: 0.3)
                 : .spring(response: 0.4, dampingFraction: 0.7)
             withAnimation(animation) {
@@ -1186,7 +1372,7 @@ class AppState: ObservableObject {
             }
             
             // オンボ中：1件目のリプライが表示されたらローディングを消す
-            if self.isInOnboarding && !self.onboardingFirstReplyReceived {
+            if isOnboarding && !self.onboardingFirstReplyReceived {
                 self.onboardingFirstReplyReceived = true
             }
             
@@ -1196,12 +1382,13 @@ class AppState: ObservableObject {
                 self.posts[0].likes = self.buzzInitialLikes + self.buzzTargetLikes
                 self.followers = self.buzzInitialFollowers + self.buzzTargetFollowers
                 UPMEAnalytics.capture("ai_replies_displayed", properties: [
+                    "post_flow_id": postFlowID.uuidString.lowercased(),
                     "reply_count": self.buzzTotalReplies,
-                    "is_onboarding": self.isInOnboarding
+                    "is_onboarding": isOnboarding
                 ])
                 self.syncUser()
             } else {
-                let randomInterval = self.isInOnboarding ? Double.random(in: 1.5...4.0) : Double.random(in: 5.0...15.0)
+                let randomInterval = isOnboarding ? Double.random(in: 1.5...4.0) : Double.random(in: 5.0...15.0)
                 DispatchQueue.main.asyncAfter(deadline: .now() + randomInterval) {
                     drainNext()
                 }

@@ -60,3 +60,19 @@ INFO:     Finished server process [73986]
 INFO:     Started server process [15548]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
+INFO:     127.0.0.1:60531 - "POST /api/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60531 - "GET /api/users/eb66fcd0-0ed9-4051-9113-054eec623b87 HTTP/1.1" 200 OK
+✅ AI Replies generated: 11 replies
+INFO:     127.0.0.1:53422 - "POST /api/posts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53519 - "PUT /api/users/eb66fcd0-0ed9-4051-9113-054eec623b87 HTTP/1.1" 200 OK
+✅ AI Replies generated: 3 replies
+INFO:     127.0.0.1:53955 - "POST /api/posts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53970 - "PUT /api/users/eb66fcd0-0ed9-4051-9113-054eec623b87 HTTP/1.1" 200 OK
+WARNING:  StatReload detected changes in 'main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [15548]
+INFO:     Started server process [27646]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.

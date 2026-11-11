@@ -7,6 +7,8 @@ struct PostView: View {
     @FocusState private var isFocused: Bool
     @State private var selectedItem: PhotosPickerItem? = nil
     @State private var attachedImageData: Data? = nil
+    @State private var isLoadingImage = false
+    private var canSubmit: Bool { !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isLoadingImage }
     var onCancel: () -> Void
     var onOnboardingSubmit: ((String) -> Void)? = nil
     var isOnboarding: Bool = false
@@ -25,7 +27,7 @@ struct PostView: View {
                 Text("NEW POST").font(.system(size: 16, weight: .black)).foregroundColor(Theme.hotPink).tracking(2)
                 Spacer()
                 Button(action: {
-                    if !text.isEmpty {
+                    if canSubmit {
                         if isOnboarding {
                             onOnboardingSubmit?(text)
                         } else {
@@ -39,11 +41,11 @@ struct PostView: View {
                         .foregroundColor(.white)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 10)
-                        .background(text.isEmpty ? Color.gray.opacity(0.2) : Theme.hotPink)
+                        .background(!canSubmit ? Color.gray.opacity(0.2) : Theme.hotPink)
                         .cornerRadius(20)
-                        .neonShadow(color: text.isEmpty ? .clear : Theme.hotPink, radius: 8)
+                        .neonShadow(color: !canSubmit ? .clear : Theme.hotPink, radius: 8)
                 }
-                .disabled(text.isEmpty)
+                .disabled(!canSubmit)
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
@@ -137,16 +139,14 @@ struct PostView: View {
                                 .cornerRadius(16)
                                 .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.subtleBorder, lineWidth: 1))
                             }
-                            .onChange(of: selectedItem) { newItem in
-                                Task {
-                                    if let data = try? await newItem?.loadTransferable(type: Data.self) {
-                                        DispatchQueue.main.async {
-                                            if let uiImage = UIImage(data: data), let compressed = uiImage.jpegData(compressionQuality: 0.5) {
-                                                attachedImageData = compressed
-                                            } else {
-                                                attachedImageData = data
-                                            }
-                                        }
+                            .disabled(isLoadingImage)
+                            .onChange(of: selectedItem) { _, newItem in
+                                guard let newItem else { return }
+                                isLoadingImage = true
+                                Task { @MainActor in
+                                    defer { isLoadingImage = false }
+                                    if let data = try? await newItem.loadTransferable(type: Data.self), selectedItem == newItem {
+                                        attachedImageData = UIImage(data: data)?.jpegData(compressionQuality: 0.5) ?? data
                                     }
                                 }
                             }
@@ -171,7 +171,7 @@ struct PostView: View {
         }
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                isFocused = true
+                isFocused = !DesignPreview.isActive
             }
         }
     }

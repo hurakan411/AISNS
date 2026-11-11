@@ -1,77 +1,134 @@
 import SwiftUI
 
+struct AIReplyVisibility: Equatable {
+    let replyID: String
+    let postFlowID: String
+    let isOnboardingPost: Bool
+    let isRegular: Bool
+    let replyCount: Int
+    let frame: CGRect
+}
+
+struct AIReplyVisibilityPreferenceKey: PreferenceKey {
+    static var defaultValue: [String: AIReplyVisibility] = [:]
+
+    static func reduce(value: inout [String: AIReplyVisibility], nextValue: () -> [String: AIReplyVisibility]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, new in new })
+    }
+}
+
+struct AIReplyVisibilityTracker: ViewModifier {
+    let viewportSize: CGSize
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var replyFrames: [String: AIReplyVisibility] = [:]
+
+    func body(content: Content) -> some View {
+        content
+            .coordinateSpace(name: "feedViewport")
+            .onPreferenceChange(AIReplyVisibilityPreferenceKey.self) { replies in
+                replyFrames = replies
+                captureVisibleReplies(replies)
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { captureVisibleReplies(replyFrames) }
+            }
+            .onChange(of: viewportSize) { _, _ in
+                captureVisibleReplies(replyFrames)
+            }
+    }
+
+    private func captureVisibleReplies(_ replies: [String: AIReplyVisibility]) {
+        guard scenePhase == .active else { return }
+        let viewport = CGRect(origin: .zero, size: viewportSize)
+        let visibleReplies = replies.values
+            .filter { AnalyticsReplyVisibility.isVisible(frame: $0.frame, viewport: viewport) }
+            .sorted { $0.frame.minY < $1.frame.minY }
+        for reply in visibleReplies {
+            UPMEAnalytics.captureAIRepliesViewed(postFlowID: reply.postFlowID, properties: [
+                "post_flow_id": reply.postFlowID,
+                "is_onboarding": reply.isOnboardingPost,
+                "reply_count": reply.replyCount,
+                "first_visible_reply_is_regular": reply.isRegular
+            ])
+        }
+    }
+}
+
 struct FeedView: View {
     @EnvironmentObject var appState: AppState
     var onGoPost: () -> Void
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                if appState.posts.isEmpty {
-                    VStack(spacing: 24) {
-                        Image(systemName: "plus.square.dashed")
-                            .font(.system(size: 40))
-                            .foregroundColor(.gray.opacity(0.5))
-                        Text("今の状況を呟いて、\n称賛の嵐を受け取ろう。")
-                            .multilineTextAlignment(.center)
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.gray.opacity(0.6))
+        GeometryReader { viewport in
+            ScrollView {
+                VStack(spacing: 0) {
+                    if appState.posts.isEmpty {
+                        VStack(spacing: 24) {
+                            Image(systemName: "plus.square.dashed")
+                                .font(.system(size: 40))
+                                .foregroundColor(.gray.opacity(0.5))
+                            Text("今の状況を呟いて、\n称賛の嵐を受け取ろう。")
+                                .multilineTextAlignment(.center)
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.gray.opacity(0.6))
+                            Button(action: onGoPost) {
+                                Text("投稿を作成する")
+                                    .font(.system(size: 14, weight: .black))
+                                    .foregroundColor(Theme.hotPink)
+                                    .padding(.horizontal, 32)
+                                    .padding(.vertical, 14)
+                                    .background(Theme.hotPink.opacity(0.1))
+                                    .overlay(Capsule().stroke(Theme.hotPink.opacity(0.3), lineWidth: 1))
+                            }
+                        }
+                        .padding(.top, 120)
+                    } else {
                         Button(action: onGoPost) {
-                            Text("投稿を作成する")
-                                .font(.system(size: 14, weight: .black))
-                                .foregroundColor(Theme.hotPink)
-                                .padding(.horizontal, 32)
-                                .padding(.vertical, 14)
-                                .background(Theme.hotPink.opacity(0.1))
-                                .overlay(Capsule().stroke(Theme.hotPink.opacity(0.3), lineWidth: 1))
+                            HStack(spacing: 12) {
+                                Image(systemName: "pencil.line")
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundColor(Theme.hotPink)
+                                Text("いま、なに思ってる？")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.gray)
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(Theme.lavender)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 14)
+                            .background(Theme.cardBackground)
+                            .cornerRadius(16)
+                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.subtleBorder, lineWidth: 1))
                         }
-                    }
-                    .padding(.top, 120)
-                } else {
-                    Button(action: onGoPost) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "pencil.line")
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(Theme.hotPink)
-                            Text("いま、なに思ってる？")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.gray)
-                            Spacer()
-                            Image(systemName: "arrow.up.right")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(Theme.lavender)
-                        }
+                        .buttonStyle(.plain)
                         .padding(.horizontal, 16)
-                        .padding(.vertical, 14)
-                        .background(Theme.cardBackground)
-                        .cornerRadius(16)
-                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.subtleBorder, lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 16)
+                        .padding(.top, 16)
 
-                    VStack(spacing: 32) {
-                        ForEach(appState.posts) { post in
-                            PostCard(post: post)
+                        VStack(spacing: 32) {
+                            ForEach(appState.posts) { post in
+                                PostCard(post: post)
+                            }
                         }
+                        .padding(.vertical, 20)
                     }
-                    .padding(.vertical, 20)
                 }
             }
-        }
-        .refreshable {
-            appState.fetchUser()
-        }
-        .alert("返信を送信できませんでした", isPresented: Binding(
-            get: { appState.replyErrorMessage != nil },
-            set: { isPresented in
-                if !isPresented { appState.replyErrorMessage = nil }
+            .modifier(AIReplyVisibilityTracker(viewportSize: viewport.size))
+            .refreshable {
+                appState.fetchUser()
             }
-        )) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(appState.replyErrorMessage ?? appState.text("通信状態を確認して、もう一度お試しください。", "Check your connection and try again."))
+            .alert("返信を送信できませんでした", isPresented: Binding(
+                get: { appState.replyErrorMessage != nil },
+                set: { isPresented in
+                    if !isPresented { appState.replyErrorMessage = nil }
+                }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(appState.replyErrorMessage ?? appState.text("通信状態を確認して、もう一度お試しください。", "Check your connection and try again."))
+            }
         }
     }
 }
@@ -172,6 +229,9 @@ struct PostCard: View {
                         VStack(alignment: .leading, spacing: 10) {
                             ReplyRow(
                                 reply: reply,
+                                analyticsPostFlowID: post.id,
+                                analyticsIsOnboardingPost: post.isOnboarding,
+                                analyticsTopLevelReplyCount: post.replies.filter { !$0.isUserReply && $0.replyToId == nil }.count,
                                 isRegular: !reply.isUserReply && appState.isRegularFollower(reply),
                                 canManageRegulars: !appState.isInOnboarding && !reply.isUserReply,
                                 canReply: !appState.isInOnboarding && reply.canReceiveUserReply,
@@ -256,6 +316,9 @@ private enum RegularFollowerAlert: Identifiable {
 struct ReplyRow: View {
     @EnvironmentObject var appState: AppState
     let reply: Reply
+    var analyticsPostFlowID: UUID? = nil
+    var analyticsIsOnboardingPost: Bool = false
+    var analyticsTopLevelReplyCount: Int = 0
     let isRegular: Bool
     let canManageRegulars: Bool
     let canReply: Bool
@@ -433,6 +496,27 @@ struct ReplyRow: View {
             Spacer(minLength: 16)
         }
         .padding(.trailing, 16)
+        .background {
+            GeometryReader { proxy in
+                if !reply.isUserReply,
+                   reply.replyToId == nil,
+                   let postFlowID = analyticsPostFlowID {
+                    Color.clear.preference(
+                        key: AIReplyVisibilityPreferenceKey.self,
+                        value: [reply.id.uuidString: AIReplyVisibility(
+                            replyID: reply.id.uuidString,
+                            postFlowID: postFlowID.uuidString.lowercased(),
+                            isOnboardingPost: analyticsIsOnboardingPost,
+                            isRegular: isRegular,
+                            replyCount: analyticsTopLevelReplyCount,
+                            frame: proxy.frame(in: .named("feedViewport"))
+                        )]
+                    )
+                } else {
+                    Color.clear
+                }
+            }
+        }
     }
 }
 

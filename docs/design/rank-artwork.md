@@ -1,0 +1,12 @@
+# UPME rank artwork
+
+Generated with the built-in image-generation tool. Approved ten-rank concept, pink/violet satin-clay style. No generated UI is used as a screen background.
+
+- Asset: `Assets.xcassets/RankIllustrations.imageset/rank-illustrations-v1.png`
+- Layout: 5 equal columns × 2 equal rows, ranks 1–5 across the top and 6–10 across the bottom.
+- The atlas is cropped once in memory by `RankArtworkCache`; the native `RankProgressRing` draws the gauge separately.
+- Progress: `(followers - current rank threshold) / (next threshold - current threshold)`, clamped to 0…1. Rank 10 is complete.
+
+## Generation prompt
+
+Use case: stylized-concept. Create one production SPRITE ATLAS for an iOS app containing exactly TEN separate sculptural rank illustrations. Input is the approved style-and-subject reference. Preserve its ten designs faithfully but REMOVE ALL TEXT, LABELS, shadows on background and black background. GENUINE TRANSPARENT ALPHA background. Exact uniform grid: FIVE EQUAL COLUMNS and TWO EQUAL ROWS, no gap between grid cells. Each icon centered in its own cell with about 15% transparent padding on all four sides, all objects entirely inside their cell and not touching other cells. No outside margin beyond normal cell padding. Prefer landscape 2560x1024 canvas (5:2 ratio) so each cell square. Upper row left to right: (1) violet speechbubble pink inset heart; (2) three violet/pink friendship speechbubbles heart; (3) violet megaphone pink rim with two emerging pink hearts; (4) violet upright smartphone pink heart and two notification bells; (5) violet crown pink heart jewel. Lower row left to right: (6) pink/violet standing microphone sound waves; (7) pink four-point shooting star violet comet trail; (8) open violet book with pink floating heart; (9) lilac crystal sphere with pink star in violet cradle and single orbit; (10) violet heart-shaped planet with pink orbital ribbon and little hovering crown/two tiny stars. Same satin-clay fine tactile material, hot pink #EC4899, deep violet #6F43B5, lilac highlights, soft upper-left studio lighting, consistent perspective and size. No circles/gauges, no cards, no dividers, no text or numerals, no pedestal or background/floor, no watermark. All 10 icons same apparent size, full silhouettes, aligned center. This atlas will be rendered as a 5x2 uniform sprite grid in native code. Match reference shapes and adult premium visual style, not flat symbols.

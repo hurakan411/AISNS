@@ -8,7 +8,14 @@ enum Tab {
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var storeManager: StoreManager
-    @State private var activeTab: Tab = .home
+    @State private var activeTab: Tab = {
+        switch DesignPreview.argument("--ui-tab") {
+        case "stats": return .stats
+        case "post": return .post
+        case "profile": return .profile
+        default: return .home
+        }
+    }()
 
     @AppStorage("lastSeenRank") private var lastSeenRank: Int = 1
     @AppStorage("lastSeenUpdateNoticeVersion") private var lastSeenUpdateNoticeVersion: String = ""
@@ -16,9 +23,17 @@ struct ContentView: View {
     @State private var showUpdateNotice: Bool = false
     @State private var newlyAchievedRank: Int = 1
 
+    private var shouldShowBannerAds: Bool {
+        #if targetEnvironment(simulator)
+        false
+        #else
+        !storeManager.isAdsRemoved
+        #endif
+    }
+
     /// プライバシーポリシー同意フラグ（未同意ならまず同意画面を表示）
     @State private var hasAcceptedPrivacyPolicy: Bool =
-        UserDefaults.standard.bool(forKey: "hasAcceptedPrivacyPolicy")
+        DesignPreview.isActive || UserDefaults.standard.bool(forKey: "hasAcceptedPrivacyPolicy")
 
     var body: some View {
         if !hasAcceptedPrivacyPolicy {
@@ -43,12 +58,12 @@ struct ContentView: View {
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                if !storeManager.isAdsRemoved {
+                if shouldShowBannerAds {
                     BannerAdView()
                         .frame(width: 320, height: 50)
                 }
                 
-                if activeTab != .post && activeTab != .profile {
+                if activeTab == .home {
                     HStack(spacing: 12) {
                         Text("UPME! | AI SNS")
                             .font(.system(size: 20, weight: .black, design: .rounded)).italic()
@@ -87,7 +102,7 @@ struct ContentView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 
-                if !storeManager.isAdsRemoved {
+                if shouldShowBannerAds {
                     BannerAdView()
                         .frame(width: 320, height: 50)
                 }
@@ -133,7 +148,7 @@ struct ContentView: View {
             .overlay(Rectangle().frame(height: 1).foregroundColor(Theme.subtleBorder), alignment: .top)
         }
         .onAppear {
-            guard lastSeenUpdateNoticeVersion != AppUpdateNotice.current.version else { return }
+            guard !DesignPreview.isActive, lastSeenUpdateNoticeVersion != AppUpdateNotice.current.version else { return }
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
                 UPMEAnalytics.capture("update_notice_viewed", properties: [
@@ -144,7 +159,7 @@ struct ContentView: View {
                 }
             }
         }
-        .onChange(of: appState.currentRank) { newRank in
+        .onChange(of: appState.currentRank) { _, newRank in
             if newRank > lastSeenRank {
                 UPMEAnalytics.capture("rank_up", properties: [
                     "rank": newRank

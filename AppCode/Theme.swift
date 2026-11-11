@@ -1,4 +1,22 @@
 import SwiftUI
+import UIKit
+
+/// Offline fixtures are opt-in and available only in Debug simulator builds.
+enum DesignPreview {
+    static var isActive: Bool {
+        #if DEBUG && targetEnvironment(simulator)
+        ProcessInfo.processInfo.arguments.contains("--ui-preview")
+        #else
+        false
+        #endif
+    }
+
+    static func argument(_ key: String) -> String? {
+        guard isActive else { return nil }
+        return ProcessInfo.processInfo.arguments.first { $0.hasPrefix(key + "=") }?
+            .dropFirst(key.count + 1).description
+    }
+}
 
 struct Theme {
     static let bgDeepBlack = Color(red: 0.008, green: 0.006, blue: 0.018)
@@ -24,5 +42,115 @@ struct Theme {
 extension View {
     func neonShadow(color: Color = Theme.hotPink, radius: CGFloat = 10) -> some View {
         self.shadow(color: color.opacity(0.42), radius: radius, x: 0, y: 0)
+    }
+
+}
+
+/// Keep the approved statistics surfaces independent of the restored app palette.
+enum StatsTheme {
+    static let bgDeepBlack = Theme.bgDeepBlack
+    static let hotPink = Theme.hotPink
+    static let purpleAccent = Theme.purpleAccent
+    static let lavender = Theme.lavender
+    static let cyan = Theme.cyan
+    static let secondaryText = Color(red: 0.65, green: 0.62, blue: 0.69)
+    static let surfaceGradient = LinearGradient(
+        colors: [Color(red: 0.155, green: 0.130, blue: 0.175),
+                 Color(red: 0.115, green: 0.100, blue: 0.130)],
+        startPoint: .topLeading, endPoint: .bottomTrailing
+    )
+}
+
+struct TactileHeader: View {
+    let title: LocalizedStringKey
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(.system(size: 26, weight: .bold))
+                .foregroundStyle(.white)
+            Spacer(minLength: 16)
+            Text("UPME")
+                .font(.system(size: 16, weight: .heavy, design: .rounded))
+                .foregroundStyle(Theme.accentGradient)
+                .accessibilityLabel("UPME! | AI SNS")
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 14)
+        .padding(.bottom, 18)
+    }
+}
+
+struct TactileButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.8 : 1)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.97 : 1)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: configuration.isPressed)
+    }
+}
+
+/// The generated atlas has ten equal cells, five across and two down.
+/// Cropping happens once in memory, not on every SwiftUI render.
+private enum RankArtworkCache {
+    static let images: [UIImage] = {
+        guard let atlas = UIImage(named: "RankIllustrations")?.cgImage else { return [] }
+        return (0..<10).compactMap { index in
+            let x0 = atlas.width * (index % 5) / 5
+            let x1 = atlas.width * (index % 5 + 1) / 5
+            let y0 = atlas.height * (index / 5) / 2
+            let y1 = atlas.height * (index / 5 + 1) / 2
+            guard let cell = atlas.cropping(to: CGRect(x: x0, y: y0, width: x1 - x0, height: y1 - y0)) else { return nil }
+            return UIImage(cgImage: cell)
+        }
+    }()
+}
+
+struct RankArtwork: View {
+    let rank: Int
+    var body: some View {
+        let index = min(10, max(1, rank)) - 1
+        Group {
+            if RankArtworkCache.images.count == 10 {
+                Image(uiImage: RankArtworkCache.images[index])
+                    .resizable()
+                    .scaledToFit()
+            } else {
+                Image(systemName: "heart.bubble.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(Theme.accentGradient)
+                    .padding(24)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+struct RankProgressRing: View {
+    let rank: Int
+    let progress: Double
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.locale) private var locale
+
+    var body: some View {
+        ZStack {
+            Circle().stroke(Theme.purpleAccent.opacity(0.22), lineWidth: 5)
+            Circle()
+                .trim(from: 0, to: min(1, max(0, progress)))
+                .stroke(AngularGradient(colors: [Theme.hotPink, Theme.purpleAccent], center: .center, startAngle: .degrees(0), endAngle: .degrees(360)),
+                        style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.65), value: progress)
+            GeometryReader { geometry in
+                RankArtwork(rank: rank)
+                    .padding(max(6, geometry.size.width * 0.085))
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+            }
+        }
+        .padding(4)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(locale.identifier.hasPrefix("ja") ? "ランク \(rank)" : "Rank \(rank)")
+        .accessibilityValue(Text(progress, format: .percent.precision(.fractionLength(0))))
     }
 }
