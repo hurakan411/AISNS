@@ -1,5 +1,5 @@
 // Run with:
-// xcrun swiftc -parse-as-library AppCode/Analytics.swift AppCode/AppState.swift scripts/check_engagement_metrics.swift -o /private/tmp/upme-engagement-checks
+// xcrun swiftc -parse-as-library AppCode/Analytics.swift AppCode/UserProgressSync.swift AppCode/AppState.swift scripts/check_engagement_metrics.swift -o /private/tmp/upme-engagement-checks
 // /private/tmp/upme-engagement-checks
 import Foundation
 import CoreGraphics
@@ -87,6 +87,78 @@ struct EngagementChecks {
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
         let store = EngagementMetricsStore(defaults: defaults)
+        func reply(_ text: String, user: Bool = false, hater: Bool = false) -> Reply {
+            Reply(authorName: "Test", text: text, img: "", isHater: hater, isDefender: false, isUserReply: user)
+        }
+        let excluded = PostModel(content: "current", imageData: nil, likes: 0,
+                                 replies: [reply("current-only")], time: "")
+        let history = [excluded, PostModel(content: "old", imageData: nil, likes: 0, replies: [
+            reply("User's private words", user: true), reply("critic", hater: true),
+            reply("  A recent reply  "), reply("a recent reply"), reply(String(repeating: "x", count: 400))
+        ], replyThreads: [ReplyThread(targetReplyID: UUID(), replies: [reply("from a thread")])], time: "")]
+        let context = recentAIReplyTexts(from: history, excluding: excluded.id)
+        check(context.count == 3 && context.contains("from a thread"), "Style history includes AI thread replies and removes duplicates")
+        check(!context.contains("User's private words") && !context.contains("critic") && !context.contains("current-only"),
+              "Style history excludes the user's text, critics and the current post")
+        check(context.allSatisfy { $0.count <= 160 }, "Style history limits each excerpt to 160 characters")
+        let manyPosts = (0..<5).map { index in
+            PostModel(content: "", imageData: nil, likes: 0,
+                      replies: (0..<10).map { reply("Post \(index), reply \($0)") }, time: "")
+        }
+        let sampled = recentAIReplyTexts(from: manyPosts)
+        check(sampled.count == 8 && sampled.contains("Post 2, reply 0"), "Eight excerpts are sampled across several posts")
+        let viralState = AppState(restorePersistedState: false)
+        viralState.followers = 60
+        let viralPost = PostModel(content: "viral", imageData: nil, likes: 0, replies: [], time: "")
+        let otherPost = PostModel(content: "normal", imageData: nil, likes: 0, replies: [], time: "")
+        viralState.posts = [viralPost, otherPost]
+        viralState.beginPostReaction(postID: viralPost.id, replies: (0..<10).map { reply("viral \($0)") },
+                                     response: ["is_viral": true, "rank": 1, "likes": 1400, "follower_gain": 200])
+        let began = viralState.posts[0].reaction!.startedAt
+        check(viralState.posts[0].replies.count == 1 && viralState.followers == 60, "First reply arrives immediately without an early rank-up")
+        check(!viralState.isViralRevealed(viralState.posts[0]), "Viral badge waits for the surprise")
+        viralState.updatePostReactions(at: began.addingTimeInterval(5))
+        check(viralState.isViralAnimating(viralState.posts[0]) && viralState.displayedLikes(for: viralState.posts[0]) > 0,
+              "At five seconds the viral reveal and count-up are active")
+        check(viralState.posts[1].replies.isEmpty && viralState.posts[1].likes == 0, "Reactions belong to their post, not the top row")
+        // A second post can receive its response while the first animation is in progress.
+        viralState.beginPostReaction(postID: otherPost.id, replies: [reply("normal 1"), reply("normal 2")],
+                                     response: ["is_viral": false, "rank": 1, "likes": 100, "follower_gain": 30])
+        viralState.updatePostReactions(at: began.addingTimeInterval(60))
+        check(viralState.posts[0].likes == 1400 && viralState.posts[0].replies.count == 10, "Viral outcome reaches its exact total")
+        check(viralState.posts[1].likes == 100 && viralState.posts[1].replies.count == 2 && viralState.followers == 290,
+              "Concurrent posts receive separate rewards exactly once")
+        viralState.updatePostReactions(at: began.addingTimeInterval(120))
+        check(viralState.followers == 290 && !viralState.hasPendingReplies, "Repeated foreground updates do not re-credit rewards")
+        let restoredViral = AppState(restorePersistedState: false)
+        restoredViral.posts = try JSONDecoder().decode([PostModel].self, from: JSONEncoder().encode(viralState.posts))
+        restoredViral.followers = 60
+        restoredViral.restorePostReactions()
+        restoredViral.restorePostReactions()
+        check(restoredViral.followers == 290 && restoredViral.posts[0].replies.count == 10,
+              "A persisted credit ledger repairs an interrupted follower write without duplication")
+        let interrupted = AppState(restorePersistedState: false)
+        interrupted.posts = [PostModel(content: "test", imageData: nil, likes: 0, replies: [], time: "")]
+        interrupted.beginPostReaction(postID: interrupted.posts[0].id, replies: [reply("one"), reply("two")],
+                                      response: ["is_viral": true, "rank": 1, "likes": 1400, "follower_gain": 200])
+        let restartedPost = AppState(restorePersistedState: false)
+        restartedPost.posts = try JSONDecoder().decode([PostModel].self, from: JSONEncoder().encode(interrupted.posts))
+        restartedPost.restorePostReactions()
+        restartedPost.restorePostReactions()
+        check(restartedPost.posts[0].replies.count == 2 && restartedPost.posts[0].likes == 1400 && restartedPost.followers == 200,
+              "Relaunch settles saved pending replies without regenerating or replaying")
+        let legacy = Data("{\"content\":\"old\",\"likes\":12,\"time\":\"Now\"}".utf8)
+        check(try JSONDecoder().decode(PostModel.self, from: legacy).reaction == nil, "Old saved posts remain readable")
+        let foreignRewards = AppState(restorePersistedState: false)
+        var foreignPost = PostModel(content: "dev post", imageData: nil, likes: 0, replies: [], time: "")
+        foreignPost.reaction = PostReaction(environment: "https://other-environment.invalid", isViral: true,
+                                           rank: 1, targetLikes: 1400, followerGain: 200, startedAt: Date(),
+                                           replyOffsets: [0], remainingReplies: [reply("saved reply")])
+        foreignRewards.followers = 10
+        foreignRewards.posts = [foreignPost]
+        foreignRewards.restorePostReactions()
+        check(foreignRewards.followers == 10 && foreignRewards.posts[0].replies.count == 1,
+              "Development post rewards are never credited to a production environment")
         store.seedPostCount(userID: "new", totalPosts: 1)
         check(store.recordNormalPost(userID: "new").numberAfterOnboarding == 1, "First real post is first")
         let restarted = EngagementMetricsStore(defaults: defaults)

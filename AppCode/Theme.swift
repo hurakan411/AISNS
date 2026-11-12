@@ -55,8 +55,9 @@ enum StatsTheme {
     static let cyan = Theme.cyan
     static let secondaryText = Color(red: 0.65, green: 0.62, blue: 0.69)
     static let surfaceGradient = LinearGradient(
-        colors: [Color(red: 0.155, green: 0.130, blue: 0.175),
-                 Color(red: 0.115, green: 0.100, blue: 0.130)],
+        colors: [Color(red: 0.155, green: 0.115, blue: 0.190),
+                 Color(red: 0.105, green: 0.080, blue: 0.140),
+                 Color(red: 0.160, green: 0.095, blue: 0.165)],
         startPoint: .topLeading, endPoint: .bottomTrailing
     )
 }

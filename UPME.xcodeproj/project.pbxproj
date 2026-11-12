@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A11CE0000000000000000021 /* UserProgressSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11CE0000000000000000022 /* UserProgressSync.swift */; };
+		A11CE0000000000000000011 /* HomeGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11CE0000000000000000012 /* HomeGuide.swift */; };
+		A11CE0000000000000000013 /* HomeGuideOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11CE0000000000000000014 /* HomeGuideOverlay.swift */; };
 		A11CE0000000000000000001 /* RankProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11CE0000000000000000002 /* RankProgress.swift */; };
 		143B2E14DCAA4229B3348DBE /* SecondaryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C51046D075014E4CBF8EACBA /* SecondaryViews.swift */; };
 		1C771121EAF546A88F19E9DE /* PostView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DA65D7295CA448E93A20D5C /* PostView.swift */; };
@@ -33,6 +36,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		A11CE0000000000000000022 /* UserProgressSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProgressSync.swift; sourceTree = "<group>"; };
+		A11CE0000000000000000012 /* HomeGuide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeGuide.swift; sourceTree = "<group>"; };
+		A11CE0000000000000000014 /* HomeGuideOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeGuideOverlay.swift; sourceTree = "<group>"; };
 		A11CE0000000000000000002 /* RankProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankProgress.swift; sourceTree = "<group>"; };
 		0202BF252F7946E700A66DAF /* UPME-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "UPME-Info.plist"; sourceTree = "<group>"; };
 		02A60ABAA9C5AA232E45C78B /* BannerAdView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BannerAdView.swift; sourceTree = "<group>"; };
@@ -91,8 +97,11 @@
 				C9C9C9C9C9C9C9C9C9C9C9C9 /* Analytics.swift */,
 				C8C8C8C8C8C8C8C8C8C8C8 /* Analytics.swift */,
 				64E52FB6E7A34377A3ACF664 /* AppState.swift */,
+				A11CE0000000000000000022 /* UserProgressSync.swift */,
 				D9DB664272BB4D1E8098979F /* ContentView.swift */,
 				42F591A2378E46F9B89E408C /* FeedView.swift */,
+				A11CE0000000000000000012 /* HomeGuide.swift */,
+				A11CE0000000000000000014 /* HomeGuideOverlay.swift */,
 				F341A6AA2E5C4B5D8C119102 /* ParticleNetworkBackground.swift */,
 				9DA65D7295CA448E93A20D5C /* PostView.swift */,
 				C51046D075014E4CBF8EACBA /* SecondaryViews.swift */,
@@ -211,8 +220,11 @@
 				B9B9B9B9B9B9B9B9B9B9B9B9 /* Analytics.swift in Sources (fixed reference) */,
 				B8B8B8B8B8B8B8B8B8B8B8B8 /* Analytics.swift in Sources */,
 				5ABC075934814A25B8723777 /* AppState.swift in Sources */,
+				A11CE0000000000000000021 /* UserProgressSync.swift in Sources */,
 				3B02D31439904229838973F9 /* ContentView.swift in Sources */,
 				EBEAB8ED130D48049C060815 /* FeedView.swift in Sources */,
+				A11CE0000000000000000011 /* HomeGuide.swift in Sources */,
+				A11CE0000000000000000013 /* HomeGuideOverlay.swift in Sources */,
 				F341A6AA2E5C4B5D8C119101 /* ParticleNetworkBackground.swift in Sources */,
 				1C771121EAF546A88F19E9DE /* PostView.swift in Sources */,
 				143B2E14DCAA4229B3348DBE /* SecondaryViews.swift in Sources */,

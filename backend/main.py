@@ -9,7 +9,7 @@ from typing import List, Optional, Any, Tuple
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, create_model
 from openai import AsyncOpenAI
 from supabase import create_client, Client
 
@@ -126,6 +126,8 @@ class PostRequest(BaseModel):
     language: str = "ja"
     regular_followers: List[RegularFollowerContext] = Field(default_factory=list)
     recent_ai_replies: List[str] = Field(default_factory=list, max_length=8)
+    # Older apps keep their existing local reward rules.
+    supports_viral_posts: bool = False
 
 class ReplySchema(BaseModel):
     author_name: str
@@ -142,6 +144,24 @@ class RegularFollowerMemoryUpdateSchema(BaseModel):
 class GenerateRepliesResponse(BaseModel):
     replies: List[ReplySchema]
     memory_updates: List[RegularFollowerMemoryUpdateSchema]
+
+
+POST_REPLY_RANGES = [(3, 5, 0), (4, 7, 0), (4, 7, 0), (5, 8, 1), (5, 9, 1),
+                     (7, 10, 1), (7, 12, 2), (8, 13, 2), (9, 14, 2), (10, 16, 3)]
+POST_FOLLOWER_RANGES = [(30, 40), (90, 110), (170, 210), (500, 570), (1200, 1450),
+                        (3500, 4000), (15000, 17000), (38000, 42000),
+                        (90000, 110000), (150000, 300000)]
+VIRAL_POST_PROBABILITY = 0.10
+
+
+def build_post_reaction(followers: int) -> dict:
+    """Choose rewards once, independently of the text and without an AI call."""
+    rank = rank_from_followers(followers)
+    minimum, maximum = POST_FOLLOWER_RANGES[rank - 1]
+    is_viral = random.random() < VIRAL_POST_PROBABILITY
+    gain = maximum * 5 if is_viral else random.randint(minimum, maximum)
+    likes = maximum * 7 * 5 if is_viral else int(gain * random.uniform(3.0, 7.0))
+    return {"is_viral": is_viral, "rank": rank, "likes": likes, "follower_gain": gain}
 
 
 class ThreadReplyContext(BaseModel):
@@ -201,6 +221,8 @@ ENGLISH_AI_NAMES = [
     "Alex", "Mia", "Noah", "Emma", "Leo", "Lily", "Ethan", "Chloe",
     "Kai", "Sophie", "Ryan", "Ava", "Luke", "Nora", "Owen", "Ruby",
     "Jamie", "Ella", "Theo", "Maya", "Sam", "Grace", "Ben", "Zoe",
+    "Isla", "Finn", "Ivy", "Jude", "Rose", "Max", "Alice", "Oscar",
+    "Aria", "Felix", "Hazel", "Miles", "Clara", "Hugo", "Esme", "Eli",
 ]
 
 
@@ -284,7 +306,7 @@ def localize_generated_author_names(replies: List[ReplySchema], language: str = 
             if available_names:
                 replacements[original_name] = available_names.pop()
             else:
-                # 1投稿あたりの返信数は最大16件のため通常到達しないフォールバック。
+                # Defensive fallback if all names are already in use.
                 replacements[original_name] = "Anonymous" if language == "en" else "名もなき人"
         reply.author_name = replacements[original_name]
 
@@ -413,7 +435,9 @@ JSONを返す前に全返信を比較し、同じことを言っている人が�
     for start in range(0, count, len(angles)):
         batch = random.sample(angles, min(len(angles), count - start))
         for angle in batch:
-            voice = random.choice([voice for voice in voices if (angle, voice) not in used])
+            available = [voice for voice in voices if (angle, voice) not in used]
+            # Viral rank-10 posts have up to 32 replies, exceeding 7 angles × 4 voices.
+            voice = random.choice(available or voices)
             used.add((angle, voice))
             plan.append((angle, voice))
     if count >= 4 and random.random() < 0.5:
@@ -543,6 +567,7 @@ async def generate_ai_replies(
     language: str = "ja",
     user_display_name: Optional[str] = None,
     recent_ai_replies: Optional[List[str]] = None,
+    is_viral: bool = False,
 ) -> Tuple[List[dict], List[dict]]:
     """
     OpenAIを利用してリプライを一括生成し、レスポンス用の辞書リストを返す
@@ -566,21 +591,9 @@ async def generate_ai_replies(
                 break
 
     # ランクごとのパラメータ定義（上限・下限を持たせる）
-    rank_params = {
-        1: {"min": 3, "max": 5, "haters": 0},   # 2*1.3=2.6, 4*1.3=5.2
-        2: {"min": 4, "max": 7, "haters": 0},   # 3*1.3=3.9, 5*1.3=6.5
-        3: {"min": 4, "max": 7, "haters": 0},   
-        4: {"min": 5, "max": 8, "haters": 1},   # 4*1.3=5.2, 6*1.3=7.8 / hatersは据え置き
-        5: {"min": 5, "max": 9, "haters": 1},   # 4*1.3=5.2, 7*1.3=9.1 / 2*1.3=2.6 -> 3
-        6: {"min": 7, "max": 10, "haters": 1},  # 5*1.3=6.5, 8*1.3=10.4
-        7: {"min": 7, "max": 12, "haters": 2},  # 5*1.3=6.5, 9*1.3=11.7
-        8: {"min": 8, "max": 13, "haters": 2},  # 6*1.3=7.8, 10*1.3=13.0 / 3*1.3=3.9 -> 4
-        9: {"min": 9, "max": 14, "haters": 2},  # 7*1.3=9.1, 11*1.3=14.3
-        10: {"min": 10, "max": 16, "haters": 3} # 8*1.3=10.4, 12*1.3=15.6 / 4*1.3=5.2 -> 5
-        }
-    
-    params = rank_params.get(rank, rank_params[10])
-    total_replies = random.randint(params["min"], params["max"])
+    minimum, maximum, haters = POST_REPLY_RANGES[rank - 1]
+    params = {"haters": haters}
+    total_replies = maximum * 2 if is_viral and not is_onboarding else random.randint(minimum, maximum)
     
     # アンチ数を確率で決定（上限はrank_paramsの定義通り）
     if is_onboarding:
@@ -942,6 +955,12 @@ One critic must later reconsider after seeing the other followers' reactions and
 
         # OpenAI API Structured Outputs を使って確実にJSONスキーマで返却させる
         generation_started_at = time.perf_counter()
+        response_format = GenerateRepliesResponse
+        if is_viral and not is_onboarding:
+            response_format = create_model(
+                f"ViralPostReplies{total_replies}", __base__=GenerateRepliesResponse,
+                replies=(List[ReplySchema], Field(min_length=total_replies, max_length=total_replies)),
+            )
         completion = await openai_client.beta.chat.completions.parse(
             model=OPENAI_MODEL,
             reasoning_effort="none",
@@ -949,7 +968,7 @@ One critic must later reconsider after seeing the other followers' reactions and
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message_content}
             ],
-            response_format=GenerateRepliesResponse,
+            response_format=response_format,
         )
         log_openai_usage(completion, "post_replies", generation_started_at)
         
@@ -1325,6 +1344,7 @@ async def create_post(request: PostRequest):
     AI返信を生成し、結果を直接レスポンスで返す。DB保存は行わない。
     """
     try:
+        reaction = build_post_reaction(request.followers) if request.supports_viral_posts and not request.is_onboarding else None
         replies, memory_updates = await generate_ai_replies(
             content=request.content,
             followers=request.followers,
@@ -1335,8 +1355,12 @@ async def create_post(request: PostRequest):
             language=request.language,
             user_display_name=request.user_display_name,
             recent_ai_replies=request.recent_ai_replies,
+            is_viral=bool(reaction and reaction["is_viral"]),
         )
-        return {"status": "success", "replies": replies, "memory_updates": memory_updates}
+        result = {"status": "success", "replies": replies, "memory_updates": memory_updates}
+        if reaction is not None:
+            result["reaction"] = reaction
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

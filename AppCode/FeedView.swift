@@ -19,6 +19,7 @@ struct AIReplyVisibilityPreferenceKey: PreferenceKey {
 
 struct AIReplyVisibilityTracker: ViewModifier {
     let viewportSize: CGSize
+    var isSuppressed = false
     @Environment(\.scenePhase) private var scenePhase
     @State private var replyFrames: [String: AIReplyVisibility] = [:]
 
@@ -35,10 +36,13 @@ struct AIReplyVisibilityTracker: ViewModifier {
             .onChange(of: viewportSize) { _, _ in
                 captureVisibleReplies(replyFrames)
             }
+            .onChange(of: isSuppressed) { _, suppressed in
+                if !suppressed { captureVisibleReplies(replyFrames) }
+            }
     }
 
     private func captureVisibleReplies(_ replies: [String: AIReplyVisibility]) {
-        guard scenePhase == .active else { return }
+        guard scenePhase == .active, !isSuppressed else { return }
         let viewport = CGRect(origin: .zero, size: viewportSize)
         let visibleReplies = replies.values
             .filter { AnalyticsReplyVisibility.isVisible(frame: $0.frame, viewport: viewport) }
@@ -54,88 +58,157 @@ struct AIReplyVisibilityTracker: ViewModifier {
     }
 }
 
+struct HomeGuideSelection: Equatable {
+    var postID: UUID?
+    var aiReplyID: UUID?
+    var replyActionID: UUID?
+    var regularActionID: UUID?
+}
+
 struct FeedView: View {
     @EnvironmentObject var appState: AppState
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ObservedObject var guide: HomeGuideCoordinator
+    @State private var frozenGuideSelection: HomeGuideSelection?
     var onGoPost: () -> Void
+
+    private var liveGuideSelection: HomeGuideSelection {
+        let replies = appState.posts.flatMap(\.replies).filter {
+            !$0.isUserReply && $0.replyToId == nil && !$0.isHater && !$0.isDefender
+        }
+        return HomeGuideSelection(
+            postID: appState.posts.first?.id,
+            aiReplyID: replies.first?.id,
+            replyActionID: replies.first(where: \.canReceiveUserReply)?.id,
+            regularActionID: replies.first(where: { !appState.isRegularFollower($0) })?.id
+        )
+    }
+
+    private var guideSelection: HomeGuideSelection { frozenGuideSelection ?? liveGuideSelection }
     
     var body: some View {
         GeometryReader { viewport in
-            ScrollView {
-                VStack(spacing: 0) {
-                    if appState.posts.isEmpty {
-                        VStack(spacing: 24) {
-                            Image(systemName: "plus.square.dashed")
-                                .font(.system(size: 40))
-                                .foregroundColor(.gray.opacity(0.5))
-                            Text("今の状況を呟いて、\n称賛の嵐を受け取ろう。")
-                                .multilineTextAlignment(.center)
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundColor(.gray.opacity(0.6))
+            ScrollViewReader { scroll in
+                ScrollView {
+                    VStack(spacing: 0) {
+                        if appState.posts.isEmpty {
+                            VStack(spacing: 24) {
+                                Image(systemName: "plus.square.dashed")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.gray.opacity(0.5))
+                                Text("今の状況を呟いて、\n称賛の嵐を受け取ろう。")
+                                    .multilineTextAlignment(.center)
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundColor(.gray.opacity(0.6))
+                                Button(action: onGoPost) {
+                                    Text("投稿を作成する")
+                                        .font(.system(size: 14, weight: .black))
+                                        .foregroundColor(Theme.hotPink)
+                                        .padding(.horizontal, 32)
+                                        .padding(.vertical, 14)
+                                        .background(Theme.hotPink.opacity(0.1))
+                                        .overlay(Capsule().stroke(Theme.hotPink.opacity(0.3), lineWidth: 1))
+                                }
+                                .homeGuideTarget(.compose)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 120)
+                        } else {
                             Button(action: onGoPost) {
-                                Text("投稿を作成する")
-                                    .font(.system(size: 14, weight: .black))
-                                    .foregroundColor(Theme.hotPink)
-                                    .padding(.horizontal, 32)
-                                    .padding(.vertical, 14)
-                                    .background(Theme.hotPink.opacity(0.1))
-                                    .overlay(Capsule().stroke(Theme.hotPink.opacity(0.3), lineWidth: 1))
+                                HStack(spacing: 12) {
+                                    Image(systemName: "pencil.line")
+                                        .font(.system(size: 15, weight: .bold))
+                                        .foregroundColor(Theme.hotPink)
+                                    Text("いま、なに思ってる？")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(.gray)
+                                    Spacer()
+                                    Image(systemName: "arrow.up.right")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(Theme.lavender)
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 14)
+                                .background(Theme.cardBackground)
+                                .cornerRadius(16)
+                                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.subtleBorder, lineWidth: 1))
                             }
-                        }
-                        .padding(.top, 120)
-                    } else {
-                        Button(action: onGoPost) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "pencil.line")
-                                    .font(.system(size: 15, weight: .bold))
-                                    .foregroundColor(Theme.hotPink)
-                                Text("いま、なに思ってる？")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.gray)
-                                Spacer()
-                                Image(systemName: "arrow.up.right")
-                                    .font(.system(size: 12, weight: .bold))
-                                    .foregroundColor(Theme.lavender)
-                            }
+                            .buttonStyle(.plain)
+                            .homeGuideTarget(.compose)
                             .padding(.horizontal, 16)
-                            .padding(.vertical, 14)
-                            .background(Theme.cardBackground)
-                            .cornerRadius(16)
-                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.subtleBorder, lineWidth: 1))
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.horizontal, 16)
-                        .padding(.top, 16)
+                            .padding(.top, 16)
 
-                        VStack(spacing: 32) {
-                            ForEach(appState.posts) { post in
-                                PostCard(post: post)
+                            VStack(spacing: 32) {
+                                ForEach(appState.posts) { post in
+                                    PostCard(post: post, guideSelection: guideSelection)
+                                }
                             }
+                            .padding(.vertical, 20)
                         }
-                        .padding(.vertical, 20)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .modifier(AIReplyVisibilityTracker(viewportSize: viewport.size, isSuppressed: guide.isPresenting))
+                .task(id: guide.activeStep) {
+                    guard let step = guide.activeStep else { return }
+                    do { try await Task.sleep(for: .milliseconds(80)) } catch { return }
+                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.25)) {
+                        scroll.scrollTo(step, anchor: .center)
                     }
                 }
-            }
-            .modifier(AIReplyVisibilityTracker(viewportSize: viewport.size))
-            .refreshable {
-                appState.fetchUser()
-            }
-            .alert("返信を送信できませんでした", isPresented: Binding(
-                get: { appState.replyErrorMessage != nil },
-                set: { isPresented in
-                    if !isPresented { appState.replyErrorMessage = nil }
+                .onChange(of: viewport.size) { _, _ in
+                    if let step = guide.activeStep { scroll.scrollTo(step, anchor: .center) }
                 }
-            )) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(appState.replyErrorMessage ?? appState.text("通信状態を確認して、もう一度お試しください。", "Check your connection and try again."))
+                .refreshable {
+                    appState.fetchUser()
+                }
+                .alert("返信を送信できませんでした", isPresented: Binding(
+                    get: { appState.replyErrorMessage != nil },
+                    set: { isPresented in
+                        if !isPresented { appState.replyErrorMessage = nil }
+                    }
+                )) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(appState.replyErrorMessage ?? appState.text("通信状態を確認して、もう一度お試しください。", "Check your connection and try again."))
+                }
             }
         }
+        .transformAnchorPreference(key: HomeGuideAnchorPreference.self, value: .bounds) { targets, anchor in
+            targets[.viewport] = anchor
+        }
+        .onChange(of: guide.isPresenting) { _, presenting in
+            frozenGuideSelection = presenting ? liveGuideSelection : nil
+        }
+    }
+}
+
+private struct ViralPostBorder: View {
+    let startedAt: Date
+    let active: Bool
+    let reduceMotion: Bool
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !active || reduceMotion)) { context in
+            let elapsed = max(0, context.date.timeIntervalSince(startedAt) - 3)
+            let angle = active && !reduceMotion ? elapsed * 40 : 0
+            let colors = active
+                ? [Theme.hotPink.opacity(0.5), Theme.purpleAccent.opacity(0.5), Theme.lavender, Theme.hotPink.opacity(0.5)]
+                : [Theme.hotPink.opacity(0.35), Theme.purpleAccent.opacity(0.3)]
+            RoundedRectangle(cornerRadius: 22)
+                .stroke(AngularGradient(colors: colors, center: .center, angle: .degrees(angle)), lineWidth: active ? 1.8 : 1)
+                .shadow(color: Theme.hotPink.opacity(active ? 0.24 : 0), radius: 8)
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 
 struct PostCard: View {
     @EnvironmentObject var appState: AppState
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let post: PostModel
+    var guideSelection = HomeGuideSelection()
     @State private var regularFollowerAlert: RegularFollowerAlert?
     @State private var replyTarget: Reply?
     
@@ -143,6 +216,17 @@ struct PostCard: View {
         VStack(alignment: .leading, spacing: 0) {
             // Main Post Area
             VStack(alignment: .leading, spacing: 16) {
+                if appState.isViralRevealed(post) {
+                    Label(appState.isViralAnimating(post)
+                          ? appState.text("この投稿、バズっています", "This post is going viral")
+                          : appState.text("バズった投稿", "Viral post"), systemImage: "arrow.up.right")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Theme.hotPink)
+                        .padding(.horizontal, 12).padding(.vertical, 7)
+                        .background(Theme.hotPink.opacity(0.12), in: Capsule())
+                        .padding(.horizontal, 20).padding(.top, 16)
+                        .transition(.opacity)
+                }
                 HStack(alignment: .top, spacing: 12) {
                     if let data = appState.userAvatarData, let uiImage = UIImage(data: data) {
                         Image(uiImage: uiImage)
@@ -174,7 +258,7 @@ struct PostCard: View {
                     Spacer()
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 20)
+                .padding(.top, appState.isViralRevealed(post) ? 0 : 20)
                 
                 Text(post.content)
                     .font(.system(size: 17, weight: .medium))
@@ -195,7 +279,10 @@ struct PostCard: View {
                 HStack(spacing: 24) {
                     HStack(spacing: 8) {
                         Image(systemName: "heart.fill").foregroundColor(Theme.hotPink).font(.system(size: 18))
-                        Text("\(post.likes)").font(.system(size: 15, weight: .black, design: .monospaced)).foregroundColor(Theme.hotPink)
+                            .symbolEffect(.bounce, options: .nonRepeating, value: appState.isViralAnimating(post) && !reduceMotion)
+                        Text("\(appState.displayedLikes(for: post))").font(.system(size: 15, weight: .black, design: .monospaced)).foregroundColor(Theme.hotPink)
+                            .contentTransition(.numericText())
+                            .animation(reduceMotion ? nil : .easeOut(duration: 0.08), value: appState.displayedLikes(for: post))
                     }
                     HStack(spacing: 8) {
                         Image(systemName: "bubble.right.fill").foregroundColor(Theme.cyan).font(.system(size: 16))
@@ -206,16 +293,35 @@ struct PostCard: View {
                 .padding(.vertical, 16)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.black.opacity(0.3))
+                .homeGuideTarget(guideSelection.postID == post.id ? .reactions : nil)
+
+                if let reaction = post.reaction, reaction.isViral, reaction.followersAfter != nil {
+                    Label(appState.text("フォロワー ＋\(reaction.followerGain)", "+\(reaction.followerGain) followers"), systemImage: "person.badge.plus")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(Theme.lavender)
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .background(Theme.purpleAccent.opacity(0.14), in: Capsule())
+                        .padding(.horizontal, 20).padding(.bottom, 16)
+                        .transition(.opacity)
+                }
             }
             .background(Theme.cardBackground)
             .cornerRadius(22)
             .overlay(RoundedRectangle(cornerRadius: 22).stroke(Theme.subtleBorder, lineWidth: 1))
+            .overlay {
+                if appState.isViralRevealed(post) {
+                    ViralPostBorder(startedAt: post.reaction?.startedAt ?? .distantPast,
+                                    active: appState.isViralAnimating(post), reduceMotion: reduceMotion)
+                }
+            }
             .padding(.horizontal, 16)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: appState.isViralRevealed(post))
+            .sensoryFeedback(.success, trigger: appState.isViralAnimating(post)) { _, active in active && !reduceMotion }
             
-            if !post.replies.isEmpty || (appState.posts.first?.id == post.id && (appState.hasPendingReplies || appState.isRequestingReplies)) {
+            if !post.replies.isEmpty || appState.isWaitingForReplies(to: post) {
                 VStack(spacing: 12) {
                     // 返信0件かつリクエスト中、またはまだ保留返信がある間はLoading Dots表示
-                    if appState.posts.first?.id == post.id && (appState.hasPendingReplies || (post.replies.isEmpty && appState.isRequestingReplies)) {
+                    if appState.isWaitingForReplies(to: post) {
                         HStack {
                             Spacer()
                             LottieAnimationUIView(name: "Loading Pink Dots")
@@ -232,6 +338,9 @@ struct PostCard: View {
                                 analyticsPostFlowID: post.id,
                                 analyticsIsOnboardingPost: post.isOnboarding,
                                 analyticsTopLevelReplyCount: post.replies.filter { !$0.isUserReply && $0.replyToId == nil }.count,
+                                guideReplyCard: guideSelection.aiReplyID == reply.id,
+                                guideReplyAction: guideSelection.replyActionID == reply.id,
+                                guideRegularAction: guideSelection.regularActionID == reply.id,
                                 isRegular: !reply.isUserReply && appState.isRegularFollower(reply),
                                 canManageRegulars: !appState.isInOnboarding && !reply.isUserReply,
                                 canReply: !appState.isInOnboarding && reply.canReceiveUserReply,
@@ -261,8 +370,10 @@ struct PostCard: View {
                                 .environmentObject(appState)
                             }
                         }
+                        .transition(.opacity)
                     }
                 }
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: post.replies.count)
                 .padding(.top, 20)
                 .padding(.leading, 32)
                 .overlay(
@@ -275,6 +386,7 @@ struct PostCard: View {
                 )
             }
         }
+        .preference(key: HomeGuideModalPreference.self, value: replyTarget != nil || regularFollowerAlert != nil)
         .alert(item: $regularFollowerAlert) { alert in
             switch alert {
             case .confirm(let reply):
@@ -319,6 +431,9 @@ struct ReplyRow: View {
     var analyticsPostFlowID: UUID? = nil
     var analyticsIsOnboardingPost: Bool = false
     var analyticsTopLevelReplyCount: Int = 0
+    var guideReplyCard = false
+    var guideReplyAction = false
+    var guideRegularAction = false
     let isRegular: Bool
     let canManageRegulars: Bool
     let canReply: Bool
@@ -453,6 +568,7 @@ struct ReplyRow: View {
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("このAIに返信")
+                        .homeGuideTarget(guideReplyAction ? .reply : nil)
                     }
                     if showsThreadToggle {
                         Button(action: onThreadTap) {
@@ -475,6 +591,7 @@ struct ReplyRow: View {
                         .buttonStyle(.plain)
                         .disabled(isRegular)
                         .accessibilityLabel(appState.text(isRegular ? "常連設定済み" : "常連に設定", isRegular ? "Already a regular" : "Make a regular"))
+                        .homeGuideTarget(guideRegularAction && !isRegular ? .regular : nil)
                     }
                     if reply.isHater {
                         Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.red).font(.system(size: 12))
@@ -492,6 +609,7 @@ struct ReplyRow: View {
             .background(cardBackground)
             .cornerRadius(16)
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(cardStrokeColor, lineWidth: 1))
+            .homeGuideTarget(guideReplyCard ? .aiReply : nil)
             
             Spacer(minLength: 16)
         }

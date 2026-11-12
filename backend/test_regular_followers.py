@@ -43,6 +43,58 @@ class PromptCaptureClient:
 
 
 class RegularFollowerApiTests(unittest.TestCase):
+    def test_viral_rewards_are_five_times_rank_maximum(self):
+        thresholds = [0, 100, 500, 2000, 10000, 50000, 200000, 1000000, 5000000, 20000000]
+        for rank, followers in enumerate(thresholds, 1):
+            with patch.object(backend_main.random, "random", return_value=0.0):
+                reaction = backend_main.build_post_reaction(followers)
+            maximum = backend_main.POST_FOLLOWER_RANGES[rank - 1][1]
+            self.assertEqual(reaction, {"is_viral": True, "rank": rank,
+                                       "likes": maximum * 7 * 5, "follower_gain": maximum * 5})
+            with patch.object(backend_main.random, "random", return_value=0.99):
+                normal = backend_main.build_post_reaction(followers)
+            minimum = backend_main.POST_FOLLOWER_RANGES[rank - 1][0]
+            self.assertFalse(normal["is_viral"])
+            self.assertLessEqual(minimum, normal["follower_gain"])
+            self.assertLessEqual(normal["follower_gain"], maximum)
+            self.assertLessEqual(normal["likes"], maximum * 7)
+
+    def test_viral_endpoint_doubles_replies_in_one_generation_including_image(self):
+        for followers, count in ((0, 10), (20_000_000, 32)):
+            for language in ("ja", "en"):
+                parsed = GenerateRepliesResponse(replies=[ReplySchema(
+                    author_name=f"AI{i}", content=f"reply {i}", is_hater=False,
+                    is_defender=False, regular_follower_id=None,
+                ) for i in range(count)], memory_updates=[])
+                capture = PromptCaptureClient(parsed)
+                with (patch.object(backend_main, "openai_client", capture),
+                      patch.object(backend_main, "supabase", None),
+                      patch.object(backend_main, "resolve_avatar_url", return_value="https://example.test/avatar"),
+                      patch.object(backend_main.random, "random", return_value=0.0)):
+                    result = asyncio.run(backend_main.create_post(PostRequest(
+                        user_id="test", content="Test post", followers=followers,
+                        supports_viral_posts=True, is_hater_enabled=False,
+                        language=language, image_base64="test-image",
+                    )))
+                self.assertEqual(len(capture.calls), 1)
+                self.assertEqual(len(result["replies"]), count)
+                self.assertTrue(result["reaction"]["is_viral"])
+                schema = capture.calls[0]["response_format"].model_json_schema()["properties"]["replies"]
+                self.assertEqual((schema["minItems"], schema["maxItems"]), (count, count))
+                self.assertEqual(capture.calls[0]["messages"][1]["content"][1]["type"], "image_url")
+
+    def test_old_clients_and_onboarding_do_not_draw_viral_rewards(self):
+        from unittest.mock import AsyncMock
+        for options in ({}, {"supports_viral_posts": True, "is_onboarding": True}):
+            generate = AsyncMock(return_value=([], []))
+            with (patch.object(backend_main, "generate_ai_replies", generate),
+                  patch.object(backend_main, "build_post_reaction") as draw):
+                result = asyncio.run(backend_main.create_post(PostRequest(
+                    user_id="test", content="post", followers=0, **options)))
+            draw.assert_not_called()
+            self.assertNotIn("reaction", result)
+            self.assertFalse(generate.call_args.kwargs["is_viral"])
+
     def test_reaction_plans_spread_angles_and_limit_questions(self):
         state = random.getstate()
         try:

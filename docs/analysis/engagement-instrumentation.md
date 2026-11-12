@@ -28,8 +28,8 @@
 ## ローカル回帰確認
 
 ```sh
-xcrun swiftc -parse-as-library AppCode/Analytics.swift AppCode/AppState.swift scripts/check_engagement_metrics.swift -o /private/tmp/upme-engagement-checks
+xcrun swiftc -parse-as-library AppCode/Analytics.swift AppCode/UserProgressSync.swift AppCode/AppState.swift scripts/check_engagement_metrics.swift -o /private/tmp/upme-engagement-checks
 /private/tmp/upme-engagement-checks
 ```
 
-36件の確認。別プロセス間の保存、古いDB値を受け取った後の投稿番号、矩形の境界、プリフェッチ失敗と再試行、返信0件、ネットワークの再試行上限、オンボを終了した後の遅延応答を対象とする。通信はすべて模擬し、アプリの保存ファイルやPostHogプロジェクトには接続しない。保存テストにはテスト専用のUserDefaults領域への書き込みが必要。
+40件の確認。別プロセス間の保存、古いDB値を受け取った後の投稿番号、矩形の境界、プリフェッチ失敗と再試行、返信0件、ネットワークの再試行上限、オンボを終了した後の遅延応答、重複抑制用のAI返信履歴の抽出・件数/文字数制限・ユーザー返信の除外を対象とする。通信はすべて模擬し、アプリの保存ファイルやPostHogプロジェクトには接続しない。保存テストにはテスト専用のUserDefaults領域への書き込みが必要。

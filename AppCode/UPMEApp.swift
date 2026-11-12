@@ -27,6 +27,7 @@ struct UPMEAISNSApp: App {
                 .onChange(of: scenePhase) { _, newPhase in
                     if newPhase == .active {
                         UPMEAnalytics.recordActiveSession(userID: appState.userId)
+                        appState.fetchUser()
                     } else {
                         UPMEAnalytics.markSessionInactive()
                     }

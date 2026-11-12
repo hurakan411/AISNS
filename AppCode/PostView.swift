@@ -10,10 +10,12 @@ struct PostView: View {
     @State private var isLoadingImage = false
     private var canSubmit: Bool { !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isLoadingImage }
     var onCancel: () -> Void
+    var guide: HomeGuideCoordinator? = nil
     var onOnboardingSubmit: ((String) -> Void)? = nil
     var isOnboarding: Bool = false
     
     var body: some View {
+        ScrollViewReader { proxy in
         VStack(spacing: 0) {
             HStack {
                 if isOnboarding {
@@ -46,6 +48,7 @@ struct PostView: View {
                         .neonShadow(color: !canSubmit ? .clear : Theme.hotPink, radius: 8)
                 }
                 .disabled(!canSubmit)
+                .homeGuideTarget(.postSubmit)
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
@@ -96,6 +99,7 @@ struct PostView: View {
                     .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.subtleBorder, lineWidth: 1))
                     .padding(.horizontal, 16)
                     .padding(.top, 16)
+                    .homeGuideTarget(.postEditor)
                     
                     // Attached Image preview
                     if let data = attachedImageData, let uiImage = UIImage(data: data) {
@@ -140,6 +144,7 @@ struct PostView: View {
                                 .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.subtleBorder, lineWidth: 1))
                             }
                             .disabled(isLoadingImage)
+                            .homeGuideTarget(.postImage)
                             .onChange(of: selectedItem) { _, newItem in
                                 guard let newItem else { return }
                                 isLoadingImage = true
@@ -169,10 +174,17 @@ struct PostView: View {
             .padding(.horizontal, 24)
             .padding(.vertical, 12)
         }
+        .task(id: guide?.activeStep) {
+            guard let step = guide?.activeStep, step.screen == .post else { return }
+            do { try await Task.sleep(for: .milliseconds(80)) } catch { return }
+            withAnimation(.easeInOut(duration: 0.25)) { proxy.scrollTo(step, anchor: .center) }
+        }
         .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                isFocused = !DesignPreview.isActive
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                isFocused = !DesignPreview.isActive && guide?.isPresenting != true
             }
+        }
+        .homeGuideViewport()
         }
     }
 }

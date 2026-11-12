@@ -1,13 +1,23 @@
 import SwiftUI
 import StoreKit
 
-enum Tab {
+enum Tab: String {
     case home, post, stats, profile
+
+    var guideScreen: GuideScreen { GuideScreen(rawValue: rawValue) ?? .home }
 }
 
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var storeManager: StoreManager
+    @Environment(\.scenePhase) private var scenePhase
+    @StateObject private var homeGuide = HomeGuideCoordinator(
+        store: HomeGuideProgressStore(persists: !DesignPreview.isActive),
+        automaticEnabled: !DesignPreview.isActive || DesignPreview.argument("--ui-guide") == "true",
+        previewStart: HomeGuideStep(rawValue: DesignPreview.argument("--ui-guide-step") ?? "")
+    )
+    @State private var hasCheckedStartupNotice = false
+    @State private var homeContentModalPresented = false
     @State private var activeTab: Tab = {
         switch DesignPreview.argument("--ui-tab") {
         case "stats": return .stats
@@ -22,6 +32,12 @@ struct ContentView: View {
     @State private var showRankUpPopup: Bool = false
     @State private var showUpdateNotice: Bool = false
     @State private var newlyAchievedRank: Int = 1
+
+    private var guideAllowed: Bool {
+        scenePhase == .active && hasCheckedStartupNotice
+            && !showUpdateNotice && !showRankUpPopup && !homeContentModalPresented
+            && appState.replyErrorMessage == nil
+    }
 
     private var shouldShowBannerAds: Bool {
         #if targetEnvironment(simulator)
@@ -39,15 +55,11 @@ struct ContentView: View {
         if !hasAcceptedPrivacyPolicy {
             // ── Step 0: プライバシー同意画面 ──
             PrivacyConsentView(hasAccepted: $hasAcceptedPrivacyPolicy, userID: appState.userId)
-        } else if !appState.onboardingStatusReady {
-            // ── Step 1: サーバー確認待ち ──
-            Theme.bgDeepBlack.ignoresSafeArea()
         } else if !appState.hasCompletedOnboarding {
-            // ── Step 2: オンボーディング ──
+            // Use local progress immediately; server reconciliation runs in the background.
             OnboardingView()
                 .environmentObject(appState)
         } else {
-            // ── Step 3: メイン画面 ──
             mainContent
         }
     }
@@ -61,6 +73,8 @@ struct ContentView: View {
                 if shouldShowBannerAds {
                     BannerAdView()
                         .frame(width: 320, height: 50)
+                } else if DesignPreview.argument("--ui-ad-space") == "true" {
+                    Color.clear.frame(height: 50)
                 }
                 
                 if activeTab == .home {
@@ -86,16 +100,19 @@ struct ContentView: View {
                 ZStack {
                     switch activeTab {
                     case .home:
-                        FeedView { activeTab = .post }
+                        FeedView(guide: homeGuide) { activeTab = .post }
                             .transition(.opacity)
                     case .post:
-                        PostView(onCancel: { activeTab = .home })
+                        PostView(onCancel: { activeTab = .home }, guide: homeGuide)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     case .stats:
-                        StatsView()
+                        StatsView(guide: homeGuide)
                             .transition(.opacity)
                     case .profile:
-                        ProfileView()
+                        ProfileView(onReplayGuide: { screen in
+                            homeGuide.requestReplay(for: screen)
+                            withAnimation { activeTab = Tab(rawValue: screen.rawValue) ?? .home }
+                        }, guide: homeGuide)
                             .transition(.opacity)
                             .ignoresSafeArea(edges: .top)
                     }
@@ -105,8 +122,11 @@ struct ContentView: View {
                 if shouldShowBannerAds {
                     BannerAdView()
                         .frame(width: 320, height: 50)
+                } else if DesignPreview.argument("--ui-ad-space") == "true" {
+                    Color.clear.frame(height: 50)
                 }
             }
+            .accessibilityHidden(guideAllowed && homeGuide.isPresenting)
             
             if showRankUpPopup {
                 RankUpView(rank: newlyAchievedRank) {
@@ -146,18 +166,36 @@ struct ContentView: View {
             .padding(.bottom, 8)
             .background(Theme.bgDeepBlack.opacity(0.94).background(Material.ultraThin).ignoresSafeArea(edges: .bottom))
             .overlay(Rectangle().frame(height: 1).foregroundColor(Theme.subtleBorder), alignment: .top)
+            .accessibilityHidden(guideAllowed && homeGuide.isPresenting)
         }
-        .onAppear {
-            guard !DesignPreview.isActive, lastSeenUpdateNoticeVersion != AppUpdateNotice.current.version else { return }
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
-                UPMEAnalytics.capture("update_notice_viewed", properties: [
-                    "version": AppUpdateNotice.current.version
-                ])
+        .overlayPreferenceValue(HomeGuideAnchorPreference.self) { anchors in
+            GeometryReader { geometry in
+                let targets = Dictionary(uniqueKeysWithValues: HomeGuideStep.ordered(for: activeTab.guideScreen).compactMap { step in
+                    anchors[.step(step)].map { (step, geometry[$0]) }
+                })
+                HomeGuideHost(
+                    guide: homeGuide,
+                    allowed: guideAllowed,
+                    targets: targets,
+                    viewport: anchors[.viewport].map { geometry[$0] } ?? .zero,
+                    canvas: geometry.size,
+                    japanese: appState.appLanguage == .japanese,
+                    screen: activeTab.guideScreen
+                )
+            }
+            .allowsHitTesting(guideAllowed && homeGuide.isPresenting)
+        }
+        .onPreferenceChange(HomeGuideModalPreference.self) { homeContentModalPresented = $0 }
+        .task {
+            if !DesignPreview.isActive, lastSeenUpdateNoticeVersion != AppUpdateNotice.current.version {
+                do { try await Task.sleep(for: .milliseconds(450)) } catch { return }
+                guard !Task.isCancelled else { return }
+                UPMEAnalytics.capture("update_notice_viewed", properties: ["version": AppUpdateNotice.current.version])
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) {
                     showUpdateNotice = true
                 }
             }
+            hasCheckedStartupNotice = true
         }
         .onChange(of: appState.currentRank) { _, newRank in
             if newRank > lastSeenRank {

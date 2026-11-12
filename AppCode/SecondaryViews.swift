@@ -3,64 +3,26 @@ import PhotosUI
 
 struct StatsView: View {
     @EnvironmentObject var appState: AppState
-    @State private var showsRankGuide = DesignPreview.argument("--ui-guide") == "true"
+    var guide: HomeGuideCoordinator? = nil
+    @State private var showsRankGuide = false
 
     private var currentInfo: RankInfo { rankData[appState.currentRank - 1] }
 
     var body: some View {
         GeometryReader { geometry in
-            ScrollView {
-                VStack(spacing: 0) {
-                    TactileHeader(title: "統計")
-
-                    VStack(spacing: 14) {
-                        RankProgressRing(rank: appState.currentRank,
-                                         progress: RankProgress.fraction(followers: appState.followers, rank: appState.currentRank))
-                            .frame(width: min(260, geometry.size.width * 0.60), height: min(260, geometry.size.width * 0.60))
-                            .padding(.top, 8)
-                            .padding(.bottom, 4)
-
-                        Text(appState.text("ランク \(appState.currentRank)", "Rank \(appState.currentRank)"))
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(StatsTheme.lavender)
-                            .padding(.horizontal, 12).padding(.vertical, 5)
-                            .background(StatsTheme.purpleAccent.opacity(0.14), in: Capsule())
-
-                        Text(LocalizedStringKey(currentInfo.name))
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        RankBenefits(info: currentInfo)
-                            .padding(.top, 14)
-                    }
-                    .padding(.horizontal, 24)
-
-                    statisticsSummary
-                        .padding(.horizontal, 24)
-                        .padding(.top, 30)
-
-                    Button { showsRankGuide = true } label: {
-                        HStack(spacing: 8) {
-                            Text(appState.text("ランク一覧を見る", "View all ranks"))
-                            Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold))
-                        }
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(StatsTheme.secondaryText)
-                        .frame(minHeight: 44)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(TactileButtonStyle())
-                    .accessibilityIdentifier("stats.rankGuide")
-                    .padding(.horizontal, 28)
-                    .padding(.top, 12)
-                    .padding(.bottom, 24)
-                }
+            // Fit the available space after the safe areas, tab bar and ad banners.
+            // Smaller displays use a smaller illustration and tighter spacing, without scrolling.
+            ViewThatFits(in: .vertical) {
+                statisticsContent(ringSize: min(300, geometry.size.width * 0.72), compact: false)
+                statisticsContent(ringSize: min(300, geometry.size.width * 0.72), compact: true)
+                statisticsContent(ringSize: min(260, geometry.size.width * 0.64), compact: true)
+                statisticsContent(ringSize: min(240, geometry.size.width * 0.60), compact: true)
+                statisticsContent(ringSize: min(210, geometry.size.width * 0.54), compact: true)
+                statisticsContent(ringSize: min(180, geometry.size.width * 0.48), compact: true)
+                statisticsContent(ringSize: min(140, max(72, geometry.size.height - 390)), compact: true)
             }
-            .scrollIndicators(.hidden)
-            .refreshable { appState.fetchUser() }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .task { if !DesignPreview.isActive { appState.fetchUser() } }
         }
         .sheet(isPresented: $showsRankGuide) {
             NavigationStack {
@@ -77,55 +39,153 @@ struct StatsView: View {
             }
             .preferredColorScheme(.dark)
         }
+        .homeGuideViewport()
+        .preference(key: HomeGuideModalPreference.self, value: showsRankGuide)
     }
 
-    private var statisticsSummary: some View {
-        VStack(spacing: 22) {
-            HStack(alignment: .center, spacing: 16) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(appState.text("フォロワー", "Followers"))
-                        .font(.system(size: 12, weight: .medium)).foregroundStyle(StatsTheme.secondaryText)
-                    Text(appState.followers, format: .number.grouping(.automatic))
-                        .font(.system(size: 30, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white).contentTransition(.numericText())
-                        .lineLimit(1).minimumScaleFactor(0.65)
+    private func statisticsContent(ringSize: CGFloat, compact: Bool) -> some View {
+        VStack(spacing: 0) {
+            VStack(spacing: compact ? 8 : 10) {
+                RankProgressRing(rank: appState.currentRank,
+                                 progress: RankProgress.fraction(followers: appState.followers, rank: appState.currentRank))
+                    .frame(width: ringSize, height: ringSize)
+
+                Text(appState.text("ランク \(appState.currentRank)", "Rank \(appState.currentRank)"))
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(StatsTheme.lavender)
+                    .padding(.horizontal, 12).padding(.vertical, 5)
+                    .background(StatsTheme.purpleAccent.opacity(0.14), in: Capsule())
+
+                Text(LocalizedStringKey(currentInfo.name))
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .homeGuideTarget(.statsRank)
+            .frame(maxWidth: .infinity)
+
+            RankBenefits(info: currentInfo)
+                .homeGuideTarget(.statsBenefits)
+                .padding(.top, compact ? 12 : 20)
+
+            statisticsSummary(compact: compact)
+                .homeGuideTarget(.statsSummary)
+                .padding(.top, compact ? 12 : 24)
+
+            Button { showsRankGuide = true } label: {
+                HStack(spacing: 8) {
+                    Text(appState.text("ランク一覧を見る", "View all ranks"))
+                    Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold))
                 }
-                Spacer(minLength: 0)
-                VStack(alignment: .trailing, spacing: 8) {
-                    Text(appState.nextRankFollowers == nil ? appState.text("最高ランク", "Top rank") : appState.text("次のランクまで", "Next rank"))
-                        .font(.system(size: 11, weight: .medium)).foregroundStyle(StatsTheme.hotPink.opacity(0.85))
-                    if let next = appState.nextRankFollowers {
-                        Text(appState.text("あと\(max(0, next - appState.followers).formatted())人", "\(max(0, next - appState.followers).formatted()) to go"))
-                            .font(.system(size: 14, weight: .medium)).foregroundStyle(.white)
-                    } else {
-                        Text("最高ランク到達済み").font(.system(size: 12)).foregroundStyle(.white)
-                    }
-                }
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(StatsTheme.secondaryText)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
             }
-            HStack(spacing: 12) {
-                summaryMetric(appState.text("いいね", "Likes"), value: appState.posts.reduce(0) { $0 + $1.likes })
-                summaryMetric(appState.text("返信", "Replies"), value: appState.posts.reduce(0) { $0 + $1.replies.count + $1.replyThreads.reduce(0) { $0 + $1.replies.filter { !$0.isUserReply }.count } })
-                summaryMetric(appState.text("累計投稿", "Total posts"), value: appState.totalPosts)
-            }
-            if appState.totalPosts > appState.posts.count {
-                Text(appState.text("いいね・返信は端末に保存された投稿の集計です", "Likes and replies reflect posts saved on this device."))
-                    .font(.system(size: 10)).foregroundStyle(StatsTheme.secondaryText)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
+            .buttonStyle(TactileButtonStyle())
+            .accessibilityIdentifier("stats.rankGuide")
+            .homeGuideTarget(.statsRankList)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(.top, compact ? 4 : 8)
         }
-        .padding(22)
-        .background(StatsTheme.surfaceGradient, in: RoundedRectangle(cornerRadius: 34, style: .continuous))
+        .padding(.horizontal, 24)
+        .padding(.vertical, compact ? 6 : 16)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
-    private func summaryMetric(_ title: String, value: Int) -> some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Text(title).font(.system(size: 11)).foregroundStyle(StatsTheme.secondaryText)
-            Text(value, format: .number.grouping(.automatic))
-                .font(.system(size: 20, weight: .medium, design: .rounded))
-                .foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.6)
-                .contentTransition(.numericText())
+    private func statisticsSummary(compact: Bool) -> some View {
+        VStack(alignment: .leading, spacing: compact ? 8 : 10) {
+            Text(appState.text("あなたの記録", "Your activity"))
+                .font(.system(size: compact ? 16 : 18, weight: .semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 8)
+                .accessibilityAddTraits(.isHeader)
+
+            VStack(alignment: .leading, spacing: compact ? 16 : 24) {
+                HStack(alignment: .center, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(appState.text("AIフォロワー", "AI followers"))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(StatsTheme.secondaryText)
+                        statisticValue(appState.followers, unit: appState.text("人", ""), size: compact ? 32 : 36)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityElement(children: .combine)
+
+                    VStack(alignment: .trailing, spacing: 6) {
+                        Text(appState.nextRankFollowers == nil ? appState.text("最高ランク", "Top rank") : appState.text("次のランクまで", "Next rank"))
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(StatsTheme.hotPink.opacity(0.85))
+                        if let next = appState.nextRankFollowers {
+                            let remaining = max(0, next - appState.followers).formatted(.number.locale(appState.locale))
+                            Text(appState.text("あと\(remaining)人", "\(remaining) to go"))
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(.white)
+                        } else {
+                            Text(appState.text("最高ランク到達済み", "Top rank reached"))
+                                .font(.system(size: 12))
+                                .foregroundStyle(.white)
+                        }
+                    }
+                    .fixedSize(horizontal: true, vertical: false)
+                    .accessibilityElement(children: .combine)
+                }
+
+                HStack(alignment: .top, spacing: compact ? 8 : 12) {
+                    summaryMetric(appState.text("投稿数", "Posts"), value: appState.totalPosts,
+                                  icon: "pencil", color: StatsTheme.lavender, compact: compact)
+                    summaryMetric(appState.text("もらったいいね", "Likes received"), value: appState.posts.reduce(0) { $0 + $1.likes },
+                                  icon: "heart", color: StatsTheme.hotPink, compact: compact)
+                    summaryMetric(appState.text("AIからの返信", "AI replies"),
+                                  value: appState.posts.reduce(0) { $0 + $1.replies.count + $1.replyThreads.reduce(0) { $0 + $1.replies.filter { !$0.isUserReply }.count } },
+                                  icon: "bubble.left", color: StatsTheme.lavender, compact: compact)
+                }
+            }
+            .padding(compact ? 14 : 22)
+            .background(StatsTheme.surfaceGradient, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+
+            Text(appState.text("いいね・返信は保存済みの投稿を集計", "Likes and replies are counted from posts saved on this device."))
+                .font(.system(size: 10))
+                .foregroundStyle(StatsTheme.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 8)
+        }
+    }
+
+    private func summaryMetric(_ title: String, value: Int, icon: String, color: Color, compact: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(color.opacity(0.9))
+                    .accessibilityHidden(true)
+                Text(title)
+                    .font(.system(size: compact ? 10 : 11, weight: .medium))
+                    .foregroundStyle(StatsTheme.secondaryText)
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            statisticValue(value, unit: appState.text("件", ""), size: compact ? 24 : 27)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func statisticValue(_ value: Int, unit: String, size: CGFloat) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Text(value, format: .number.grouping(.automatic).locale(appState.locale))
+                .font(.system(size: size, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+                .lineLimit(1).minimumScaleFactor(0.55)
+                .contentTransition(.numericText())
+            if !unit.isEmpty {
+                Text(unit)
+                    .font(.system(size: size * 0.42, weight: .medium))
+                    .foregroundStyle(StatsTheme.secondaryText)
+                    .fixedSize()
+            }
+        }
     }
 }
 
@@ -331,6 +391,8 @@ struct StatCard: View {
 }
 
 struct ProfileView: View {
+    var onReplayGuide: ((GuideScreen) -> Void)? = nil
+    var guide: HomeGuideCoordinator? = nil
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var storeManager: StoreManager
     @State private var selectedItem: PhotosPickerItem? = nil
@@ -341,6 +403,7 @@ struct ProfileView: View {
     @State private var followerPendingRemoval: RegularFollower?
     
     var body: some View {
+        ScrollViewReader { reader in
         ScrollView {
             VStack(spacing: 0) {
                 // Header Image
@@ -381,6 +444,7 @@ struct ProfileView: View {
                                 .offset(x: 30, y: 30)
                         )
                     }
+                    .homeGuideTarget(.profileAvatar)
                     .offset(x: 24, y: 45)
                     .onChange(of: selectedItem) { newItem in
                         Task {
@@ -450,6 +514,7 @@ struct ProfileView: View {
 
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .homeGuideTarget(.profileIdentity)
                 .padding(.horizontal, 24)
                 .padding(.top, 16)
 
@@ -482,6 +547,7 @@ struct ProfileView: View {
                 .background(Theme.aiCardBackground)
                 .cornerRadius(16)
                 .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.subtleBorder, lineWidth: 1))
+                .homeGuideTarget(.profileRank)
                 .padding(.horizontal, 24)
                 .padding(.top, 20)
                 
@@ -584,6 +650,7 @@ struct ProfileView: View {
                             .foregroundColor(Theme.lavender.opacity(0.85))
                     }
                 }
+                .homeGuideTarget(.profileRegulars)
                 .padding(.horizontal, 32)
 
                 Divider()
@@ -596,6 +663,40 @@ struct ProfileView: View {
                         .font(.system(size: 14, weight: .black))
                         .foregroundColor(.gray)
                         .tracking(2)
+
+                    if let onReplayGuide {
+                        Menu {
+                            ForEach(GuideScreen.allCases) { screen in
+                                Button(screen.title(japanese: appState.appLanguage == .japanese)) {
+                                    onReplayGuide(screen)
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "book.closed")
+                                    .foregroundStyle(Theme.lavender)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(appState.text("使い方ガイド", "How to use UPME"))
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundStyle(.white)
+                                    Text(appState.text("見直したい画面を選べます", "Choose a screen to replay"))
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(.gray)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(Theme.lavender)
+                            }
+                            .padding(14)
+                            .frame(maxWidth: .infinity, minHeight: 60)
+                            .background(Theme.aiCardBackground.opacity(0.7), in: RoundedRectangle(cornerRadius: 14))
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.subtleBorder, lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("profile.homeGuide")
+                        .homeGuideTarget(.profileGuide)
+                    }
 
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
@@ -623,6 +724,7 @@ struct ProfileView: View {
                     .background(Theme.aiCardBackground.opacity(0.7))
                     .cornerRadius(14)
                     .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.subtleBorder, lineWidth: 1))
+                    .homeGuideTarget(.profileSettings)
                     
                     Toggle(isOn: $appState.isHaterEnabled) {
                         VStack(alignment: .leading, spacing: 4) {
@@ -635,7 +737,9 @@ struct ProfileView: View {
                         }
                     }
                     .toggleStyle(SwitchToggleStyle(tint: Theme.hotPink))
+                    .homeGuideTarget(.profileHaters)
                     
+                    VStack(alignment: .leading, spacing: 12) {
                     if !storeManager.isAdsRemoved {
                         if let product = storeManager.products.first {
                             Button(action: {
@@ -689,6 +793,9 @@ struct ProfileView: View {
                                 .foregroundColor(.gray)
                         }
                     }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .homeGuideTarget(.profileAds)
                 }
                 .padding(.horizontal, 32)
                 .padding(.top, 32)
@@ -728,6 +835,7 @@ struct ProfileView: View {
                         .cornerRadius(14)
                         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.subtleBorder, lineWidth: 1))
                     }
+                    .homeGuideTarget(.profileContact)
                 }
                 .padding(.horizontal, 32)
 
@@ -769,6 +877,7 @@ struct ProfileView: View {
                         }
                     }
                 }
+                .homeGuideTarget(.profileLegal)
                 .padding(.horizontal, 32)
             }
             .padding(.bottom, 40)
@@ -776,6 +885,14 @@ struct ProfileView: View {
         .refreshable {
             appState.fetchUser()
         }
+        .task(id: guide?.activeStep) {
+            guard let step = guide?.activeStep, step.screen == .profile else { return }
+            do { try await Task.sleep(for: .milliseconds(80)) } catch { return }
+            withAnimation(.easeInOut(duration: 0.25)) { reader.scrollTo(step, anchor: .center) }
+        }
+        }
+        .homeGuideViewport()
+        .preference(key: HomeGuideModalPreference.self, value: showTerms || showPrivacy || followerPendingRemoval != nil)
         .alert(item: $followerPendingRemoval) { follower in
             Alert(
                 title: Text(appState.text("@\(follower.authorName)の常連を解除しますか？", "Remove @\(follower.authorName) as a regular?")),
