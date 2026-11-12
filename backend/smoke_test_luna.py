@@ -78,6 +78,15 @@ async def run(output):
         cases.append((case_id, "/api/posts", {**base, "content": text}))
     cases += [
         ("en_work", "/api/posts", {**base, "language": "en", "content": "I finally finished the presentation I was nervous about!"}),
+        ("ja_style_history", "/api/posts", {**base, "content": "今日も１日仕事頑張ったー！！！", "recent_ai_replies": [
+            "一日やり切ったね。今夜はゆっくり休んでね。",
+            "仕事頑張ったんだね。今日は自分を甘やかしてあげて。",
+            "一日おつかれさま。温かいものでも飲んでゆっくりしよう。",
+        ]}),
+        ("en_style_history", "/api/posts", {**base, "language": "en", "content": "Another full workday done!", "recent_ai_replies": [
+            "A whole day done. Hope you get a quiet evening.",
+            "You worked hard today. Time for some well-earned rest.",
+        ]}),
         ("ja_image", "/api/posts", {**base, "content": "散歩で赤い花を見つけた。写真を撮って、いい気分転換になった！", "image_base64": image}),
         ("en_image", "/api/posts", {**base, "language": "en", "content": "Found these red flowers on my walk. Taking a photo was a nice break!", "image_base64": "data:image/jpeg;base64," + image}),
         ("ja_regulars_rank10", "/api/posts", {**base, "followers": 20_000_000, "content": "昨日ここで話したプレゼン、今日終わった。練習のときほど声は震えなかったかも。", "regular_followers": regulars}),
