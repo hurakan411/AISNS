@@ -83,9 +83,9 @@ class RegularFollowerApiTests(unittest.TestCase):
                 self.assertEqual((schema["minItems"], schema["maxItems"]), (count, count))
                 self.assertEqual(capture.calls[0]["messages"][1]["content"][1]["type"], "image_url")
 
-    def test_old_clients_and_onboarding_do_not_draw_viral_rewards(self):
+    def test_old_clients_do_not_draw_viral_rewards(self):
         from unittest.mock import AsyncMock
-        for options in ({}, {"supports_viral_posts": True, "is_onboarding": True}):
+        for options in ({}, {"is_onboarding": True}):
             generate = AsyncMock(return_value=([], []))
             with (patch.object(backend_main, "generate_ai_replies", generate),
                   patch.object(backend_main, "build_post_reaction") as draw):
@@ -94,6 +94,29 @@ class RegularFollowerApiTests(unittest.TestCase):
             draw.assert_not_called()
             self.assertNotIn("reaction", result)
             self.assertFalse(generate.call_args.kwargs["is_viral"])
+
+    def test_onboarding_is_guaranteed_viral_in_a_single_batch(self):
+        parsed = GenerateRepliesResponse(replies=[ReplySchema(
+            author_name=f"AI{i}", content=f"reply {i}", is_hater=False,
+            is_defender=False, regular_follower_id=None,
+        ) for i in range(32)], memory_updates=[])
+        capture = PromptCaptureClient(parsed)
+        with (patch.object(backend_main, "openai_client", capture),
+              patch.object(backend_main, "supabase", None),
+              patch.object(backend_main, "resolve_avatar_url", return_value="https://example.test/avatar"),
+              patch.object(backend_main.random, "random", return_value=0.99)):
+            result = asyncio.run(backend_main.create_post(PostRequest(
+                user_id="test", content="first post", followers=20_000_000,
+                is_onboarding=True, supports_viral_posts=True,
+            )))
+        self.assertEqual(result["reaction"], {"is_viral": True, "rank": 10,
+                                             "likes": 10_500_000, "follower_gain": 1_500_000})
+        self.assertEqual(len(capture.calls), 1)
+        self.assertEqual(len(result["replies"]), 32)
+        prompt = capture.calls[0]["messages"][0]["content"]
+        self.assertIn("32", prompt)
+        self.assertIn("アンチ→擁護→改心の3段展開", prompt)
+        self.assertEqual(capture.calls[0]["response_format"].model_json_schema()["properties"]["replies"]["maxItems"], 32)
 
     def test_reaction_plans_spread_angles_and_limit_questions(self):
         state = random.getstate()

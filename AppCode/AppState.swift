@@ -337,8 +337,6 @@ class AppState: ObservableObject {
         }
     }
     
-    private var likeTimer: AnyCancellable?
-    private var replyTimer: AnyCancellable?
     private var reactionTimer: AnyCancellable?
     @Published private(set) var reactionNow = Date()
     private var requestingPostIDs: Set<UUID> = []
@@ -350,21 +348,6 @@ class AppState: ObservableObject {
     private var pendingReplies: [Reply] = [] {
         didSet { hasPendingReplies = !pendingReplies.isEmpty }
     }
-    
-    // リプライ連動でいいね・フォロワーを増やすための一時変数
-    private var buzzTargetLikes: Int = 0
-    private var buzzTargetFollowers: Int = 0
-    private var buzzInitialLikes: Int = 0
-    private var buzzInitialFollowers: Int = 0
-    private var buzzTotalReplies: Int = 0
-    private var buzzCurrentReply: Int = 0
-    
-    // === 演出の調整パラメーター ===
-    // 何分かけて「いいね」と「返信」を増やすか（秒数）。例: 5分 = 300.0
-    let buzzDurationSeconds: Double = 300.0
-    // いいね数がパラパラ上がるUIの間隔（秒数）。滑らかさ重視なら0.5程度
-    let buzzUpdateInterval: Double = 0.5
-    // ========================
     
     let avatars = [
         "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop",
@@ -462,8 +445,8 @@ class AppState: ObservableObject {
         if !hasCompletedOnboarding && progress.hasCompletedOnboarding {
             // The server may confirm completion while the provisional onboarding is playing.
             // Cancel its effects and restore real saved posts before opening Home.
-            likeTimer?.cancel()
-            replyTimer?.cancel()
+            reactionTimer?.cancel()
+            reactionTimer = nil
             pendingReplies = []
             prefetchedOnboardingReplies = []
             onboardingPostFlowID = nil
@@ -658,33 +641,11 @@ class AppState: ObservableObject {
         let newPost = PostModel(id: postFlowID, content: text, imageData: nil, likes: 0, replies: [], isOnboarding: true, time: self.text("今", "Now"))
         posts = [newPost]
         
-        let targetFollowers = Int.random(in: 150000...300000)
-        let targetLikes = Int(Double(targetFollowers) * Double.random(in: 5.0...10.0))
-        
-        buzzInitialLikes = 0
-        buzzInitialFollowers = 0
-        buzzTargetLikes = targetLikes
-        buzzTargetFollowers = targetFollowers
-        buzzCurrentReply = 0
-        
-        var ticks = 0
-        let maxTicks = 200
-        likeTimer = Timer.publish(every: 0.3, on: .main, in: .common).autoconnect().sink { [weak self] _ in
-            guard let self = self else { return }
-            ticks += 1
-            let p = min(Double(ticks) / Double(maxTicks), 0.95)
-            if !self.posts.isEmpty {
-                self.posts[0].likes = Int(Double(targetLikes) * p)
-            }
-            self.followers = Int(Double(targetFollowers) * p)
-        }
-        
         if onboardingRepliesResponseFlowID == postFlowID {
             // 取得に成功したプリフェッチ結果だけを再利用する。
             let replies = prefetchedOnboardingReplies
             prefetchedOnboardingReplies = []
-            pendingReplies = replies
-            startReplyDrainTimer(postFlowID: postFlowID, isOnboarding: true)
+            beginOnboardingReaction(postID: postFlowID, replies: replies)
         } else if onboardingRepliesRequestInFlight {
             // プリフェッチが進行中。完了時のコールバックが返信表示を開始する。
             return
@@ -713,9 +674,8 @@ class AppState: ObservableObject {
                 self.prefetchedOnboardingReplies = replies
                 self.onboardingRepliesResponseFlowID = postFlowID
                 if self.isInOnboarding && self.posts.first?.id == postFlowID {
-                    self.pendingReplies = replies
                     self.prefetchedOnboardingReplies = []
-                    self.startReplyDrainTimer(postFlowID: postFlowID, isOnboarding: true)
+                    self.beginOnboardingReaction(postID: postFlowID, replies: replies)
                 }
             case .failure:
                 self.prefetchedOnboardingReplies = []
@@ -724,16 +684,23 @@ class AppState: ObservableObject {
                     "AIの返信を取得できませんでした。もう一度試すか、このまま始められます。",
                     "Couldn't load AI replies. You can try again or continue to UPME."
                 )
-                if self.isInOnboarding && self.posts.first?.id == postFlowID {
-                    self.likeTimer?.cancel()
-                }
             }
         }
     }
     
     func completeOnboarding() {
-        likeTimer?.cancel()
-        replyTimer?.cancel()
+        reactionTimer?.cancel()
+        reactionTimer = nil
+        // Keep the full already-generated batch even when the user leaves at 80%.
+        if let index = posts.firstIndex(where: \.isOnboarding), var reaction = posts[index].reaction {
+            var post = posts[index]
+            post.replies.append(contentsOf: reaction.remainingReplies)
+            reaction.remainingReplies = []
+            reaction.followersAfter = 0 // Demonstration followers are not a real account credit.
+            post.reaction = reaction
+            post.likes = reaction.targetLikes
+            posts[index] = post
+        }
         pendingReplies = []
         isInOnboarding = false
         // posts = [] // オンボの投稿と返信を残す
@@ -1315,6 +1282,13 @@ class AppState: ObservableObject {
         isViralRevealed(post) && post.reaction?.followersAfter == nil
     }
 
+    private func beginOnboardingReaction(postID: UUID, replies: [Reply]) {
+        onboardingExpectedReplies = replies.count
+        beginPostReaction(postID: postID, replies: replies, response: [
+            "is_viral": true, "rank": 10, "likes": 10_500_000, "follower_gain": 1_500_000
+        ])
+    }
+
     func beginPostReaction(postID: UUID, replies: [Reply], response: [String: Any]?) {
         guard let index = posts.firstIndex(where: { $0.id == postID }), !replies.isEmpty else {
             fallbackReactions.removeValue(forKey: postID)
@@ -1338,7 +1312,7 @@ class AppState: ObservableObject {
         if viral {
             UPMEAnalytics.capture("post_went_viral", properties: [
                 "post_flow_id": postID.uuidString.lowercased(), "rank": posts[index].reaction!.rank,
-                "reply_count": replies.count
+                "reply_count": replies.count, "is_onboarding": posts[index].isOnboarding
             ])
         }
         updatePostReactions(at: Date())
@@ -1364,7 +1338,8 @@ class AppState: ObservableObject {
                 revealed.append(reaction.remainingReplies.removeFirst())
             }
             let complete = elapsed >= reaction.duration
-            if complete { reaction.followersAfter = followers + reaction.followerGain }
+            let onboarding = posts[index].isOnboarding
+            if complete { reaction.followersAfter = onboarding ? 0 : followers + reaction.followerGain }
             if previousCount != reaction.remainingReplies.count || complete {
                 // Store the absolute credited total before updating user progress. On relaunch,
                 // max(local total, credited total) repairs an interrupted write without doubling it.
@@ -1374,13 +1349,17 @@ class AppState: ObservableObject {
                 if complete { updated.likes = reaction.targetLikes }
                 posts[index] = updated
             }
+            if onboarding && isInOnboarding {
+                followers = Int(Double(reaction.followerGain) * reaction.progress(at: date))
+                if !posts[index].replies.isEmpty { onboardingFirstReplyReceived = true }
+            }
             if complete, let total = reaction.followersAfter {
-                followers = max(followers, total)
+                if !onboarding { followers = max(followers, total) }
                 UPMEAnalytics.capture("ai_replies_displayed", properties: [
                     "post_flow_id": id.uuidString.lowercased(), "reply_count": reaction.replyOffsets.count,
-                    "is_onboarding": false, "is_viral": reaction.isViral
+                    "is_onboarding": onboarding, "is_viral": reaction.isViral
                 ])
-                syncUser()
+                if !onboarding { syncUser() }
             }
         }
         let active = posts.contains { $0.reaction != nil && $0.reaction?.followersAfter == nil }
@@ -1391,7 +1370,7 @@ class AppState: ObservableObject {
     func restorePostReactions() {
         // Opening the app again shows the settled outcome, without replaying the celebration.
         let recordedTotal = posts.compactMap { post -> Int? in
-            guard post.reaction?.environment == Self.baseUrl else { return nil }
+            guard !post.isOnboarding, post.reaction?.environment == Self.baseUrl else { return nil }
             return post.reaction?.followersAfter
         }.max() ?? followers
         userProgressSync?.recoverFollowerTotal(atLeast: recordedTotal)
@@ -1411,7 +1390,7 @@ class AppState: ObservableObject {
                 continue
             }
             if reaction.followersAfter == nil {
-                reaction.followersAfter = followers + reaction.followerGain
+                reaction.followersAfter = updated.isOnboarding ? 0 : followers + reaction.followerGain
                 updated.replies.append(contentsOf: reaction.remainingReplies)
                 reaction.remainingReplies = []
                 updated.likes = reaction.targetLikes
@@ -1465,6 +1444,7 @@ class AppState: ObservableObject {
             "followers": followers,
             "is_hater_enabled": isHaterEnabled,
             "is_onboarding": true,    // オンボ専用プロンプト固定
+            "supports_viral_posts": true,
             "language": languageCode
         ]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
@@ -1519,73 +1499,4 @@ class AppState: ObservableObject {
         }.resume()
     }
     
-    private func startReplyDrainTimer(postFlowID: UUID, isOnboarding: Bool) {
-        replyTimer?.cancel()
-        likeTimer?.cancel()
-        
-        let count = pendingReplies.count
-        guard count > 0 else { return }
-        
-        buzzTotalReplies = count
-        buzzCurrentReply = 0
-        if isOnboarding { onboardingExpectedReplies = count }
-        
-        // リプライの推定所要時間を計算（1件目は即時、残りは10〜30秒 → 平均20秒）
-        let estimatedDuration = Double(max(count - 1, 1)) * 20.0
-        let totalTicks = Int(estimatedDuration / buzzUpdateInterval)
-        var tickCount = 0
-        
-        // 0.5秒ごとにいいね・フォロワーをチロチロ増やすタイマーを開始
-        likeTimer = Timer.publish(every: buzzUpdateInterval, on: .main, in: .common).autoconnect().sink { [weak self] _ in
-            guard let self = self else { return }
-            tickCount += 1
-            
-            let progress = min(Double(tickCount) / Double(totalTicks), 1.0)
-            let newLikes = self.buzzInitialLikes + Int(Double(self.buzzTargetLikes) * progress)
-            let newFollowers = self.buzzInitialFollowers + Int(Double(self.buzzTargetFollowers) * progress)
-            
-            if !self.posts.isEmpty {
-                self.posts[0].likes = newLikes
-            }
-            self.followers = newFollowers
-        }
-        
-        func drainNext() {
-            guard !self.pendingReplies.isEmpty, !self.posts.isEmpty else { return }
-            
-            let reply = self.pendingReplies.removeFirst()
-            let animation: Animation = isOnboarding
-                ? .easeIn(duration: 0.3)
-                : .spring(response: 0.4, dampingFraction: 0.7)
-            withAnimation(animation) {
-                self.posts[0].replies.insert(reply, at: 0)
-            }
-            
-            // オンボ中：1件目のリプライが表示されたらローディングを消す
-            if isOnboarding && !self.onboardingFirstReplyReceived {
-                self.onboardingFirstReplyReceived = true
-            }
-            
-            if self.pendingReplies.isEmpty {
-                // 最後のリプライ → タイマー停止、目標値にピッタリ合わせてDB同期
-                self.likeTimer?.cancel()
-                self.posts[0].likes = self.buzzInitialLikes + self.buzzTargetLikes
-                self.followers = self.buzzInitialFollowers + self.buzzTargetFollowers
-                UPMEAnalytics.capture("ai_replies_displayed", properties: [
-                    "post_flow_id": postFlowID.uuidString.lowercased(),
-                    "reply_count": self.buzzTotalReplies,
-                    "is_onboarding": isOnboarding
-                ])
-                self.syncUser()
-            } else {
-                let randomInterval = isOnboarding ? Double.random(in: 1.5...4.0) : Double.random(in: 5.0...15.0)
-                DispatchQueue.main.asyncAfter(deadline: .now() + randomInterval) {
-                    drainNext()
-                }
-            }
-        }
-        
-        // 1件目は待たずにすぐ表示する
-        drainNext()
-    }
 }

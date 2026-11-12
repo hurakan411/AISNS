@@ -154,11 +154,11 @@ POST_FOLLOWER_RANGES = [(30, 40), (90, 110), (170, 210), (500, 570), (1200, 1450
 VIRAL_POST_PROBABILITY = 0.10
 
 
-def build_post_reaction(followers: int) -> dict:
+def build_post_reaction(followers: int, *, force_viral: bool = False) -> dict:
     """Choose rewards once, independently of the text and without an AI call."""
     rank = rank_from_followers(followers)
     minimum, maximum = POST_FOLLOWER_RANGES[rank - 1]
-    is_viral = random.random() < VIRAL_POST_PROBABILITY
+    is_viral = force_viral or random.random() < VIRAL_POST_PROBABILITY
     gain = maximum * 5 if is_viral else random.randint(minimum, maximum)
     likes = maximum * 7 * 5 if is_viral else int(gain * random.uniform(3.0, 7.0))
     return {"is_viral": is_viral, "rank": rank, "likes": likes, "follower_gain": gain}
@@ -593,7 +593,7 @@ async def generate_ai_replies(
     # ランクごとのパラメータ定義（上限・下限を持たせる）
     minimum, maximum, haters = POST_REPLY_RANGES[rank - 1]
     params = {"haters": haters}
-    total_replies = maximum * 2 if is_viral and not is_onboarding else random.randint(minimum, maximum)
+    total_replies = maximum * 2 if is_viral else random.randint(minimum, maximum)
     
     # アンチ数を確率で決定（上限はrank_paramsの定義通り）
     if is_onboarding:
@@ -956,7 +956,7 @@ One critic must later reconsider after seeing the other followers' reactions and
         # OpenAI API Structured Outputs を使って確実にJSONスキーマで返却させる
         generation_started_at = time.perf_counter()
         response_format = GenerateRepliesResponse
-        if is_viral and not is_onboarding:
+        if is_viral:
             response_format = create_model(
                 f"ViralPostReplies{total_replies}", __base__=GenerateRepliesResponse,
                 replies=(List[ReplySchema], Field(min_length=total_replies, max_length=total_replies)),
@@ -1344,7 +1344,7 @@ async def create_post(request: PostRequest):
     AI返信を生成し、結果を直接レスポンスで返す。DB保存は行わない。
     """
     try:
-        reaction = build_post_reaction(request.followers) if request.supports_viral_posts and not request.is_onboarding else None
+        reaction = build_post_reaction(request.followers, force_viral=request.is_onboarding) if request.supports_viral_posts else None
         replies, memory_updates = await generate_ai_replies(
             content=request.content,
             followers=request.followers,

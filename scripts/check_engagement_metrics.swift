@@ -224,7 +224,25 @@ struct EngagementChecks {
         inFlight.submitOnboardingPost(text: "test")
         wait("In-flight prefetch reused") { inFlight.posts.first?.replies.count == 1 }
         check(MockRepliesProtocol.requestCount == 1, "No duplicate request during prefetch")
+        check(inFlight.posts.first?.reaction?.isViral == true, "Onboarding always starts a viral reaction")
+        check(inFlight.posts.first?.reaction?.targetLikes == 10_500_000 && inFlight.posts.first?.reaction?.followerGain == 1_500_000,
+              "Onboarding uses the virtual rank-10 maximum times five")
         inFlight.completeOnboarding()
+        check(inFlight.followers == 0 && inFlight.posts.first?.reaction?.followersAfter == 0,
+              "Demo followers are never credited to the real account")
+
+        MockRepliesProtocol.configure(.init(replies: (0..<32).map { ["author_name": "AI\($0)", "content": "Reply \($0)"] }))
+        let earlyExit = AppState(restorePersistedState: false)
+        earlyExit.prefetchOnboardingReplies(text: "test")
+        earlyExit.submitOnboardingPost(text: "test")
+        wait("Guaranteed viral batch arrives") { earlyExit.onboardingFirstReplyReceived }
+        check(earlyExit.onboardingExpectedReplies == 32 && MockRepliesProtocol.requestCount == 1,
+              "All onboarding replies arrive in one request")
+        earlyExit.completeOnboarding()
+        check(earlyExit.posts.first?.replies.count == 32 && earlyExit.posts.first?.likes == 10_500_000,
+              "Exiting onboarding retains every generated reply and the final viral likes")
+        earlyExit.restorePostReactions()
+        check(earlyExit.followers == 0, "Restoring the onboarding post cannot credit demonstration followers")
 
         MockRepliesProtocol.configure(.init(replies: [], delay: 0.05))
         let emptyResponse = AppState(restorePersistedState: false)

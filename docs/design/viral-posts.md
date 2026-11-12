@@ -1,7 +1,7 @@
 # Viral posts
 
 Normal posts have a 10% chance of going viral. The draw is independent of text or image content.
-Onboarding is excluded. The rank at request time determines the rewards:
+Onboarding is guaranteed viral for supported clients. The rank at request time determines the rewards:
 
 - Likes: five times the rank's maximum (normal follower-gain maximum × 7 × 5).
 - Followers gained: five times the rank's normal maximum.
@@ -16,8 +16,12 @@ used for the larger batch. Critic limits do not increase.
 ## Compatibility and persistence
 
 New apps send `supports_viral_posts: true`. The backend returns an optional `reaction` object with
-`is_viral`, `rank`, `likes`, and `follower_gain`. Old clients do not opt in, and onboarding keeps its
-existing response and reward behavior. If the new app reaches an old backend, it uses normal local
+`is_viral`, `rank`, `likes`, and `follower_gain`. Old clients do not opt in. Supported onboarding requests
+force a viral result without drawing a random chance. Onboarding uses virtual rank 10: 10,500,000 likes,
+1,500,000 demonstration followers and 32 replies, generated in one call with the existing critic/defender
+story. The same 12-second presentation is used, reusing prefetched replies. Exiting early retains all
+received replies and final likes; demonstration followers still reset to zero and never enter the real
+account's progress ledger. If the new app reaches an old backend, normal posts use normal local
 rewards and does not display a viral effect. No database migration is needed.
 
 After receiving a successful response, the app atomically saves the reaction, pending replies and
@@ -54,6 +58,6 @@ Preview uses fixture replies and does not contact the backend, AI API or analyti
 
 Mocked backend tests cover all ten rank rewards, normal ranges, viral batches of 10 and 32 in
 Japanese/English including an image, exact response-schema counts, one generation call, and
-onboarding/old-client exclusion. Swift checks cover concurrent posts, timed reveal, exact reward
+guaranteed onboarding and old-client exclusion. Swift checks cover concurrent posts, timed reveal, exact reward
 settlement, repeated foreground updates, saved pending replies, legacy post decoding and interrupted
 write recovery. Startup checks include recovery against a server that already has the reward.
