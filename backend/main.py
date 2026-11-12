@@ -667,7 +667,8 @@ Allowed: restrained sarcasm, eye-rolling skepticism, blunt criticism. Forbidden:
             if is_onboarding:
                 hater_instruction = f"""{hater_base}
 [ONBOARDING THREE-STEP ARC — REQUIRED]
-Place these three replies consecutively and in this exact order inside replies:
+For this onboarding post, the first three entries of replies (indexes 0, 1, 2) MUST be this arc.
+Complete these roles first, then generate the remaining ordinary followers:
 
 1. Critical reply (is_hater=true, is_defender=false): criticize something specific in the post and remember its author_name.
 2. Defender reply (is_hater=false, is_defender=true): quote or paraphrase the criticism, directly rebut it, and support the user. Use a different author_name.
@@ -702,7 +703,8 @@ One critic must later reconsider after seeing the other followers' reactions and
         if is_onboarding:
             hater_instruction = f"""{hater_base}
 【オンボーディング専用：アンチ→擁護→改心の3段展開（必須）】
-以下の3件を**この順番で連続して** replies 配列に含めてください：
+このオンボ投稿では、replies配列の**先頭3件（index 0, 1, 2）を必ず以下の役割**にしてください。
+最初にこの3件を作り、その後に残りの通常フォロワーの返信を作ってください：
 
 1. **アンチの返信**（is_hater=true, is_defender=false）: 投稿内容を具体的に批判する。author_name を覚えておくこと。
 2. **擁護者の返信**（is_hater=false, is_defender=true）: アンチの主張を引用し、**直接反論**してユーザーを擁護する。アンチとは別の author_name にすること。
@@ -939,6 +941,18 @@ One critic must later reconsider after seeing the other followers' reactions and
 
     system_prompt += build_reply_style_instruction(language, bool(image_base64))
     system_prompt += build_reply_diversity_instruction(total_replies - hater_count - defender_count, language)
+    if is_onboarding and is_viral:
+        system_prompt += (
+            "\nFINAL ROLE CHECK: replies[0] is the critic (is_hater=true, is_defender=false); "
+            "replies[1] is a different author's rebuttal (is_hater=false, is_defender=true); "
+            "replies[2] is the original critic reconsidering (same author as index 0, is_hater=false, is_defender=true). "
+            "All remaining entries must have both flags false. The reaction-angle table applies ONLY to entries from index 3."
+            if language == "en" else
+            "\n最終確認：replies[0]はアンチ（is_hater=true,is_defender=false）、replies[1]は別名の擁護者"
+            "（is_hater=false,is_defender=true）、replies[2]は先頭のアンチ本人の改心"
+            "（0と同じauthor_name、is_hater=false,is_defender=true）。残りは両フラグfalse。"
+            "反応の割当表はindex 3以降の通常返信だけに適用してください。"
+        )
 
     try:
         post_label = "User's post" if language == "en" else "ユーザーの投稿"

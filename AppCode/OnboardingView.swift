@@ -68,7 +68,7 @@ struct OnboardingView: View {
         }
         .animation(.easeInOut(duration: 0.6), value: phase)
         .onAppear {
-            UPMEAnalytics.capture("onboarding_started")
+            if !appState.isDebugOnboardingReplay { UPMEAnalytics.capture("onboarding_started") }
         }
     }
 
@@ -321,7 +321,7 @@ struct OnboardingView: View {
                         .padding(.vertical, 24)
                         .padding(.bottom, 100)
                     }
-                    .modifier(AIReplyVisibilityTracker(viewportSize: viewport.size))
+                    .modifier(AIReplyVisibilityTracker(viewportSize: viewport.size, isSuppressed: appState.isDebugOnboardingReplay))
                 }
             }
             
@@ -408,6 +408,40 @@ struct OnboardingView: View {
         }
     }
 }
+
+#if DEBUG
+/// An independent session keeps replayed posts, progress and settings out of the real account.
+struct DebugOnboardingReplayView: View {
+    @StateObject private var replay: AppState
+    @Environment(\.dismiss) private var dismiss
+
+    init(source: AppState) {
+        _replay = StateObject(wrappedValue: AppState.onboardingReplay(from: source))
+    }
+
+    var body: some View {
+        OnboardingView()
+            .environmentObject(replay)
+            .environment(\.locale, replay.locale)
+            .preferredColorScheme(.dark)
+            .overlay(alignment: .topTrailing) {
+                Button { dismiss() } label: {
+                    Label(replay.text("閉じる", "Close"), systemImage: "xmark")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12).padding(.vertical, 10)
+                        .background(.black.opacity(0.7), in: Capsule())
+                }
+                .padding(.trailing, 16).padding(.top, 8)
+                .accessibilityIdentifier("onboardingReplay.close")
+            }
+            .onChange(of: replay.hasCompletedOnboarding) { _, completed in
+                if completed { dismiss() }
+            }
+            .onDisappear { replay.cancelOnboardingReplay() }
+    }
+}
+#endif
 
 // MARK: - Dedicated View for Typewriting Effect
 struct FakeComposeTypingView: View {

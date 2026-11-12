@@ -1,5 +1,5 @@
 // Run with:
-// xcrun swiftc -parse-as-library AppCode/Analytics.swift AppCode/UserProgressSync.swift AppCode/AppState.swift scripts/check_engagement_metrics.swift -o /private/tmp/upme-engagement-checks
+// xcrun swiftc -D DEBUG -parse-as-library AppCode/Analytics.swift AppCode/UserProgressSync.swift AppCode/AppState.swift scripts/check_engagement_metrics.swift -o /private/tmp/upme-engagement-checks
 // /private/tmp/upme-engagement-checks
 import Foundation
 import CoreGraphics
@@ -276,6 +276,45 @@ struct EngagementChecks {
         RunLoop.main.run(until: Date().addingTimeInterval(0.3))
         check(skipped.posts.first?.replies.isEmpty == true && !skipped.isInOnboarding,
               "Late response cannot resume onboarding after leaving")
+
+        #if DEBUG
+        let source = AppState(restorePersistedState: false)
+        source.hasCompletedOnboarding = true
+        source.followers = 1_482
+        source.totalPosts = 89
+        source.userName = "Replay source"
+        source.appLanguage = .english
+        source.posts = [PostModel(content: "Real post", imageData: nil, likes: 128, replies: [], time: "")]
+        let postEncoder = JSONEncoder()
+        postEncoder.outputFormatting = [.sortedKeys]
+        let sourcePosts = try postEncoder.encode(source.posts)
+        let replay = AppState.onboardingReplay(from: source)
+        check(replay.isDebugOnboardingReplay && !replay.hasCompletedOnboarding && replay.posts.isEmpty,
+              "Replay opens as a fresh, separate onboarding session")
+        check(replay.userName == source.userName && replay.appLanguage == .english,
+              "Replay inherits the display name and selected language")
+        MockRepliesProtocol.configure(.init(replies: (0..<32).map { ["author_name": "AI\($0)", "content": "Reply \($0)"] }))
+        replay.prefetchOnboardingReplies(text: "Replay test")
+        replay.submitOnboardingPost(text: "Replay test")
+        wait("Replay uses the actual onboarding flow") { replay.onboardingFirstReplyReceived }
+        replay.completeOnboarding()
+        check(replay.posts.first?.reaction?.isViral == true && replay.posts.first?.replies.count == 32,
+              "Replay includes the guaranteed viral post")
+        check(source.followers == 1_482 && source.totalPosts == 89 && source.hasCompletedOnboarding,
+              "Completing replay preserves the real account progress")
+        check(try postEncoder.encode(source.posts) == sourcePosts, "Completing replay preserves real posts")
+        replay.cancelOnboardingReplay()
+        MockRepliesProtocol.configure(.init(delay: 0.15))
+        let canceledReplay = AppState.onboardingReplay(from: source)
+        canceledReplay.prefetchOnboardingReplies(text: "Canceled test")
+        canceledReplay.submitOnboardingPost(text: "Canceled test")
+        wait("Replay request begins") { MockRepliesProtocol.requestCount == 1 }
+        canceledReplay.cancelOnboardingReplay()
+        RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+        canceledReplay.submitOnboardingPost(text: "Late callback")
+        check(canceledReplay.posts.first?.replies.isEmpty == true && MockRepliesProtocol.requestCount == 1,
+              "Closing replay blocks late replies, retries and delayed resubmission")
+        #endif
 
         print("PASS: \(checks) engagement and onboarding checks; all networking mocked.")
     }

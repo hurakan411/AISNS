@@ -54,6 +54,14 @@ highlight, symbol bounce and number/entry animations. UI strings are provided in
 Debug simulator preview: `--ui-preview --ui-tab=home --ui-language=ja --ui-viral=true`.
 Preview uses fixture replies and does not contact the backend, AI API or analytics.
 
+Debug builds also expose **Replay onboarding** in Profile → Settings. This presents the original
+onboarding using an isolated in-memory `AppState`, with the current name/language copied in. It uses
+the configured API for real reply generation, so replaying a post incurs the usual generation cost.
+The real posts, follower total, onboarding completion, preferences, avatar, progress synchronization
+and analytics are not changed by the replay. It can be closed at any phase; pending network work
+and animation are canceled. Completion returns to Profile. The button and replay view/factory are
+compiled out of Release builds.
+
 ## Verification
 
 Mocked backend tests cover all ten rank rewards, normal ranges, viral batches of 10 and 32 in
@@ -61,3 +69,14 @@ Japanese/English including an image, exact response-schema counts, one generatio
 guaranteed onboarding and old-client exclusion. Swift checks cover concurrent posts, timed reveal, exact reward
 settlement, repeated foreground updates, saved pending replies, legacy post decoding and interrupted
 write recovery. Startup checks include recovery against a server that already has the reward.
+
+Production preparation: Debug and unsigned Release builds passed. Binary checks found the replay
+UI in Debug and not Release. The paid synthetic `ja_viral_onboarding` smoke case passed with 32
+replies in one API call and a consecutive critic/defender/reconsidering-critic arc. An earlier live
+attempt did not preserve the role arc; the viral onboarding prompt now explicitly reserves the
+first three entries for it. The smoke report preserves unvalidated responses when assertions fail.
+This is a single live sample, not a guarantee of semantic role quality for every generated batch.
+
+```sh
+python3 backend/smoke_test_luna.py --live --case ja_viral_onboarding --output /private/tmp/upme-viral-onboarding-live.json
+```

@@ -35,7 +35,7 @@ def flower_image():
     return base64.b64encode(buffer.getvalue()).decode("ascii")
 
 
-async def run(output):
+async def run(output, case_ids=None):
     load_dotenv(Path(__file__).with_name(".env"))
     if not os.getenv("OPENAI_API_KEY"):
         raise SystemExit("OPENAI_API_KEY is missing")
@@ -96,6 +96,10 @@ async def run(output):
             **base, "language": language, "content": text, "followers": 20_000_000,
             "is_onboarding": True,
         }))
+    cases.append(("ja_viral_onboarding", "/api/posts", {
+        **base, "content": "今日も仕事を頑張った", "followers": 20_000_000,
+        "is_onboarding": True, "supports_viral_posts": True,
+    }))
     for language, name, post, comment, reply in (
         ("ja", "ゆき", "プレゼン終わった！", "練習してた分が出たんだね。", "ありがとう！最初は緊張したけど、後半は落ち着いて話せたよ。"),
         ("en", "Mia", "Finished my presentation!", "Glad you made it through.", "Thanks! I was nervous at first, but I settled down halfway through."),
@@ -104,6 +108,13 @@ async def run(output):
             "user_id": base["user_id"], "language": language, "post_content": post,
             "ai_author_name": name, "ai_reply_content": comment, "user_reply": reply,
         }))
+
+    if case_ids:
+        selected = set(case_ids)
+        unknown = selected - {item[0] for item in cases}
+        if unknown:
+            raise ValueError(f"Unknown smoke cases: {sorted(unknown)}")
+        cases = [item for item in cases if item[0] in selected]
 
     report = {"created_at_utc": datetime.now(timezone.utc).isoformat(), "model": main.OPENAI_MODEL,
               "synthetic_fixtures_only": True, "database_access": False, "samples": []}
@@ -120,11 +131,20 @@ async def run(output):
                     before = len(api_calls)
                     with contextlib.redirect_stdout(io.StringIO()):
                         response = await http.post(route, json=payload)
-                    assert response.status_code == 200, f"{case_id}: HTTP {response.status_code}"
                     data = response.json()
+                    sample = {"case": case_id, "route": route, "http_status": response.status_code,
+                              **(api_calls[-1] if len(api_calls) > before else {}),
+                              "response": data, "validated": False}
+                    report["samples"].append(sample)
+                    assert response.status_code == 200, f"{case_id}: HTTP {response.status_code}"
                     assert data["status"] == "success"
                     assert len(api_calls) == before + 1
-                    assert 3 <= len(data["replies"]) <= (5 if route == "/api/replies" else 16)
+                    viral = data.get("reaction", {}).get("is_viral", False)
+                    assert 3 <= len(data["replies"]) <= (5 if route == "/api/replies" else 32 if viral else 16)
+                    if payload.get("supports_viral_posts") and payload.get("is_onboarding"):
+                        assert viral and len(data["replies"]) == 32
+                        assert data["reaction"]["likes"] == 10_500_000
+                        assert data["reaction"]["follower_gain"] == 1_500_000
                     for item in data["replies"]:
                         main.ReplySchema.model_validate(item)
                         assert item["content"].strip() and item["author_img"]
@@ -144,8 +164,7 @@ async def run(output):
                         ids = [item["regular_follower_id"] for item in data["replies"] if item["regular_follower_id"]]
                         assert sorted(ids) == sorted(item["follower_id"] for item in regulars)
                         assert {item["follower_id"] for item in data["memory_updates"]} == set(ids)
-                    report["samples"].append({"case": case_id, "route": route, "http_status": response.status_code,
-                                              **api_calls[-1], "response": data})
+                    sample["validated"] = True
                     print(f"PASS {case_id}: HTTP 200, {len(data['replies'])} replies, model={api_calls[-1]['model']}", flush=True)
     finally:
         output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -159,7 +178,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--live", action="store_true", help="Explicitly opt into paid OpenAI requests")
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--case", action="append", dest="case_ids", help="Run only this case (repeatable)")
     args = parser.parse_args()
     if not args.live:
         parser.error("--live is required; this test makes paid API requests")
-    asyncio.run(run(args.output))
+    asyncio.run(run(args.output, args.case_ids))

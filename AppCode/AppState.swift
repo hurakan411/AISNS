@@ -256,6 +256,43 @@ private enum OnboardingReplyFetchError: String, Error {
 }
 
 class AppState: ObservableObject {
+    #if DEBUG
+    private(set) var isDebugOnboardingReplay = false
+    #else
+    let isDebugOnboardingReplay = false
+    #endif
+    private var canPersistUserState: Bool { !DesignPreview.isActive && !isDebugOnboardingReplay }
+    private var onboardingReplayCancelled = false
+    private var onboardingNetworkTask: URLSessionDataTask?
+
+    private func captureOnboardingEvent(_ name: String, properties: [String: Any] = [:]) {
+        guard !isDebugOnboardingReplay else { return }
+        UPMEAnalytics.capture(name, properties: properties)
+    }
+
+    #if DEBUG
+    static func onboardingReplay(from source: AppState) -> AppState {
+        let replay = AppState(restorePersistedState: false)
+        replay.isDebugOnboardingReplay = true
+        replay.appLanguage = source.appLanguage
+        replay.userName = source.userName
+        replay.userBio = source.userBio
+        replay.userAvatarData = source.userAvatarData
+        replay.isHaterEnabled = source.isHaterEnabled
+        replay.hasCompletedOnboarding = false
+        return replay
+    }
+
+    func cancelOnboardingReplay() {
+        guard isDebugOnboardingReplay else { return }
+        onboardingReplayCancelled = true
+        onboardingPostFlowID = nil
+        onboardingNetworkTask?.cancel()
+        reactionTimer?.cancel()
+        reactionTimer = nil
+    }
+    #endif
+
     @Published var appLanguage: AppLanguage = {
         guard let saved = UserDefaults.standard.string(forKey: "appLanguage"),
               let language = AppLanguage(rawValue: saved) else {
@@ -264,7 +301,7 @@ class AppState: ObservableObject {
         return language
     }() {
         didSet {
-            guard !DesignPreview.isActive else { return }
+            guard canPersistUserState else { return }
             UserDefaults.standard.set(appLanguage.rawValue, forKey: "appLanguage")
             if userName == oldValue.defaultUserName {
                 userName = appLanguage.defaultUserName
@@ -299,7 +336,7 @@ class AppState: ObservableObject {
     
     @Published var hasCompletedOnboarding: Bool = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
         didSet {
-            if !DesignPreview.isActive { UserDefaults.standard.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding") }
+            if canPersistUserState { UserDefaults.standard.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding") }
             cacheUserProgress()
         }
     }
@@ -321,18 +358,18 @@ class AppState: ObservableObject {
     @Published var prefetchedOnboardingText: String = ""
     
     @Published var userName: String = UserDefaults.standard.string(forKey: "userName") ?? AppLanguage.deviceDefault.defaultUserName {
-        didSet { if !DesignPreview.isActive { UserDefaults.standard.set(userName, forKey: "userName") } }
+        didSet { if canPersistUserState { UserDefaults.standard.set(userName, forKey: "userName") } }
     }
     @Published var userAvatarData: Data? = nil {
         didSet { saveAvatar() }
     }
     @Published var userBio: String = UserDefaults.standard.string(forKey: "userBio") ?? AppLanguage.deviceDefault.defaultBio {
-        didSet { if !DesignPreview.isActive { UserDefaults.standard.set(userBio, forKey: "userBio") } }
+        didSet { if canPersistUserState { UserDefaults.standard.set(userBio, forKey: "userBio") } }
     }
     
     @Published var isHaterEnabled: Bool = UserDefaults.standard.object(forKey: "isHaterEnabled") as? Bool ?? true {
         didSet {
-            guard !DesignPreview.isActive else { return }
+            guard canPersistUserState else { return }
             UserDefaults.standard.set(isHaterEnabled, forKey: "isHaterEnabled")
         }
     }
@@ -434,7 +471,7 @@ class AppState: ObservableObject {
     }
 
     private func cacheUserProgress() {
-        guard !DesignPreview.isActive, !applyingUserProgress, !isInOnboarding else { return }
+        guard canPersistUserState, !applyingUserProgress, !isInOnboarding else { return }
         userProgressSync?.updateLocal(followers: followers, totalPosts: totalPosts,
                                       onboardingCompleted: hasCompletedOnboarding)
     }
@@ -470,7 +507,7 @@ class AppState: ObservableObject {
     }
     
     private func savePosts() {
-        guard !DesignPreview.isActive else { return }
+        guard canPersistUserState else { return }
         // Keep unfinished posts until their generated replies and reward are delivered.
         let trimmed = posts.enumerated().filter { index, post in
             index < 5 || requestingPostIDs.contains(post.id)
@@ -491,7 +528,7 @@ class AppState: ObservableObject {
     }
     
     private func saveAvatar() {
-        guard !DesignPreview.isActive else { return }
+        guard canPersistUserState else { return }
         if let data = userAvatarData {
             try? data.write(to: avatarURL)
         } else {
@@ -508,7 +545,7 @@ class AppState: ObservableObject {
     }
 
     private func saveRegularFollowers() {
-        guard !DesignPreview.isActive else { return }
+        guard canPersistUserState else { return }
         if let data = try? JSONEncoder().encode(regularFollowers) {
             try? data.write(to: regularFollowersURL, options: .atomic)
         }
@@ -621,19 +658,20 @@ class AppState: ObservableObject {
     
     /// fakeCompose投稿時点でAIにリクエストを送り、返信を事前取得しておく
     func prefetchOnboardingReplies(text: String) {
-        guard !onboardingRepliesRequestInFlight else { return }
+        guard !onboardingReplayCancelled, !onboardingRepliesRequestInFlight else { return }
         prefetchedOnboardingText = text
         prefetchedOnboardingReplies = []
         let postFlowID = UUID()
         onboardingPostFlowID = postFlowID
         onboardingRepliesResponseFlowID = nil
-        UPMEAnalytics.capture("onboarding_post_submitted", properties: [
+        captureOnboardingEvent("onboarding_post_submitted", properties: [
             "post_flow_id": postFlowID.uuidString.lowercased()
         ])
         loadOnboardingReplies(content: text, postFlowID: postFlowID)
     }
     
     func submitOnboardingPost(text: String) {
+        guard !onboardingReplayCancelled else { return }
         isInOnboarding = true
         onboardingFirstReplyReceived = false
         let postFlowID = onboardingPostFlowID ?? UUID()
@@ -707,7 +745,7 @@ class AppState: ObservableObject {
         followers = 0
         totalPosts = 1
         hasCompletedOnboarding = true
-        UPMEAnalytics.seedPostCount(userID: userId, totalPosts: 1)
+        if !isDebugOnboardingReplay { UPMEAnalytics.seedPostCount(userID: userId, totalPosts: 1) }
         var properties: [String: Any] = [
             "rank": currentRank,
             "ai_reply_status": onboardingReplyError != nil ? "failed" : (onboardingFirstReplyReceived ? "received" : "pending")
@@ -715,7 +753,7 @@ class AppState: ObservableObject {
         if let postFlowID = posts.first(where: \.isOnboarding)?.id.uuidString.lowercased() {
             properties["post_flow_id"] = postFlowID
         }
-        UPMEAnalytics.capture("onboarding_completed", properties: properties)
+        captureOnboardingEvent("onboarding_completed", properties: properties)
         onboardingPostFlowID = nil
         onboardingRepliesRequestInFlight = false
         onboardingReplyError = nil
@@ -797,13 +835,13 @@ class AppState: ObservableObject {
     }()
     
     func fetchUser() {
-        guard !DesignPreview.isActive else { return }
+        guard canPersistUserState else { return }
         if !isInOnboarding { updatePostReactions(at: Date()) }
         userProgressSync?.refresh()
     }
 
     private func syncUser(includeOnboarding: Bool = false) {
-        guard !DesignPreview.isActive, !isInOnboarding || includeOnboarding else { return }
+        guard canPersistUserState, !isInOnboarding || includeOnboarding else { return }
         cacheUserProgress()
         userProgressSync?.sync()
     }
@@ -1290,6 +1328,7 @@ class AppState: ObservableObject {
     }
 
     func beginPostReaction(postID: UUID, replies: [Reply], response: [String: Any]?) {
+        guard !onboardingReplayCancelled else { return }
         guard let index = posts.firstIndex(where: { $0.id == postID }), !replies.isEmpty else {
             fallbackReactions.removeValue(forKey: postID)
             replyErrorMessage = text("AI返信を読み込めませんでした。", "AI replies could not be loaded.")
@@ -1310,7 +1349,7 @@ class AppState: ObservableObject {
             startedAt: Date(), replyOffsets: offsets, remainingReplies: replies
         )
         if viral {
-            UPMEAnalytics.capture("post_went_viral", properties: [
+            captureOnboardingEvent("post_went_viral", properties: [
                 "post_flow_id": postID.uuidString.lowercased(), "rank": posts[index].reaction!.rank,
                 "reply_count": replies.count, "is_onboarding": posts[index].isOnboarding
             ])
@@ -1355,7 +1394,7 @@ class AppState: ObservableObject {
             }
             if complete, let total = reaction.followersAfter {
                 if !onboarding { followers = max(followers, total) }
-                UPMEAnalytics.capture("ai_replies_displayed", properties: [
+                captureOnboardingEvent("ai_replies_displayed", properties: [
                     "post_flow_id": id.uuidString.lowercased(), "reply_count": reaction.replyOffsets.count,
                     "is_onboarding": onboarding, "is_viral": reaction.isViral
                 ])
@@ -1410,8 +1449,9 @@ class AppState: ObservableObject {
         completion: @escaping (Result<[Reply], OnboardingReplyFetchError>) -> Void
     ) {
         let requestStartedAt = requestStartedAt ?? Date()
+        guard !onboardingReplayCancelled else { return }
         let fail: (OnboardingReplyFetchError) -> Void = { failure in
-            UPMEAnalytics.capture("ai_replies_failed", properties: [
+            self.captureOnboardingEvent("ai_replies_failed", properties: [
                 "post_flow_id": postFlowID.uuidString.lowercased(),
                 "reason": failure.rawValue,
                 "is_onboarding": true,
@@ -1421,7 +1461,7 @@ class AppState: ObservableObject {
             DispatchQueue.main.async { completion(.failure(failure)) }
         }
         if retryCount == 0 {
-            UPMEAnalytics.capture("ai_replies_request_started", properties: [
+            captureOnboardingEvent("ai_replies_request_started", properties: [
                 "post_flow_id": postFlowID.uuidString.lowercased(),
                 "has_image": false,
                 "is_onboarding": true,
@@ -1449,8 +1489,8 @@ class AppState: ObservableObject {
         ]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
-            guard let self = self else { return }
+        let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            guard let self = self, !self.onboardingReplayCancelled else { return }
             
             if let error = error {
                 print("fetchAiRepliesBackground error: \(error.localizedDescription)")
@@ -1488,7 +1528,7 @@ class AppState: ObservableObject {
                 fail(.emptyReplies)
                 return
             }
-            UPMEAnalytics.capture("ai_replies_received", properties: [
+            self.captureOnboardingEvent("ai_replies_received", properties: [
                 "post_flow_id": postFlowID.uuidString.lowercased(),
                 "duration_ms": Int(Date().timeIntervalSince(requestStartedAt) * 1_000),
                 "reply_count": replies.count,
@@ -1496,7 +1536,9 @@ class AppState: ObservableObject {
                 "is_onboarding": true
             ])
             DispatchQueue.main.async { completion(.success(replies)) }
-        }.resume()
+        }
+        onboardingNetworkTask = task
+        task.resume()
     }
     
 }

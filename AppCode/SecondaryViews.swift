@@ -401,6 +401,17 @@ struct ProfileView: View {
     @State private var showTerms = false
     @State private var showPrivacy = false
     @State private var followerPendingRemoval: RegularFollower?
+    #if DEBUG
+    @State private var showsOnboardingReplay = false
+    #endif
+
+    private var onboardingReplayPresented: Bool {
+        #if DEBUG
+        showsOnboardingReplay
+        #else
+        false
+        #endif
+    }
     
     var body: some View {
         ScrollViewReader { reader in
@@ -664,6 +675,33 @@ struct ProfileView: View {
                         .foregroundColor(.gray)
                         .tracking(2)
 
+                    #if DEBUG
+                    Button { showsOnboardingReplay = true } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "play.rectangle")
+                                .foregroundStyle(Theme.lavender)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(appState.text("オンボーディングを再生", "Replay onboarding"))
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundStyle(.white)
+                                Text(appState.text("DEBUG・現在のデータは保持されます", "DEBUG · Your current data is preserved"))
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.gray)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(Theme.lavender)
+                        }
+                        .padding(14)
+                        .frame(maxWidth: .infinity, minHeight: 60)
+                        .background(Theme.aiCardBackground.opacity(0.7), in: RoundedRectangle(cornerRadius: 14))
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.subtleBorder, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("profile.replayOnboarding")
+                    #endif
+
                     if let onReplayGuide {
                         Menu {
                             ForEach(GuideScreen.allCases) { screen in
@@ -892,7 +930,12 @@ struct ProfileView: View {
         }
         }
         .homeGuideViewport()
-        .preference(key: HomeGuideModalPreference.self, value: showTerms || showPrivacy || followerPendingRemoval != nil)
+        #if DEBUG
+        .fullScreenCover(isPresented: $showsOnboardingReplay) {
+            DebugOnboardingReplayView(source: appState)
+        }
+        #endif
+        .preference(key: HomeGuideModalPreference.self, value: showTerms || showPrivacy || followerPendingRemoval != nil || onboardingReplayPresented)
         .alert(item: $followerPendingRemoval) { follower in
             Alert(
                 title: Text(appState.text("@\(follower.authorName)の常連を解除しますか？", "Remove @\(follower.authorName) as a regular?")),
