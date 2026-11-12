@@ -279,6 +279,41 @@ class RegularFollowerApiTests(unittest.TestCase):
         self.assertIn("never let a critic use it", english)
         self.assertIn("do not address the user by name", skipped)
 
+    def test_profile_name_quota_scales_with_reply_count(self):
+        for reply_count, expected in ((3, 1), (5, 1), (10, 2), (16, 3), (32, 6)):
+            with self.subTest(reply_count=reply_count):
+                japanese = build_user_name_instruction("ja", "みな", True, reply_count)
+                english = build_user_name_instruction("en", "Mina", True, reply_count)
+                self.assertIn(f"{expected}人だけ", japanese)
+                self.assertIn("5件に1件", japanese)
+                self.assertIn("must naturally address", english)
+                self.assertIn("one in five", english)
+                self.assertIn("Exactly one" if expected == 1 else f"Exactly {expected}", english)
+
+    def test_missing_profile_name_never_requests_a_name(self):
+        for name in (None, "", "あなた", "You"):
+            for language in ("ja", "en"):
+                prompt = build_user_name_instruction(language, name, True, 32)
+                self.assertIn("推測・創作しない" if language == "ja" else "Do not invent", prompt)
+
+    def test_post_name_instruction_no_longer_depends_on_random_gate(self):
+        parsed = GenerateRepliesResponse(replies=[ReplySchema(
+            author_name="Mia", content="Mina, glad you got that break!",
+            is_hater=False, is_defender=False, regular_follower_id=None,
+        )], memory_updates=[])
+        capture = PromptCaptureClient(parsed)
+        with (
+            patch.object(backend_main, "openai_client", capture),
+            patch.object(backend_main, "resolve_avatar_url", return_value="https://example.com/avatar.png"),
+            patch.object(backend_main.random, "random", return_value=0.99),
+        ):
+            asyncio.run(backend_main.generate_ai_replies(
+                content="I finally took a break", followers=0, is_hater_enabled=False,
+                language="en", user_display_name="Mina",
+            ))
+        self.assertEqual(len(capture.calls), 1)
+        self.assertIn("must naturally address", capture.calls[0]["messages"][0]["content"])
+
     def test_reply_thread_payload_includes_other_ai_context(self):
         request = ReplyToAiRequest.model_validate({
             "user_id": "user-1",
@@ -505,7 +540,7 @@ class RegularFollowerApiTests(unittest.TestCase):
         with (
             patch.object(backend_main, "openai_client", capture_client),
             patch.object(backend_main, "resolve_avatar_url", return_value="https://example.com/avatar.png"),
-            patch.object(backend_main.random, "random", return_value=0.0),
+            patch.object(backend_main.random, "random", return_value=0.99),
         ):
             replies, _ = asyncio.run(backend_main.generate_ai_reply_to_user(request))
 
@@ -520,6 +555,7 @@ class RegularFollowerApiTests(unittest.TestCase):
         user_message = messages[1]["content"]
         self.assertIn("OUTPUT LANGUAGE — HIGHEST PRIORITY", system_prompt)
         self.assertIn('profile name is "Mina"', system_prompt)
+        self.assertIn("Exactly one suitable normal or regular follower must naturally address", system_prompt)
         self.assertIn("Original post:", user_message)
         self.assertIsNone(re.search(r"[ぁ-んァ-ヶ一-龠]", system_prompt))
         self.assertEqual(replies[0]["author_name"], "Alex")
