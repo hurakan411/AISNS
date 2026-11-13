@@ -391,27 +391,14 @@ struct StatCard: View {
 }
 
 struct ProfileView: View {
-    var onReplayGuide: ((GuideScreen) -> Void)? = nil
     var guide: HomeGuideCoordinator? = nil
     @EnvironmentObject var appState: AppState
-    @EnvironmentObject var storeManager: StoreManager
     @State private var selectedItem: PhotosPickerItem? = nil
     @State private var isEditingName = false
+    @State private var editedName = ""
+    @FocusState private var isNameFocused: Bool
     @State private var isEditingBio = false
-    @State private var showTerms = false
-    @State private var showPrivacy = false
     @State private var followerPendingRemoval: RegularFollower?
-    #if DEBUG
-    @State private var showsOnboardingReplay = false
-    #endif
-
-    private var onboardingReplayPresented: Bool {
-        #if DEBUG
-        showsOnboardingReplay
-        #else
-        false
-        #endif
-    }
     
     var body: some View {
         ScrollViewReader { reader in
@@ -437,11 +424,9 @@ struct ProfileView: View {
                                     .resizable()
                                     .scaledToFill()
                             } else {
-                                AsyncImage(url: URL(string: Theme.myAvatar)) { img in
-                                    img.resizable().scaledToFill()
-                                } placeholder: {
-                                    Circle().fill(Color.gray)
-                                }
+                                Image(Theme.defaultAvatarAsset)
+                                    .resizable()
+                                    .scaledToFill()
                             }
                         }
                         .frame(width: 90, height: 90)
@@ -473,23 +458,37 @@ struct ProfileView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     HStack {
                         if isEditingName {
-                            TextField("ユーザー名", text: $appState.userName, onCommit: { isEditingName = false })
+                            TextField(appState.text("ユーザー名", "Your name"), text: $editedName)
                                 .font(.system(size: 28, weight: .black))
                                 .foregroundColor(.white)
                                 .padding(8)
                                 .background(Color.white.opacity(0.1))
                                 .cornerRadius(8)
+                                .focused($isNameFocused)
+                                .submitLabel(.done)
+                                .onSubmit(saveEditedName)
                         } else {
                             Text(appState.userName)
                                 .font(.system(size: 28, weight: .black))
                                 .foregroundColor(.white)
                         }
                         Spacer()
-                        Button(action: { withAnimation { isEditingName.toggle() } }) {
+                        Button(action: {
+                            if isEditingName {
+                                saveEditedName()
+                            } else {
+                                editedName = appState.userName
+                                withAnimation { isEditingName = true }
+                                isNameFocused = true
+                            }
+                        }) {
                             Image(systemName: isEditingName ? "checkmark.circle.fill" : "pencil.circle.fill")
                                 .font(.title2)
                                 .foregroundColor(Theme.hotPink)
                         }
+                        .accessibilityLabel(isEditingName
+                                            ? appState.text("名前を保存", "Save name")
+                                            : appState.text("名前を編集", "Edit name"))
                     }
                     
                     Text("ID: \(appState.userId)")
@@ -529,39 +528,6 @@ struct ProfileView: View {
                 .padding(.horizontal, 24)
                 .padding(.top, 16)
 
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("CURRENT RANK")
-                                .font(.system(size: 9, weight: .black, design: .monospaced))
-                                .foregroundColor(Theme.lavender.opacity(0.75))
-                                .tracking(1.6)
-                            Text(appState.rankName)
-                                .font(.system(size: 18, weight: .black))
-                                .foregroundColor(.white)
-                        }
-                        Spacer()
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(Theme.hotPink)
-                    }
-
-                    if let nextRank = appState.nextRankFollowers {
-                        ProgressView(value: Double(appState.followers), total: Double(nextRank))
-                            .tint(Theme.purpleAccent)
-                        Text(appState.text("次のランクまであと \(max(0, nextRank - appState.followers)) 人", "\(max(0, nextRank - appState.followers)) followers to the next rank"))
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.gray)
-                    }
-                }
-                .padding(16)
-                .background(Theme.aiCardBackground)
-                .cornerRadius(16)
-                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.subtleBorder, lineWidth: 1))
-                .homeGuideTarget(.profileRank)
-                .padding(.horizontal, 24)
-                .padding(.top, 20)
-                
                 Divider()
                     .background(Color.white.opacity(0.1))
                     .padding(.vertical, 24)
@@ -569,10 +535,6 @@ struct ProfileView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("REGULAR FOLLOWERS")
-                                .font(.system(size: 14, weight: .black))
-                                .foregroundColor(.gray)
-                                .tracking(2)
                             Text("常連AIフォロワー")
                                 .font(.system(size: 18, weight: .black))
                                 .foregroundColor(.white)
@@ -604,15 +566,7 @@ struct ProfileView: View {
                     } else {
                         ForEach(appState.regularFollowers) { follower in
                             HStack(spacing: 12) {
-                                AsyncImage(url: URL(string: follower.avatarURL)) { phase in
-                                    if let image = phase.image {
-                                        image.resizable().scaledToFill()
-                                    } else {
-                                        Image(systemName: "person.circle.fill")
-                                            .resizable()
-                                            .foregroundColor(Theme.hotPink)
-                                    }
-                                }
+                                AIAvatarImage(url: follower.avatarURL)
                                 .frame(width: 48, height: 48)
                                 .clipShape(Circle())
                                 .overlay(Circle().stroke(Theme.purpleAccent.opacity(0.75), lineWidth: 2))
@@ -622,9 +576,6 @@ struct ProfileView: View {
                                         Text("@\(follower.authorName)")
                                             .font(.system(size: 15, weight: .black))
                                             .foregroundColor(.white)
-                                        Text("REGULAR")
-                                            .font(.system(size: 8, weight: .black))
-                                            .foregroundColor(Theme.lavender)
                                     }
                                     Text(follower.recentInteractions.last ?? appState.text("次の投稿から記憶を使って返信します", "Memory will be used starting with your next post."))
                                         .font(.system(size: 11, weight: .medium))
@@ -664,259 +615,6 @@ struct ProfileView: View {
                 .homeGuideTarget(.profileRegulars)
                 .padding(.horizontal, 32)
 
-                Divider()
-                    .background(Color.white.opacity(0.1))
-                    .padding(.vertical, 24)
-                
-                // Settings Section
-                VStack(alignment: .leading, spacing: 20) {
-                    Text("SETTINGS")
-                        .font(.system(size: 14, weight: .black))
-                        .foregroundColor(.gray)
-                        .tracking(2)
-
-                    #if DEBUG
-                    Button { showsOnboardingReplay = true } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: "play.rectangle")
-                                .foregroundStyle(Theme.lavender)
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(appState.text("オンボーディングを再生", "Replay onboarding"))
-                                    .font(.system(size: 16, weight: .bold))
-                                    .foregroundStyle(.white)
-                                Text(appState.text("DEBUG・現在のデータは保持されます", "DEBUG · Your current data is preserved"))
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(.gray)
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(Theme.lavender)
-                        }
-                        .padding(14)
-                        .frame(maxWidth: .infinity, minHeight: 60)
-                        .background(Theme.aiCardBackground.opacity(0.7), in: RoundedRectangle(cornerRadius: 14))
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.subtleBorder, lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("profile.replayOnboarding")
-                    #endif
-
-                    if let onReplayGuide {
-                        Menu {
-                            ForEach(GuideScreen.allCases) { screen in
-                                Button(screen.title(japanese: appState.appLanguage == .japanese)) {
-                                    onReplayGuide(screen)
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: "book.closed")
-                                    .foregroundStyle(Theme.lavender)
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(appState.text("使い方ガイド", "How to use UPME"))
-                                        .font(.system(size: 16, weight: .bold))
-                                        .foregroundStyle(.white)
-                                    Text(appState.text("見直したい画面を選べます", "Choose a screen to replay"))
-                                        .font(.system(size: 11))
-                                        .foregroundStyle(.gray)
-                                }
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundStyle(Theme.lavender)
-                            }
-                            .padding(14)
-                            .frame(maxWidth: .infinity, minHeight: 60)
-                            .background(Theme.aiCardBackground.opacity(0.7), in: RoundedRectangle(cornerRadius: 14))
-                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.subtleBorder, lineWidth: 1))
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("profile.homeGuide")
-                        .homeGuideTarget(.profileGuide)
-                    }
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("表示言語")
-                                    .font(.system(size: 16, weight: .bold))
-                                    .foregroundColor(.white)
-                                Text("UIと今後のAI返信に使用します")
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundColor(.gray)
-                            }
-                            Spacer()
-                            Image(systemName: "globe")
-                                .foregroundColor(Theme.lavender)
-                        }
-
-                        Picker("表示言語", selection: $appState.appLanguage) {
-                            ForEach(AppLanguage.allCases) { language in
-                                Text(language.displayName).tag(language)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                    }
-                    .padding(14)
-                    .background(Theme.aiCardBackground.opacity(0.7))
-                    .cornerRadius(14)
-                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.subtleBorder, lineWidth: 1))
-                    .homeGuideTarget(.profileSettings)
-                    
-                    Toggle(isOn: $appState.isHaterEnabled) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("アンチ・炎上の発生")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundColor(.white)
-                            Text("高ランク到達時のアンチ登場をON/OFFします")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(.gray)
-                        }
-                    }
-                    .toggleStyle(SwitchToggleStyle(tint: Theme.hotPink))
-                    .homeGuideTarget(.profileHaters)
-                    
-                    VStack(alignment: .leading, spacing: 12) {
-                    if !storeManager.isAdsRemoved {
-                        if let product = storeManager.products.first {
-                            Button(action: {
-                                Task {
-                                    await storeManager.purchase(product)
-                                }
-                            }) {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text("広告を消す (買い切り)")
-                                            .font(.system(size: 16, weight: .bold))
-                                            .foregroundColor(.white)
-                                        Text("バナー広告を非表示にします")
-                                            .font(.system(size: 11, weight: .medium))
-                                            .foregroundColor(.gray)
-                                    }
-                                    Spacer()
-                                    Text(product.displayPrice)
-                                        .font(.system(size: 15, weight: .bold))
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(Theme.cyan.opacity(0.2))
-                                        .foregroundColor(Theme.cyan)
-                                        .cornerRadius(8)
-                                }
-                            }
-                            
-                            Button(action: {
-                                Task {
-                                    await storeManager.restorePurchases()
-                                }
-                            }) {
-                                Text("購入の復元")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.gray)
-                            }
-                            .padding(.top, 4)
-                        } else {
-                            Text("広告削除の読み込み中...")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.gray)
-                        }
-                    } else {
-                        HStack {
-                            Text("広告を消す (買い切り)")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundColor(.white.opacity(0.5))
-                            Spacer()
-                            Text("購入済み")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.gray)
-                        }
-                    }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .homeGuideTarget(.profileAds)
-                }
-                .padding(.horizontal, 32)
-                .padding(.top, 32)
-
-                Divider()
-                    .background(Color.white.opacity(0.1))
-                    .padding(.vertical, 24)
-
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("SUPPORT")
-                        .font(.system(size: 14, weight: .black))
-                        .foregroundColor(.gray)
-                        .tracking(2)
-
-                    Link(destination: URL(string: "https://docs.google.com/forms/d/e/1FAIpQLSc4bsVO9vTgucDU0w-RviLQK4Ap1tQxD45JlZ4OZplu35ouRw/viewform?hl=\(appState.appLanguage == .japanese ? "ja" : "en")")!) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "envelope.fill")
-                                .foregroundColor(Theme.hotPink)
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(appState.text("お問い合わせ", "Contact Us"))
-                                    .font(.system(size: 15, weight: .bold))
-                                    .foregroundColor(.white.opacity(0.9))
-                                Text(appState.text("不具合の報告・ご意見・ご要望はこちら", "Report a problem or share feedback"))
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundColor(.gray)
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "arrow.up.right")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(Theme.lavender)
-                        }
-                        .padding(14)
-                        .background(Theme.aiCardBackground.opacity(0.7))
-                        .cornerRadius(14)
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.subtleBorder, lineWidth: 1))
-                    }
-                    .homeGuideTarget(.profileContact)
-                }
-                .padding(.horizontal, 32)
-
-                Divider()
-                    .background(Color.white.opacity(0.1))
-                    .padding(.vertical, 24)
-
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("LEGAL")
-                        .font(.system(size: 14, weight: .black))
-                        .foregroundColor(.gray)
-                        .tracking(2)
-
-                    Button(action: { showTerms = true }) {
-                        HStack {
-                            Image(systemName: "doc.text")
-                                .foregroundColor(.gray)
-                            Text("利用規約")
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(.white.opacity(0.8))
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(.gray.opacity(0.5))
-                        }
-                    }
-
-                    Button(action: { showPrivacy = true }) {
-                        HStack {
-                            Image(systemName: "lock.shield")
-                                .foregroundColor(.gray)
-                            Text("プライバシーポリシー")
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(.white.opacity(0.8))
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(.gray.opacity(0.5))
-                        }
-                    }
-                }
-                .homeGuideTarget(.profileLegal)
-                .padding(.horizontal, 32)
             }
             .padding(.bottom, 40)
         }
@@ -929,13 +627,6 @@ struct ProfileView: View {
             withAnimation(.easeInOut(duration: 0.25)) { reader.scrollTo(step, anchor: .center) }
         }
         }
-        .homeGuideViewport()
-        #if DEBUG
-        .fullScreenCover(isPresented: $showsOnboardingReplay) {
-            DebugOnboardingReplayView(source: appState)
-        }
-        #endif
-        .preference(key: HomeGuideModalPreference.self, value: showTerms || showPrivacy || followerPendingRemoval != nil || onboardingReplayPresented)
         .alert(item: $followerPendingRemoval) { follower in
             Alert(
                 title: Text(appState.text("@\(follower.authorName)の常連を解除しますか？", "Remove @\(follower.authorName) as a regular?")),
@@ -946,18 +637,201 @@ struct ProfileView: View {
                 secondaryButton: .cancel(Text("キャンセル"))
             )
         }
+        .homeGuideViewport()
+        .tint(Theme.lavender)
+        .preference(key: HomeGuideModalPreference.self, value: followerPendingRemoval != nil)
+    }
+
+    private func saveEditedName() {
+        let trimmedName = editedName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else {
+            editedName = appState.userName
+            return
+        }
+        appState.userName = trimmedName
+        isNameFocused = false
+        withAnimation { isEditingName = false }
+    }
+}
+
+
+struct SettingsView: View {
+    var onReplayGuide: ((GuideScreen) -> Void)? = nil
+    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var storeManager: StoreManager
+    @State private var showTerms = false
+    @State private var showPrivacy = false
+    #if DEBUG
+    @State private var showsOnboardingReplay = false
+    #endif
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                settingsSection(appState.text("表示・AIの反応", "Language & AI replies")) {
+                    VStack(spacing: 12) {
+                        settingsRow(icon: "globe", title: appState.text("言語", "Language"),
+                                    detail: appState.text("画面表示と、今後のAI返信に使用", "Used for the interface and future AI replies"))
+                        Picker(appState.text("言語", "Language"), selection: $appState.appLanguage) {
+                            ForEach(AppLanguage.allCases) { language in
+                                Text(language.displayName).tag(language)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 16)
+                    }
+                    settingsDivider
+                    Toggle(isOn: $appState.isHaterEnabled) {
+                        settingsRow(icon: "bubble.left.and.bubble.right",
+                                    title: appState.text("アンチの登場", "Hater replies"),
+                                    detail: appState.text("高ランクで批判的なAIも登場します", "Allow critical AI replies at higher ranks"))
+                    }
+                    .tint(Theme.hotPink)
+                    .padding(.trailing, 16)
+                }
+
+                settingsSection(appState.text("広告・購入", "Ads & purchases")) {
+                    if storeManager.isAdsRemoved {
+                        settingsRow(icon: "checkmark.seal", title: appState.text("広告を非表示", "Remove ads"),
+                                    detail: appState.text("買い切り・購入済み", "One-time purchase · Purchased"), value: appState.text("有効", "Active"))
+                    } else if let product = storeManager.products.first {
+                        Button {
+                            Task { await storeManager.purchase(product) }
+                        } label: {
+                            settingsRow(icon: "rectangle.slash", title: appState.text("広告を非表示", "Remove ads"),
+                                        detail: appState.text("買い切りでバナー広告を非表示", "Hide banner ads with a one-time purchase"),
+                                        value: product.displayPrice, arrow: "chevron.right")
+                        }
+                    } else {
+                        settingsRow(icon: "rectangle.slash", title: appState.text("広告を非表示", "Remove ads"),
+                                    detail: appState.text("価格情報を読み込み中", "Loading price information"))
+                    }
+                    settingsDivider
+                    Button {
+                        Task { await storeManager.restorePurchases() }
+                    } label: {
+                        settingsRow(icon: "arrow.clockwise", title: appState.text("購入を復元", "Restore purchases"),
+                                    detail: appState.text("購入済みなのに広告が出る場合", "Already purchased but still seeing ads?"), arrow: "chevron.right")
+                    }
+                }
+
+                settingsSection(appState.text("ヘルプ", "Help")) {
+                    if let onReplayGuide {
+                        Menu {
+                            ForEach(GuideScreen.allCases) { screen in
+                                Button(screen.title(japanese: appState.appLanguage == .japanese)) {
+                                    onReplayGuide(screen)
+                                }
+                            }
+                        } label: {
+                            settingsRow(icon: "book.closed", title: appState.text("使い方ガイド", "Screen guides"),
+                                        detail: appState.text("見直したい画面を選んで再表示", "Choose a screen to replay its guide"), arrow: "chevron.right")
+                        }
+                        .accessibilityIdentifier("settings.guides")
+                        settingsDivider
+                    }
+                    Link(destination: URL(string: "https://docs.google.com/forms/d/e/1FAIpQLSc4bsVO9vTgucDU0w-RviLQK4Ap1tQxD45JlZ4OZplu35ouRw/viewform?hl=\(appState.appLanguage == .japanese ? "ja" : "en")")!) {
+                        settingsRow(icon: "envelope", title: appState.text("お問い合わせ", "Contact us"),
+                                    detail: appState.text("不具合の報告・ご意見・ご要望", "Report a problem or share feedback"), arrow: "arrow.up.right")
+                    }
+                }
+
+                settingsSection(appState.text("規約・プライバシー", "Terms & privacy")) {
+                    Button { showTerms = true } label: {
+                        settingsRow(icon: "doc.text", title: appState.text("利用規約", "Terms of Service"), arrow: "chevron.right")
+                    }
+                    settingsDivider
+                    Button { showPrivacy = true } label: {
+                        settingsRow(icon: "lock.shield", title: appState.text("プライバシーポリシー", "Privacy Policy"), arrow: "chevron.right")
+                    }
+                }
+
+                #if DEBUG
+                settingsSection(appState.text("開発用・DEBUGのみ", "Developer · DEBUG only")) {
+                    Button { showsOnboardingReplay = true } label: {
+                        settingsRow(icon: "play.rectangle", title: appState.text("オンボーディングを再生", "Replay onboarding"),
+                                    detail: appState.text("現在のデータは保持されます", "Your current data is preserved"), arrow: "chevron.right")
+                    }
+                    .accessibilityIdentifier("settings.replayOnboarding")
+                }
+                #endif
+            }
+            .padding(20)
+            .padding(.bottom, 12)
+        }
+        .buttonStyle(.plain)
+        .background(Theme.bgDeepBlack.ignoresSafeArea())
+        .navigationTitle(appState.text("設定", "Settings"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(Theme.bgDeepBlack, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .preference(key: HomeGuideModalPreference.self, value: true)
+        #if DEBUG
+        .fullScreenCover(isPresented: $showsOnboardingReplay) {
+            DebugOnboardingReplayView(source: appState)
+        }
+        #endif
         .sheet(isPresented: $showTerms) {
-            LegalTextView(
-                title: appState.text("利用規約", "Terms of Service"),
-                text: appState.appLanguage == .japanese ? termsOfServiceText : termsOfServiceTextEnglish
-            )
+            LegalTextView(title: appState.text("利用規約", "Terms of Service"),
+                          text: appState.appLanguage == .japanese ? termsOfServiceText : termsOfServiceTextEnglish)
         }
         .sheet(isPresented: $showPrivacy) {
-            LegalTextView(
-                title: appState.text("プライバシーポリシー", "Privacy Policy"),
-                text: appState.appLanguage == .japanese ? privacyPolicyText : privacyPolicyTextEnglish
-            )
+            LegalTextView(title: appState.text("プライバシーポリシー", "Privacy Policy"),
+                          text: appState.appLanguage == .japanese ? privacyPolicyText : privacyPolicyTextEnglish)
         }
+    }
+
+    private var settingsDivider: some View {
+        Rectangle().fill(Theme.subtleBorder).frame(height: 1).padding(.leading, 62)
+    }
+
+    private func settingsSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Theme.lavender)
+                .padding(.leading, 4)
+                .accessibilityAddTraits(.isHeader)
+            VStack(spacing: 0, content: content)
+                .background(Theme.aiCardBackground.opacity(0.65), in: RoundedRectangle(cornerRadius: 18))
+                .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.subtleBorder, lineWidth: 1))
+        }
+    }
+
+    private func settingsRow(icon: String, title: String, detail: String? = nil,
+                             value: String? = nil, arrow: String? = nil) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(Theme.lavender)
+                .frame(width: 34, height: 34)
+                .background(Theme.purpleAccent.opacity(0.15), in: RoundedRectangle(cornerRadius: 10))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let detail {
+                    Text(detail)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.55))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Spacer(minLength: 8)
+            if let value {
+                Text(value).font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.lavender)
+            }
+            if let arrow {
+                Image(systemName: arrow).font(.system(size: 11, weight: .semibold)).foregroundStyle(.white.opacity(0.35))
+                    .accessibilityHidden(true)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, minHeight: 62, alignment: .leading)
+        .contentShape(Rectangle())
     }
 }
 

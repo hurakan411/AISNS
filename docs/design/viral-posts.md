@@ -1,10 +1,10 @@
 # Viral posts
 
-Normal posts have a 10% chance of going viral. The draw is independent of text or image content.
+Eligible normal posts have a 10% chance of going viral. The draw is independent of text or image content.
 Onboarding is guaranteed viral for supported clients. The rank at request time determines the rewards:
 
 - Likes: five times the rank's maximum (normal follower-gain maximum × 7 × 5).
-- Followers gained: five times the rank's normal maximum.
+- Followers gained: three times the rank's normal maximum.
 - AI replies: twice the rank's maximum, from 10 at rank 1 to 32 at rank 10.
 
 `POST_FOLLOWER_RANGES` and `POST_REPLY_RANGES` in `backend/main.py` define the ranges.
@@ -15,10 +15,29 @@ used for the larger batch. Critic limits do not increase.
 
 ## Compatibility and persistence
 
+### Twenty-four-hour cooldown
+
+After a viral result is received and accepted, the app records its presentation start time
+in a separate UserDefaults ledger. For the next 24 hours it sends `supports_viral_posts: false`,
+using the already-supported normal response/reward path. Exactly 24 hours later it can opt
+back into the 10% draw; this does not guarantee that the next post goes viral. While any
+post-generation request is in flight, additional submissions also do not opt in, preventing
+two simultaneous viral draws. Normal posts still generate replies in one call.
+
+The initial guaranteed onboarding viral result also starts this cooldown. Debug onboarding
+replay and offline previews use isolated in-memory ledgers. Existing saved viral posts seed
+the ledger using their original start time, without extending the clock on launch. Trimming
+post history never deletes the separate ledger. Account IDs and API environments are scoped
+separately. No backend or DB change is required, and old backends remain compatible.
+
+This is an app-side restriction and requires the new app build. It survives app restarts
+but is not an account-wide server lock: a different device, cleared app data or modified
+device time can bypass it. Existing apps keep their previous behavior.
+
 New apps send `supports_viral_posts: true`. The backend returns an optional `reaction` object with
 `is_viral`, `rank`, `likes`, and `follower_gain`. Old clients do not opt in. Supported onboarding requests
 force a viral result without drawing a random chance. Onboarding uses virtual rank 10: 10,500,000 likes,
-1,500,000 demonstration followers and 32 replies, generated in one call with the existing critic/defender
+900,000 demonstration followers and 32 replies, generated in one call with the existing critic/defender
 story. The same 12-second presentation is used, reusing prefetched replies. Exiting early retains all
 received replies and final likes; demonstration followers still reset to zero and never enter the real
 account's progress ledger. If the new app reaches an old backend, normal posts use normal local
@@ -54,7 +73,7 @@ highlight, symbol bounce and number/entry animations. UI strings are provided in
 Debug simulator preview: `--ui-preview --ui-tab=home --ui-language=ja --ui-viral=true`.
 Preview uses fixture replies and does not contact the backend, AI API or analytics.
 
-Debug builds also expose **Replay onboarding** in Profile → Settings. This presents the original
+Debug builds also expose **Replay onboarding** in the rightmost Settings tab. This presents the original
 onboarding using an isolated in-memory `AppState`, with the current name/language copied in. It uses
 the configured API for real reply generation, so replaying a post incurs the usual generation cost.
 The real posts, follower total, onboarding completion, preferences, avatar, progress synchronization

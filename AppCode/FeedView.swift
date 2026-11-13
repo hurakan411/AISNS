@@ -236,11 +236,9 @@ struct PostCard: View {
                             .clipShape(Circle())
                             .overlay(Circle().stroke(Theme.hotPink.opacity(0.75), lineWidth: 2))
                     } else {
-                        AsyncImage(url: URL(string: Theme.myAvatar)) { image in
-                            image.resizable().scaledToFill()
-                        } placeholder: {
-                            Circle().fill(Theme.deepPurple)
-                        }
+                        Image(Theme.defaultAvatarAsset)
+                            .resizable()
+                            .scaledToFill()
                         .frame(width: 44, height: 44)
                         .clipShape(Circle())
                         .overlay(Circle().stroke(Theme.hotPink.opacity(0.75), lineWidth: 2))
@@ -267,12 +265,7 @@ struct PostCard: View {
                     .lineSpacing(6)
                 
                 if let data = post.imageData, let uiImage = UIImage(data: data) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(height: 180)
-                        .clipped()
-                        .cornerRadius(20)
+                    PostAttachmentImage(image: uiImage, height: 180, cornerRadius: 20)
                         .padding(.horizontal, 16)
                 }
                 
@@ -314,6 +307,7 @@ struct PostCard: View {
                                     active: appState.isViralAnimating(post), reduceMotion: reduceMotion)
                 }
             }
+            .homeGuideTarget(guideSelection.postID == post.id ? .buzz : nil)
             .padding(.horizontal, 16)
             .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: appState.isViralRevealed(post))
             .sensoryFeedback(.success, trigger: appState.isViralAnimating(post)) { _, active in active && !reduceMotion }
@@ -487,18 +481,12 @@ struct ReplyRow: View {
                     Image(uiImage: uiImage)
                         .resizable()
                         .scaledToFill()
+                } else if reply.isUserReply {
+                    Image(Theme.defaultAvatarAsset)
+                        .resizable()
+                        .scaledToFill()
                 } else {
-                    AsyncImage(url: URL(string: reply.img)) { phase in
-                        if let image = phase.image {
-                            image.resizable().scaledToFill()
-                        } else if phase.error != nil {
-                            Image(systemName: "person.circle.fill")
-                                .resizable()
-                                .foregroundColor(reply.isHater ? .gray : Theme.hotPink)
-                        } else {
-                            Circle().fill(reply.isHater ? Color.gray : Theme.deepPurple)
-                        }
-                    }
+                    AIAvatarImage(url: reply.img, isHater: reply.isHater)
                 }
             }
             .frame(width: 36, height: 36)

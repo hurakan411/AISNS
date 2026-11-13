@@ -22,11 +22,11 @@ struct HomeGuideChecks {
 
         let home = HomeGuideStep.ordered(for: .home)
         let allScreens = GuideScreen.allCases
-        check(home == [.compose, .reactions, .aiReply, .reply, .regular], "Home keeps its original order")
+        check(home == [.compose, .reactions, .buzz, .aiReply, .reply, .regular], "Home explains viral posts after reactions")
         check(allScreens.count == 4, "Each main screen has a guide")
         check(allScreens.allSatisfy { !HomeGuideStep.ordered(for: $0).isEmpty }, "Every screen has guide steps")
-        check(home.map { $0.title(japanese: true) } == ["投稿", "リアクション", "AIの返信", "AIとの会話", "常連AI"], "Japanese home headings are concise")
-        check(home.map { $0.title(japanese: false) } == ["Posts", "Reactions", "AI replies", "Conversations", "Regular AIs"], "English home headings are concise")
+        check(home.map { $0.title(japanese: true) } == ["投稿", "リアクション", "バズ", "AIの返信", "AIとの会話", "常連AI"], "Japanese home headings are concise")
+        check(home.map { $0.title(japanese: false) } == ["Posts", "Reactions", "Going viral", "AI replies", "Conversations", "Regular AIs"], "English home headings are concise")
 
         let first = HomeGuideCoordinator(store: store("first"))
         first.presentIfNeeded(screen: .home, available: home)
@@ -73,7 +73,7 @@ struct HomeGuideChecks {
         finish(deferred)
         let deferredReply = HomeGuideCoordinator(store: store("deferred"))
         deferredReply.presentIfNeeded(screen: .home, available: home)
-        check(deferredReply.steps == [.reactions, .aiReply, .reply, .regular], "Previously unavailable home targets remain pending")
+        check(deferredReply.steps == [.reactions, .buzz, .aiReply, .reply, .regular], "Previously unavailable home targets remain pending")
         let emptyPost = HomeGuideCoordinator(store: store("empty-post"))
         emptyPost.presentIfNeeded(screen: .post, available: [])
         check(!emptyPost.isPresenting, "No guide appears without a visible target")
@@ -91,6 +91,27 @@ struct HomeGuideChecks {
         defaults.set(Data(#"{"acknowledged":["compose"],"skipped":true}"#.utf8), forKey: legacyKey)
         let legacy = store(legacyKey)
         check(legacy.pending(for: .post, in: HomeGuideStep.ordered(for: .post)).isEmpty, "Older global Skip preference remains honored")
+        check(profileSteps == [.profileAvatar, .profileIdentity, .profileRegulars],
+              "Profile explains only its own elements")
+        let oldProfile = "old-profile"
+        defaults.set(Data(#"{"acknowledged":["profileAvatar","profileIdentity","profileRank","profileRegulars","profileSettings","profileHaters","profileAds","profileContact","profileLegal","profileGuide"]}"#.utf8), forKey: oldProfile)
+        check(store(oldProfile).pending(for: .profile, in: profileSteps).isEmpty,
+              "Legacy settings acknowledgements remain readable without obsolete steps")
+        let gearProfile = "gear-profile"
+        defaults.set(Data(#"{"acknowledged":["profileAvatar","profileIdentity","profileRank","profileRegulars","profileSettingsEntry"]}"#.utf8), forKey: gearProfile)
+        check(store(gearProfile).pending(for: .profile, in: profileSteps).isEmpty,
+              "Progress from the previous gear-entry tour remains complete")
+        let oldHome = "old-home"
+        defaults.set(Data(#"{"acknowledged":["compose","reactions","aiReply","reply","regular"]}"#.utf8), forKey: oldHome)
+        check(store(oldHome).pending(for: .home, in: home) == [.buzz],
+              "Existing users receive just the newly added viral explanation")
+        check(!GuideScreen.allCases.map(\.rawValue).contains("settings"), "Settings has no automatic or replayable guide")
+        check(HomeGuideStep.buzz.detail(japanese: true).contains("5倍") && HomeGuideStep.buzz.detail(japanese: false).contains("5×"),
+              "Viral multipliers are explained in both languages")
+        check(HomeGuideStep.buzz.detail(japanese: true).contains("3倍") && HomeGuideStep.buzz.detail(japanese: false).contains("3×"),
+              "Follower gains use the three-times multiplier")
+        check(HomeGuideStep.buzz.detail(japanese: true).contains("24時間") && HomeGuideStep.buzz.detail(japanese: false).contains("24 hours"),
+              "Both languages explain the 24-hour cooldown")
         print("PASS: \(count) multi-screen guide checks")
     }
 }

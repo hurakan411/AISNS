@@ -484,11 +484,9 @@ struct FakeComposeTypingView: View {
                                 .clipShape(Circle())
                                 .overlay(Circle().stroke(Color.purple, lineWidth: 2))
                         } else {
-                            AsyncImage(url: URL(string: Theme.myAvatar)) { img in
-                                img.resizable().scaledToFill()
-                            } placeholder: {
-                                Circle().fill(Color.purple)
-                            }
+                            Image(Theme.defaultAvatarAsset)
+                                .resizable()
+                                .scaledToFill()
                             .frame(width: 50, height: 50)
                             .clipShape(Circle())
                             .overlay(Circle().stroke(Color.purple, lineWidth: 2))

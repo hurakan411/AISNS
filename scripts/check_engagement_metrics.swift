@@ -87,6 +87,25 @@ struct EngagementChecks {
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
         let store = EngagementMetricsStore(defaults: defaults)
+        let cooldown = ViralCooldownStore(environment: "dev", userID: "cooldown", defaults: defaults)
+        let viralTime = Date(timeIntervalSince1970: 1_800_000_000)
+        check(cooldown.isEligible(at: viralTime), "First post can draw a viral result")
+        check(!cooldown.isEligible(at: viralTime, requestInFlight: true), "Overlapping requests cannot both draw")
+        cooldown.record(at: viralTime)
+        check(!cooldown.isEligible(at: viralTime.addingTimeInterval(43_200)), "Still normal after 12 hours")
+        check(!cooldown.isEligible(at: viralTime.addingTimeInterval(86_399)), "Still normal one second before 24 hours")
+        check(cooldown.isEligible(at: viralTime.addingTimeInterval(86_400)), "Eligible at exactly 24 hours")
+        check(!cooldown.isEligible(at: viralTime.addingTimeInterval(-60)), "Clock moving backwards cannot bypass cooldown")
+        cooldown.record(at: viralTime.addingTimeInterval(-60))
+        check(cooldown.lastViralAt == viralTime, "Restoring an older post cannot shorten the cooldown")
+        let relaunchedCooldown = ViralCooldownStore(environment: "dev", userID: "cooldown", defaults: defaults)
+        check(!relaunchedCooldown.isEligible(at: viralTime.addingTimeInterval(60)), "Cooldown survives relaunch and trimmed post history")
+        check(ViralCooldownStore(environment: "prod", userID: "cooldown", defaults: defaults).isEligible(at: viralTime), "API environments have separate cooldowns")
+        check(ViralCooldownStore(environment: "dev", userID: "other", defaults: defaults).isEligible(at: viralTime), "Users have separate cooldowns")
+        let isolatedCooldown = ViralCooldownStore(environment: "dev", userID: "cooldown", defaults: defaults, persists: false)
+        check(isolatedCooldown.isEligible(at: viralTime), "Debug replay does not load real cooldown")
+        isolatedCooldown.record(at: viralTime.addingTimeInterval(500))
+        check(ViralCooldownStore(environment: "dev", userID: "cooldown", defaults: defaults).lastViralAt == viralTime, "Debug replay cannot change real cooldown")
         func reply(_ text: String, user: Bool = false, hater: Bool = false) -> Reply {
             Reply(authorName: "Test", text: text, img: "", isHater: hater, isDefender: false, isUserReply: user)
         }
@@ -115,6 +134,8 @@ struct EngagementChecks {
         viralState.beginPostReaction(postID: viralPost.id, replies: (0..<10).map { reply("viral \($0)") },
                                      response: ["is_viral": true, "rank": 1, "likes": 1400, "follower_gain": 200])
         let began = viralState.posts[0].reaction!.startedAt
+        check(!viralState.canDrawViralForPost(at: began.addingTimeInterval(86_399)), "Receiving a viral result blocks the next draw")
+        check(viralState.canDrawViralForPost(at: began.addingTimeInterval(86_400)), "AppState re-enables the draw after 24 hours")
         check(viralState.posts[0].replies.count == 1 && viralState.followers == 60, "First reply arrives immediately without an early rank-up")
         check(!viralState.isViralRevealed(viralState.posts[0]), "Viral badge waits for the surprise")
         viralState.updatePostReactions(at: began.addingTimeInterval(5))
@@ -135,6 +156,8 @@ struct EngagementChecks {
         restoredViral.followers = 60
         restoredViral.restorePostReactions()
         restoredViral.restorePostReactions()
+        check(!restoredViral.canDrawViralForPost(at: began.addingTimeInterval(60)), "Existing viral history restores cooldown on upgrade")
+        check(restoredViral.canDrawViralForPost(at: began.addingTimeInterval(86_400)), "Restoration does not restart the 24-hour clock")
         check(restoredViral.followers == 290 && restoredViral.posts[0].replies.count == 10,
               "A persisted credit ledger repairs an interrupted follower write without duplication")
         let interrupted = AppState(restorePersistedState: false)
@@ -225,7 +248,8 @@ struct EngagementChecks {
         wait("In-flight prefetch reused") { inFlight.posts.first?.replies.count == 1 }
         check(MockRepliesProtocol.requestCount == 1, "No duplicate request during prefetch")
         check(inFlight.posts.first?.reaction?.isViral == true, "Onboarding always starts a viral reaction")
-        check(inFlight.posts.first?.reaction?.targetLikes == 10_500_000 && inFlight.posts.first?.reaction?.followerGain == 1_500_000,
+        check(!inFlight.canDrawViralForPost(), "Guaranteed onboarding viral result starts cooldown")
+        check(inFlight.posts.first?.reaction?.targetLikes == 10_500_000 && inFlight.posts.first?.reaction?.followerGain == 900_000,
               "Onboarding uses the virtual rank-10 maximum times five")
         inFlight.completeOnboarding()
         check(inFlight.followers == 0 && inFlight.posts.first?.reaction?.followersAfter == 0,
@@ -322,12 +346,17 @@ struct EngagementChecks {
     private static func childPersistenceCheck(mode: String, suite: String) throws {
         let defaults = UserDefaults(suiteName: suite)!
         let store = EngagementMetricsStore(defaults: defaults)
+        let cooldown = ViralCooldownStore(environment: "child-dev", userID: "process", defaults: defaults)
+        let viralTime = Date(timeIntervalSince1970: 1_800_000_000)
         if mode == "--write-persistence" {
+            cooldown.record(at: viralTime)
             store.seedPostCount(userID: "process", totalPosts: 1)
             check(store.recordNormalPost(userID: "process").numberAfterOnboarding == 1, "Child first post")
             check(store.markRepliesViewed(userID: "process", postFlowID: "saved-flow"), "Child first impression")
             defaults.synchronize()
         } else {
+            check(!cooldown.isEligible(at: viralTime.addingTimeInterval(60)), "New process remembers the viral cooldown")
+            check(cooldown.isEligible(at: viralTime.addingTimeInterval(86_400)), "New process preserves the original expiry")
             check(store.recordNormalPost(userID: "process").numberAfterOnboarding == 2, "New process remembers first post")
             check(!store.markRepliesViewed(userID: "process", postFlowID: "saved-flow"), "New process remembers viewed reply")
         }

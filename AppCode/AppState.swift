@@ -119,6 +119,37 @@ struct ReplyThread: Identifiable, Equatable, Codable {
     var id: UUID { targetReplyID }
 }
 
+/// A separate ledger survives the five-post history limit and is scoped to account/API.
+final class ViralCooldownStore {
+    static let duration: TimeInterval = 24 * 60 * 60
+    private let defaults: UserDefaults
+    private let key: String
+    private let persists: Bool
+    private(set) var lastViralAt: Date?
+
+    init(environment: String, userID: String, defaults: UserDefaults = .standard, persists: Bool = true) {
+        self.defaults = defaults
+        self.key = "upme.lastViralAt.v1.\(environment).\(userID)"
+        self.persists = persists
+        if persists, let timestamp = defaults.object(forKey: key) as? Double, timestamp.isFinite {
+            lastViralAt = Date(timeIntervalSince1970: timestamp)
+        }
+    }
+
+    func isEligible(at now: Date = Date(), requestInFlight: Bool = false) -> Bool {
+        guard !requestInFlight else { return false }
+        guard let lastViralAt else { return true }
+        return now.timeIntervalSince(lastViralAt) >= Self.duration
+    }
+
+    func record(at date: Date) {
+        guard date.timeIntervalSince1970.isFinite else { return }
+        guard lastViralAt == nil || date > lastViralAt! else { return }
+        lastViralAt = date
+        if persists { defaults.set(date.timeIntervalSince1970, forKey: key) }
+    }
+}
+
 /// The generated replies and reward are saved before presentation begins.
 struct PostReaction: Codable {
     let environment: String
@@ -262,6 +293,9 @@ class AppState: ObservableObject {
     let isDebugOnboardingReplay = false
     #endif
     private var canPersistUserState: Bool { !DesignPreview.isActive && !isDebugOnboardingReplay }
+    private lazy var viralCooldown = ViralCooldownStore(
+        environment: Self.baseUrl, userID: userId, persists: canPersistUserState
+    )
     private var onboardingReplayCancelled = false
     private var onboardingNetworkTask: URLSessionDataTask?
 
@@ -422,6 +456,11 @@ class AppState: ObservableObject {
             regularFollowers = [RegularFollower(id: "preview-yuki", authorName: first.authorName, avatarURL: first.img, memories: [], recentInteractions: [text("今日のできごとを話しました", "Talked about your day")], createdAt: Date(), lastInteractionAt: nil)]
             posts = [PostModel(content: text("今日も一日、がんばった。", "Made it through another day."), imageData: nil, likes: 128, replies: [first, second], time: text("今", "Now")), PostModel(content: text("帰り道、ちょっと寄り道。", "A little detour on the way home."), imageData: nil, likes: 256, replies: [], time: text("昨日", "Yesterday"))]
             if DesignPreview.argument("--ui-empty") == "true" { posts = []; totalPosts = 0 }
+            if let path = DesignPreview.argument("--ui-post-image"),
+               let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
+               UIImage(data: data) != nil, !posts.isEmpty {
+                posts[0].imageData = data
+            }
             if DesignPreview.argument("--ui-no-replies") == "true" {
                 for index in posts.indices { posts[index].replies = [] }
             }
@@ -437,7 +476,7 @@ class AppState: ObservableObject {
                                  isHater: false, isDefender: false)
                 }
                 beginPostReaction(postID: post.id, replies: previewReplies, response: [
-                    "is_viral": true, "rank": rank, "likes": 7350, "follower_gain": 1050
+                    "is_viral": true, "rank": rank, "likes": 7350, "follower_gain": 630
                 ])
             }
             return
@@ -1173,7 +1212,13 @@ class AppState: ObservableObject {
         }.resume()
     }
 
+    func canDrawViralForPost(at now: Date = Date()) -> Bool {
+        viralCooldown.isEligible(at: now, requestInFlight: !requestingPostIDs.isEmpty)
+    }
+
     private func requestAiReplies(content: String, imageData: Data?, followers: Int, postFlowID: UUID) {
+        // Only one in-flight request may draw; others use the legacy normal-reward path.
+        let canDrawViral = canDrawViralForPost()
         requestingPostIDs.insert(postFlowID)
         isRequestingReplies = true
         replyErrorMessage = nil
@@ -1211,7 +1256,7 @@ class AppState: ObservableObject {
             "language": languageCode,
             "regular_followers": isInOnboarding ? [] : regularFollowerPayload(),
             "recent_ai_replies": isInOnboarding ? [] : recentAIReplyTexts(from: posts, excluding: postFlowID),
-            "supports_viral_posts": true
+            "supports_viral_posts": canDrawViral
         ]
         
         if let data = imageData {
@@ -1323,7 +1368,7 @@ class AppState: ObservableObject {
     private func beginOnboardingReaction(postID: UUID, replies: [Reply]) {
         onboardingExpectedReplies = replies.count
         beginPostReaction(postID: postID, replies: replies, response: [
-            "is_viral": true, "rank": 10, "likes": 10_500_000, "follower_gain": 1_500_000
+            "is_viral": true, "rank": 10, "likes": 10_500_000, "follower_gain": 900_000
         ])
     }
 
@@ -1336,6 +1381,8 @@ class AppState: ObservableObject {
         }
         let fallback = fallbackReactions.removeValue(forKey: postID) ?? (rank: currentRank, likes: 280, gain: 40)
         let viral = response?["is_viral"] as? Bool ?? false
+        let startedAt = Date()
+        if viral { viralCooldown.record(at: startedAt) }
         var offset: TimeInterval = 0
         let offsets = replies.indices.map { position -> TimeInterval in
             if viral { return Double(position) / Double(max(1, replies.count - 1)) * 11 }
@@ -1346,7 +1393,7 @@ class AppState: ObservableObject {
             environment: Self.baseUrl, isViral: viral, rank: response?["rank"] as? Int ?? fallback.rank,
             targetLikes: max(0, response?["likes"] as? Int ?? fallback.likes),
             followerGain: max(0, response?["follower_gain"] as? Int ?? fallback.gain),
-            startedAt: Date(), replyOffsets: offsets, remainingReplies: replies
+            startedAt: startedAt, replyOffsets: offsets, remainingReplies: replies
         )
         if viral {
             captureOnboardingEvent("post_went_viral", properties: [
@@ -1407,6 +1454,12 @@ class AppState: ObservableObject {
     }
 
     func restorePostReactions() {
+        // Migrate existing viral posts without restarting the clock on every launch.
+        for post in posts {
+            if let reaction = post.reaction, reaction.isViral, reaction.environment == Self.baseUrl {
+                viralCooldown.record(at: reaction.startedAt)
+            }
+        }
         // Opening the app again shows the settled outcome, without replaying the celebration.
         let recordedTotal = posts.compactMap { post -> Int? in
             guard !post.isOnboarding, post.reaction?.environment == Self.baseUrl else { return nil }

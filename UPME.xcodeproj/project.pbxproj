@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+        A11CE0000000000000000031 /* AvatarImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11CE0000000000000000032 /* AvatarImageLoader.swift */; };
 		A11CE0000000000000000021 /* UserProgressSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11CE0000000000000000022 /* UserProgressSync.swift */; };
 		A11CE0000000000000000011 /* HomeGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11CE0000000000000000012 /* HomeGuide.swift */; };
 		A11CE0000000000000000013 /* HomeGuideOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11CE0000000000000000014 /* HomeGuideOverlay.swift */; };
@@ -36,6 +37,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+        A11CE0000000000000000032 /* AvatarImageLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarImageLoader.swift; sourceTree = "<group>"; };
 		A11CE0000000000000000022 /* UserProgressSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProgressSync.swift; sourceTree = "<group>"; };
 		A11CE0000000000000000012 /* HomeGuide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeGuide.swift; sourceTree = "<group>"; };
 		A11CE0000000000000000014 /* HomeGuideOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeGuideOverlay.swift; sourceTree = "<group>"; };
@@ -106,6 +108,7 @@
 				9DA65D7295CA448E93A20D5C /* PostView.swift */,
 				C51046D075014E4CBF8EACBA /* SecondaryViews.swift */,
 				A9327DAFDB9248029C821B10 /* Theme.swift */,
+                A11CE0000000000000000032 /* AvatarImageLoader.swift */,
 				A11CE0000000000000000002 /* RankProgress.swift */,
 				C3F84DB1E7274C0E9A5B3F17 /* OnboardingView.swift */,
 				E2D1C0B9A8F7E6D5C4B3A2F1 /* PrivacyConsentView.swift */,
@@ -229,6 +232,7 @@
 				1C771121EAF546A88F19E9DE /* PostView.swift in Sources */,
 				143B2E14DCAA4229B3348DBE /* SecondaryViews.swift in Sources */,
 				4473766EDC7C4CCBB6FC4DB3 /* Theme.swift in Sources */,
+                A11CE0000000000000000031 /* AvatarImageLoader.swift in Sources */,
 				A11CE0000000000000000001 /* RankProgress.swift in Sources */,
 				B7E2A19F5C3D4A88A1D0F62E /* OnboardingView.swift in Sources */,
 				F1A2B3C4D5E6F7A8B9C0D1E2 /* PrivacyConsentView.swift in Sources */,
@@ -370,7 +374,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "UPME-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "UPME! | AI SNS";
+				INFOPLIST_KEY_CFBundleDisplayName = "UPME!";
 				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -400,7 +404,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "UPME-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "UPME! | AI SNS";
+				INFOPLIST_KEY_CFBundleDisplayName = "UPME!";
 				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

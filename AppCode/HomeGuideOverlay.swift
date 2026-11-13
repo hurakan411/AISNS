@@ -167,8 +167,8 @@ private struct HomeGuideCompletion: View {
                     .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(.white)
                 Text(japanese
-                     ? "このガイドは、プロフ画面の「使い方ガイド」からいつでも見直せます。"
-                     : "You can revisit this guide anytime from How to use UPME on your profile.")
+                     ? "このガイドは、画面下の一番右にある「設定」の「使い方ガイド」からいつでも見直せます。"
+                     : "Replay this guide anytime from How to use UPME in the Settings tab at the bottom right.")
                     .font(.system(size: 13))
                     .foregroundStyle(.white.opacity(0.86))
                     .lineSpacing(2)

@@ -17,10 +17,12 @@ enum GuideScreen: String, CaseIterable, Codable, Identifiable {
 }
 
 enum HomeGuideStep: String, CaseIterable, Codable, Identifiable {
-    case compose, reactions, aiReply, reply, regular
+    case compose, reactions, buzz, aiReply, reply, regular
     case postEditor, postImage, postSubmit
     case statsRank, statsBenefits, statsSummary, statsRankList
     case profileAvatar, profileIdentity, profileRank, profileRegulars, profileSettings
+    case profileSettingsEntry
+    // Keep the old settings IDs decodable so saved guide progress is not discarded.
     case profileHaters, profileAds, profileContact, profileLegal, profileGuide
 
     var id: String { rawValue }
@@ -39,12 +41,14 @@ enum HomeGuideStep: String, CaseIterable, Codable, Identifiable {
         case .profileRank: return japanese ? "現在のランク" : "Current rank"
         case .profileRegulars: return japanese ? "常連AI" : "Regular AIs"
         case .profileSettings: return japanese ? "表示言語" : "Language"
+        case .profileSettingsEntry: return japanese ? "設定" : "Settings"
         case .profileHaters: return japanese ? "アンチ設定" : "Hater settings"
         case .profileAds: return japanese ? "広告の非表示" : "Remove ads"
         case .profileContact: return japanese ? "お問い合わせ" : "Contact us"
         case .profileLegal: return japanese ? "規約とプライバシー" : "Terms & privacy"
         case .profileGuide: return japanese ? "使い方ガイド" : "How to use UPME"
         case .reactions: return japanese ? "リアクション" : "Reactions"
+        case .buzz: return japanese ? "バズ" : "Going viral"
         case .aiReply: return japanese ? "AIの返信" : "AI replies"
         case .reply: return japanese ? "AIとの会話" : "Conversations"
         case .regular: return japanese ? "常連AI" : "Regular AIs"
@@ -78,6 +82,8 @@ enum HomeGuideStep: String, CaseIterable, Codable, Identifiable {
             return japanese ? "常連AIは会話を覚えて返信します。ここから解除もできます。" : "Regular AIs remember your conversations. You can remove them here."
         case .profileSettings:
             return japanese ? "アプリの表示と、今後のAI返信に使う言語を切り替えられます。" : "Choose the language for the app and future AI replies."
+        case .profileSettingsEntry:
+            return japanese ? "言語やアンチの切り替え、使い方ガイドの再表示は、ここから開く設定画面で行えます。" : "Open Settings to change the language, toggle hater replies, or replay screen guides."
         case .profileHaters:
             return japanese ? "高ランクで登場するアンチを、ON・OFFで切り替えられます。" : "Turn hater replies on or off for higher ranks."
         case .profileAds:
@@ -90,6 +96,8 @@ enum HomeGuideStep: String, CaseIterable, Codable, Identifiable {
             return japanese ? "各画面のガイドを、いつでもここから見直せます。" : "Replay any screen guide here, whenever you like."
         case .reactions:
             return japanese ? "投稿に届いた、いいねや返信の数を確認できます。" : "See how many likes and replies your post has received."
+        case .buzz:
+            return japanese ? "バズると、いいねはランク上限の5倍、フォロワーの増加は3倍、AI返信は2倍になります。バズった後は24時間、通常の反応になります。" : "When a post goes viral, likes reach 5× your rank’s maximum, follower gains 3×, and AI replies 2×. Posts receive normal reactions for the next 24 hours."
         case .aiReply:
             return japanese ? "あなたの投稿に、AIフォロワーからの返信が届きます。" : "Replies from your AI followers appear here after you post."
         case .reply:
@@ -103,20 +111,19 @@ enum HomeGuideStep: String, CaseIterable, Codable, Identifiable {
 
     static func ordered(for screen: GuideScreen) -> [HomeGuideStep] {
         switch screen {
-        case .home: return [.compose, .reactions, .aiReply, .reply, .regular]
+        case .home: return [.compose, .reactions, .buzz, .aiReply, .reply, .regular]
         case .post: return [.postEditor, .postImage, .postSubmit]
         case .stats: return [.statsRank, .statsBenefits, .statsSummary, .statsRankList]
-        case .profile: return [.profileAvatar, .profileIdentity, .profileRank, .profileRegulars,
-                               .profileSettings, .profileHaters, .profileAds, .profileContact, .profileLegal, .profileGuide]
+        case .profile: return [.profileAvatar, .profileIdentity, .profileRegulars]
         }
     }
 
     var screen: GuideScreen {
         switch self {
-        case .compose, .reactions, .aiReply, .reply, .regular: return .home
+        case .compose, .reactions, .buzz, .aiReply, .reply, .regular: return .home
         case .postEditor, .postImage, .postSubmit: return .post
         case .statsRank, .statsBenefits, .statsSummary, .statsRankList: return .stats
-        case .profileAvatar, .profileIdentity, .profileRank, .profileRegulars, .profileSettings,
+        case .profileAvatar, .profileIdentity, .profileRank, .profileRegulars, .profileSettingsEntry, .profileSettings,
              .profileHaters, .profileAds, .profileContact, .profileLegal, .profileGuide: return .profile
         }
     }

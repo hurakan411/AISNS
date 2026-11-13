@@ -66,11 +66,9 @@ struct PostView: View {
                                 .clipShape(Circle())
                                 .overlay(Circle().stroke(Theme.hotPink.opacity(0.75), lineWidth: 2))
                         } else {
-                            AsyncImage(url: URL(string: Theme.myAvatar)) { img in
-                                img.resizable().scaledToFill()
-                            } placeholder: {
-                                Circle().fill(Theme.deepPurple)
-                            }
+                            Image(Theme.defaultAvatarAsset)
+                                .resizable()
+                                .scaledToFill()
                             .frame(width: 50, height: 50)
                             .clipShape(Circle())
                             .overlay(Circle().stroke(Theme.hotPink.opacity(0.75), lineWidth: 2))
@@ -104,12 +102,7 @@ struct PostView: View {
                     // Attached Image preview
                     if let data = attachedImageData, let uiImage = UIImage(data: data) {
                         ZStack(alignment: .topTrailing) {
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(maxHeight: 240)
-                                .clipped()
-                                .cornerRadius(16)
+                            PostAttachmentImage(image: uiImage, height: 240, cornerRadius: 16)
                             
                             Button(action: {
                                 attachedImageData = nil

@@ -357,6 +357,16 @@
         }
       }
     },
+    "設定" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        }
+      }
+    },
     "プロフ" : {
       "localizations" : {
         "en" : {

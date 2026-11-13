@@ -35,7 +35,7 @@ struct Theme {
         endPoint: .trailing
     )
     
-    static let myAvatar = "https://images.unsplash.com/photo-1502685104226-ee32379fefbe?w=150&h=150&fit=crop"
+    static let defaultAvatarAsset = "UPMEMascot"
     static let fallbackImg = "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=1000"
 }
 
@@ -60,6 +60,28 @@ enum StatsTheme {
                  Color(red: 0.160, green: 0.095, blue: 0.165)],
         startPoint: .topLeading, endPoint: .bottomTrailing
     )
+}
+
+/// The image fills an already-sized slot, so its aspect ratio cannot widen a card.
+struct PostAttachmentImage: View {
+    let image: UIImage
+    let height: CGFloat
+    let cornerRadius: CGFloat
+
+    var body: some View {
+        Color.clear
+            .frame(height: height)
+            .overlay {
+                GeometryReader { geometry in
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .clipped()
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+    }
 }
 
 struct TactileHeader: View {

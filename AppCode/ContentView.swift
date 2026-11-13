@@ -2,9 +2,9 @@ import SwiftUI
 import StoreKit
 
 enum Tab: String {
-    case home, post, stats, profile
+    case home, post, stats, profile, settings
 
-    var guideScreen: GuideScreen { GuideScreen(rawValue: rawValue) ?? .home }
+    var guideScreen: GuideScreen? { GuideScreen(rawValue: rawValue) }
 }
 
 struct ContentView: View {
@@ -23,6 +23,7 @@ struct ContentView: View {
         case "stats": return .stats
         case "post": return .post
         case "profile": return .profile
+        case "settings": return .settings
         default: return .home
         }
     }()
@@ -34,7 +35,7 @@ struct ContentView: View {
     @State private var newlyAchievedRank: Int = 1
 
     private var guideAllowed: Bool {
-        scenePhase == .active && hasCheckedStartupNotice
+        activeTab.guideScreen != nil && scenePhase == .active && hasCheckedStartupNotice
             && !showUpdateNotice && !showRankUpPopup && !homeContentModalPresented
             && appState.replyErrorMessage == nil
     }
@@ -109,12 +110,17 @@ struct ContentView: View {
                         StatsView(guide: homeGuide)
                             .transition(.opacity)
                     case .profile:
-                        ProfileView(onReplayGuide: { screen in
-                            homeGuide.requestReplay(for: screen)
-                            withAnimation { activeTab = Tab(rawValue: screen.rawValue) ?? .home }
-                        }, guide: homeGuide)
+                        ProfileView(guide: homeGuide)
                             .transition(.opacity)
-                            .ignoresSafeArea(edges: .top)
+                    case .settings:
+                        NavigationStack {
+                            SettingsView(onReplayGuide: { screen in
+                                homeGuide.requestReplay(for: screen)
+                                withAnimation { activeTab = Tab(rawValue: screen.rawValue) ?? .home }
+                            })
+                        }
+                        .tint(Theme.lavender)
+                        .transition(.opacity)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -154,14 +160,12 @@ struct ContentView: View {
         .safeAreaInset(edge: .bottom) {
             HStack(spacing: 0) {
                 NavBtn(icon: "house.fill", label: "ホーム", isActive: activeTab == .home) { withAnimation { activeTab = .home } }
-                Spacer()
                 NavBtn(icon: "plus.app.fill", label: "投稿", isActive: activeTab == .post, isCenter: true) { withAnimation { activeTab = .post } }
-                Spacer()
                 NavBtn(icon: "chart.bar.fill", label: "統計", isActive: activeTab == .stats) { withAnimation { activeTab = .stats } }
-                Spacer()
                 NavBtn(icon: "person.fill", label: "プロフ", isActive: activeTab == .profile) { withAnimation { activeTab = .profile } }
+                NavBtn(icon: "gearshape.fill", label: "設定", isActive: activeTab == .settings) { withAnimation { activeTab = .settings } }
             }
-            .padding(.horizontal, 32)
+            .padding(.horizontal, 12)
             .padding(.top, 16)
             .padding(.bottom, 8)
             .background(Theme.bgDeepBlack.opacity(0.94).background(Material.ultraThin).ignoresSafeArea(edges: .bottom))
@@ -169,8 +173,9 @@ struct ContentView: View {
             .accessibilityHidden(guideAllowed && homeGuide.isPresenting)
         }
         .overlayPreferenceValue(HomeGuideAnchorPreference.self) { anchors in
+            if let screen = activeTab.guideScreen {
             GeometryReader { geometry in
-                let targets = Dictionary(uniqueKeysWithValues: HomeGuideStep.ordered(for: activeTab.guideScreen).compactMap { step in
+                let targets = Dictionary(uniqueKeysWithValues: HomeGuideStep.ordered(for: screen).compactMap { step in
                     anchors[.step(step)].map { (step, geometry[$0]) }
                 })
                 HomeGuideHost(
@@ -180,10 +185,11 @@ struct ContentView: View {
                     viewport: anchors[.viewport].map { geometry[$0] } ?? .zero,
                     canvas: geometry.size,
                     japanese: appState.appLanguage == .japanese,
-                    screen: activeTab.guideScreen
+                    screen: screen
                 )
             }
             .allowsHitTesting(guideAllowed && homeGuide.isPresenting)
+            }
         }
         .onPreferenceChange(HomeGuideModalPreference.self) { homeContentModalPresented = $0 }
         .task {
@@ -226,6 +232,7 @@ struct ContentView: View {
             case .post: tabName = "post"
             case .stats: tabName = "stats"
             case .profile: tabName = "profile"
+            case .settings: tabName = "settings"
             }
             UPMEAnalytics.capture("tab_viewed", properties: ["tab": tabName])
         }
@@ -269,16 +276,16 @@ struct AppUpdateNotice {
                 icon: "globe",
                 titleJapanese: "英語表示に対応",
                 titleEnglish: "English Support",
-                detailJapanese: "端末の言語に合わせて表示し、プロフィールからいつでも切り替えられます。",
-                detailEnglish: "The app follows your device language, and you can switch it anytime from your profile."
+                detailJapanese: "端末の言語に合わせて表示し、設定からいつでも切り替えられます。",
+                detailEnglish: "The app follows your device language, and you can switch it anytime from Settings."
             ),
             Item(
                 id: "visual-and-support",
                 icon: "sparkles",
                 titleJapanese: "新しいビジュアルとお問い合わせ",
                 titleEnglish: "New Visuals and Support",
-                detailJapanese: "光がつながる背景演出と、プロフィールのお問い合わせ窓口を追加しました。",
-                detailEnglish: "Enjoy the new connected-light background and a contact option in your profile."
+                detailJapanese: "光がつながる背景演出と、設定のお問い合わせ窓口を追加しました。",
+                detailEnglish: "Enjoy the new connected-light background and a contact option in Settings."
             )
         ]
     )
@@ -427,7 +434,10 @@ struct NavBtn: View {
                     .textCase(.uppercase)
             }
             .scaleEffect(isActive ? 1.05 : 1.0)
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
     }
 }
 
