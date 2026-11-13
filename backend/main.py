@@ -3,7 +3,6 @@ import logging
 import os
 import random
 import re
-import requests
 import time
 from typing import List, Optional, Any, Tuple
 from dotenv import load_dotenv
@@ -159,7 +158,7 @@ def build_post_reaction(followers: int, *, force_viral: bool = False) -> dict:
     rank = rank_from_followers(followers)
     minimum, maximum = POST_FOLLOWER_RANGES[rank - 1]
     is_viral = force_viral or random.random() < VIRAL_POST_PROBABILITY
-    gain = maximum * 5 if is_viral else random.randint(minimum, maximum)
+    gain = maximum * 3 if is_viral else random.randint(minimum, maximum)
     likes = maximum * 7 * 5 if is_viral else int(gain * random.uniform(3.0, 7.0))
     return {"is_viral": is_viral, "rank": rank, "likes": likes, "follower_gain": gain}
 
@@ -322,14 +321,8 @@ def localize_generated_author_names(replies: List[ReplySchema], language: str = 
         reply.author_name = replacements[original_name]
 
 def resolve_avatar_url(seed_url: str) -> str:
-    """picsum.photosのseed URLからリダイレクトを解決し、最終的な直接画像URLを返す"""
-    try:
-        resp = requests.get(seed_url, allow_redirects=True, timeout=5, stream=True)
-        final_url = resp.url  # リダイレクト後の最終URL (fastly.picsum.photos/id/xxx/...)
-        resp.close()  # 画像データは不要なので即座に閉じる
-        return final_url
-    except Exception:
-        return seed_url  # 失敗時はそのまま返す（フォールバック）
+    """安定したseed URLを返す。画像の取得・HTTP検証・再試行は本文と独立してアプリが行う。"""
+    return seed_url
 
 
 def build_length_plan_shuffled(n: int) -> List[str]:

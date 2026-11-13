@@ -43,14 +43,41 @@ class PromptCaptureClient:
 
 
 class RegularFollowerApiTests(unittest.TestCase):
-    def test_viral_rewards_are_five_times_rank_maximum(self):
+    def test_avatar_selection_never_waits_for_image_network(self):
+        with patch("requests.get", side_effect=AssertionError("Unexpected image download")):
+            for url in backend_main.AVATARS + backend_main.HATER_AVATARS:
+                self.assertEqual(backend_main.resolve_avatar_url(url), url)
+
+    def test_legacy_post_response_still_contains_avatar_urls_without_image_fetches(self):
+        parsed = GenerateRepliesResponse(replies=[ReplySchema(
+            author_name="ゆき", content="おつかれさま！", is_hater=False,
+            is_defender=False, regular_follower_id=None,
+        )], memory_updates=[])
+        capture = PromptCaptureClient(parsed)
+        with (
+            patch.object(backend_main, "openai_client", capture),
+            patch("requests.get", side_effect=AssertionError("Reply must not wait for an image")),
+        ):
+            result = asyncio.run(backend_main.create_post(PostRequest(
+                user_id="legacy-test", content="仕事終わった", followers=0,
+                is_hater_enabled=False,
+            )))
+        self.assertEqual(result["status"], "success")
+        self.assertNotIn("reaction", result)
+        self.assertEqual(len(capture.calls), 1)
+        self.assertIn(result["replies"][0]["author_img"], backend_main.AVATARS)
+        self.assertEqual(set(result["replies"][0]), {
+            "author_name", "author_img", "content", "is_hater", "is_defender", "regular_follower_id",
+        })
+
+    def test_viral_followers_are_three_times_and_likes_five_times_rank_maximum(self):
         thresholds = [0, 100, 500, 2000, 10000, 50000, 200000, 1000000, 5000000, 20000000]
         for rank, followers in enumerate(thresholds, 1):
             with patch.object(backend_main.random, "random", return_value=0.0):
                 reaction = backend_main.build_post_reaction(followers)
             maximum = backend_main.POST_FOLLOWER_RANGES[rank - 1][1]
             self.assertEqual(reaction, {"is_viral": True, "rank": rank,
-                                       "likes": maximum * 7 * 5, "follower_gain": maximum * 5})
+                                       "likes": maximum * 7 * 5, "follower_gain": maximum * 3})
             with patch.object(backend_main.random, "random", return_value=0.99):
                 normal = backend_main.build_post_reaction(followers)
             minimum = backend_main.POST_FOLLOWER_RANGES[rank - 1][0]
@@ -110,7 +137,7 @@ class RegularFollowerApiTests(unittest.TestCase):
                 is_onboarding=True, supports_viral_posts=True,
             )))
         self.assertEqual(result["reaction"], {"is_viral": True, "rank": 10,
-                                             "likes": 10_500_000, "follower_gain": 1_500_000})
+                                             "likes": 10_500_000, "follower_gain": 900_000})
         self.assertEqual(len(capture.calls), 1)
         self.assertEqual(len(result["replies"]), 32)
         prompt = capture.calls[0]["messages"][0]["content"]

@@ -144,7 +144,7 @@ async def run(output, case_ids=None):
                     if payload.get("supports_viral_posts") and payload.get("is_onboarding"):
                         assert viral and len(data["replies"]) == 32
                         assert data["reaction"]["likes"] == 10_500_000
-                        assert data["reaction"]["follower_gain"] == 1_500_000
+                        assert data["reaction"]["follower_gain"] == 900_000
                     for item in data["replies"]:
                         main.ReplySchema.model_validate(item)
                         assert item["content"].strip() and item["author_img"]
