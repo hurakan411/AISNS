@@ -3,7 +3,9 @@ import logging
 import os
 import random
 import re
+import threading
 import time
+import urllib.request
 from typing import List, Optional, Any, Tuple
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -199,12 +201,80 @@ class GenerateReplyThreadResponse(BaseModel):
     memory_updates: List[RegularFollowerMemoryUpdateSchema] = Field(default_factory=list)
 
 
-# -------- 3. リソース (モックアバター) --------
-# picsum.photosのseed URLを使用して多様なジャンルの画像を100種類用意
-AVATARS = [f"https://picsum.photos/seed/user{i}/150/150" for i in range(1, 101)]
+# -------- 3. AIアバター --------
+AVATAR_BUCKET = "images"
+AVATAR_MANIFEST_FILENAME = "avatar-manifest.json"
+AVATAR_MANIFEST_REFRESH_SECONDS = 300
 
-# アンチ用は別のシード名で20種類
-HATER_AVATARS = [f"https://picsum.photos/seed/hater{i}/150/150" for i in range(1, 21)]
+
+def build_avatar_urls(count: int, base_url: str = SUPABASE_URL) -> List[str]:
+    """Build public Storage URLs for the numbered avatar files currently in the bucket."""
+    base = f"{base_url.rstrip('/')}/storage/v1/object/public/{AVATAR_BUCKET}".rstrip("/")
+    urls = []
+    for number in range(1, max(0, count) + 1):
+        # The first 50 files retain the filenames from the original asset pack.
+        filename = f"avatar-{number:02d}.jpg" if number <= 50 else f"avatar-{number}.jpg"
+        urls.append(f"{base}/{filename}")
+    return urls
+
+
+def avatar_urls_from_manifest(manifest: Any) -> List[str]:
+    """Parse the small public manifest; a count allows sequential future additions without code edits."""
+    if not isinstance(manifest, dict):
+        return []
+    try:
+        count = int(manifest.get("count", 0))
+    except (TypeError, ValueError):
+        return []
+    if count < 1 or count > 10000:
+        return []
+    # Keep path construction constrained to the app's known naming convention.
+    if manifest.get("prefix", "avatar-") != "avatar-" or manifest.get("extension", ".jpg") != ".jpg":
+        return []
+    return build_avatar_urls(count)
+
+
+AVATARS = build_avatar_urls(200)
+# Critics also use the same curated pool; no third-party/random-image host remains.
+HATER_AVATARS = AVATARS
+_avatar_manifest_lock = threading.Lock()
+
+
+def refresh_avatar_manifest() -> bool:
+    """Refresh the cached URL pool from the public Storage manifest without delaying replies."""
+    if not SUPABASE_URL:
+        return False
+    cache_buster = int(time.time() // AVATAR_MANIFEST_REFRESH_SECONDS)
+    url = (
+        f"{SUPABASE_URL.rstrip('/')}/storage/v1/object/public/"
+        f"{AVATAR_BUCKET}/{AVATAR_MANIFEST_FILENAME}?v={cache_buster}"
+    )
+    try:
+        request = urllib.request.Request(url, headers={"Accept": "application/json"})
+        with urllib.request.urlopen(request, timeout=3) as response:
+            manifest = json.loads(response.read(64_000).decode("utf-8"))
+        urls = avatar_urls_from_manifest(manifest)
+        if not urls:
+            logger.warning("AI avatar manifest was empty or invalid; keeping cached pool")
+            return False
+        with _avatar_manifest_lock:
+            AVATARS[:] = urls
+        logger.info("Loaded %d AI avatar URLs from Supabase Storage manifest", len(urls))
+        return True
+    except Exception as error:
+        logger.warning("Could not refresh AI avatar manifest; keeping cached pool: %s", error)
+        return False
+
+
+def _avatar_manifest_refresh_loop() -> None:
+    while True:
+        refresh_avatar_manifest()
+        time.sleep(AVATAR_MANIFEST_REFRESH_SECONDS)
+
+
+@app.on_event("startup")
+def start_avatar_manifest_refresh() -> None:
+    threading.Thread(target=_avatar_manifest_refresh_loop, name="avatar-manifest-refresh", daemon=True).start()
 
 # 常連以外のAIフォロワーに使う日本語名。AIが英字名を返した場合の安全な置換先にも使う。
 JAPANESE_AI_NAMES = [

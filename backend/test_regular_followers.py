@@ -43,6 +43,21 @@ class PromptCaptureClient:
 
 
 class RegularFollowerApiTests(unittest.TestCase):
+    def test_default_avatar_pool_uses_all_200_supabase_storage_assets(self):
+        self.assertEqual(len(backend_main.AVATARS), 200)
+        self.assertIn("/storage/v1/object/public/images/avatar-01.jpg", backend_main.AVATARS[0])
+        self.assertIn("/storage/v1/object/public/images/avatar-51.jpg", backend_main.AVATARS[50])
+        self.assertIn("/storage/v1/object/public/images/avatar-200.jpg", backend_main.AVATARS[-1])
+        self.assertTrue(all("picsum.photos" not in url for url in backend_main.AVATARS))
+
+    def test_avatar_manifest_supports_future_sequential_additions(self):
+        urls = backend_main.avatar_urls_from_manifest({
+            "prefix": "avatar-", "extension": ".jpg", "count": 237,
+        })
+        self.assertEqual(len(urls), 237)
+        self.assertIn("/avatar-237.jpg", urls[-1])
+        self.assertEqual(backend_main.avatar_urls_from_manifest({"count": 0}), [])
+
     def test_avatar_selection_never_waits_for_image_network(self):
         with patch("requests.get", side_effect=AssertionError("Unexpected image download")):
             for url in backend_main.AVATARS + backend_main.HATER_AVATARS:
