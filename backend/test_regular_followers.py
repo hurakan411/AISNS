@@ -43,6 +43,37 @@ class PromptCaptureClient:
 
 
 class RegularFollowerApiTests(unittest.TestCase):
+    def test_impressions_travel_with_participating_regular_memory_in_one_call(self):
+        for language in ("ja", "en"):
+            for thread in (False, True):
+                with self.subTest(language=language, thread=thread):
+                    impression = "小さな発見を楽しんでいるね。" if language == "ja" else "You enjoy little discoveries."
+                    response_type = GenerateReplyThreadResponse if thread else GenerateRepliesResponse
+                    parsed = response_type.model_validate({
+                        "replies": [{"author_name": "ゆき", "content": "Nice!", "is_hater": False,
+                                     "is_defender": False, "regular_follower_id": "yuki"}],
+                        "memory_updates": [
+                            {"follower_id": id, "new_memories": ["Likes walks"],
+                             "interaction_summary": "Talked about a walk", "impression": impression}
+                            for id in ("yuki", "not-a-participant")],
+                    })
+                    regular = backend_main.RegularFollowerContext(follower_id="yuki", author_name="ゆき",
+                        avatar_url="https://example.com/yuki.jpg", memories=["Likes walks"])
+                    capture = PromptCaptureClient(parsed)
+                    with patch.object(backend_main, "openai_client", capture):
+                        if thread:
+                            result = asyncio.run(backend_main.generate_ai_reply_to_user(ReplyToAiRequest(
+                                user_id="test", post_content="Walk", ai_author_name="ゆき", ai_reply_content="Nice!",
+                                user_reply="Thanks", target_regular_follower=regular, regular_followers=[regular],
+                                language=language)))
+                        else:
+                            result = asyncio.run(backend_main.generate_ai_replies(content="Walk", followers=0,
+                                is_hater_enabled=False, regular_followers=[regular], language=language))
+                    self.assertEqual(len(capture.calls), 1)
+                    self.assertEqual(len(result[1]), 1)
+                    self.assertEqual(result[1][0]["impression"], impression)
+                    self.assertEqual(result[1][0]["impression_language"], language)
+
     def test_onboarding_off_has_no_critic_arc_even_when_viral(self):
         for language in ("ja", "en"):
             capture = PromptCaptureClient(GenerateRepliesResponse(replies=[], memory_updates=[]))

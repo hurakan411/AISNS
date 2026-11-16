@@ -63,6 +63,7 @@ struct HomeGuideSelection: Equatable {
     var aiReplyID: UUID?
     var replyActionID: UUID?
     var regularActionID: UUID?
+    var regularImpressionID: UUID?
 }
 
 private enum ReplyTimelineLayout {
@@ -87,7 +88,8 @@ struct FeedView: View {
             postID: appState.posts.first?.id,
             aiReplyID: replies.first?.id,
             replyActionID: replies.first(where: \.canReceiveUserReply)?.id,
-            regularActionID: replies.first(where: { !appState.isRegularFollower($0) })?.id
+            regularActionID: replies.first(where: { !appState.isRegularFollower($0) })?.id,
+            regularImpressionID: replies.first(where: { appState.isRegularFollower($0) })?.id
         )
     }
 
@@ -374,6 +376,7 @@ struct PostCard: View {
                 .padding(.horizontal, 20)
                 .padding(.top, appState.isViralRevealed(post) ? 0 : 20)
                 
+                VStack(alignment: .leading, spacing: 12) {
                 Text(post.content)
                     .font(.system(size: 17, weight: .medium))
                     .foregroundColor(.white)
@@ -383,6 +386,7 @@ struct PostCard: View {
                 if let data = post.imageData, let uiImage = UIImage(data: data) {
                     PostAttachmentImage(image: uiImage, height: 180, cornerRadius: 20)
                         .padding(.horizontal, 16)
+                }
                 }
                 
                 HStack(spacing: 24) {
@@ -436,6 +440,7 @@ struct PostCard: View {
                 }
             }
             .homeGuideTarget(guideSelection.postID == post.id ? .buzz : nil)
+            .homeGuideTarget(guideSelection.postID == post.id ? .postContent : nil)
             .padding(.horizontal, 16)
             .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: appState.isViralRevealed(post))
             .sensoryFeedback(.success, trigger: appState.isViralAnimating(post)) { _, active in active && !reduceMotion }
@@ -463,6 +468,7 @@ struct PostCard: View {
                                 guideReplyCard: guideSelection.aiReplyID == reply.id,
                                 guideReplyAction: guideSelection.replyActionID == reply.id,
                                 guideRegularAction: guideSelection.regularActionID == reply.id,
+                                guideRegularImpression: guideSelection.regularImpressionID == reply.id,
                                 usesHomeStyling: usesHomeStyling,
                                 showsTimelineNode: usesHomeStyling,
                                 isRegular: !reply.isUserReply && appState.isRegularFollower(reply),
@@ -517,7 +523,7 @@ struct PostCard: View {
             case .confirm(let reply):
                 return Alert(
                     title: Text(appState.text("@\(reply.authorName)を常連にしますか？", "Make @\(reply.authorName) a regular?")),
-                    message: Text(appState.text("今後の投稿にも同じ名前と記憶を持って返信します。会話記憶は端末に保存され、返信生成時にOpenAIへ送信されます。", "They will reply to future posts with the same name and memory. Conversation memory is stored on this device and sent to OpenAI when generating replies.")),
+                    message: Text(appState.text("これからの投稿にも同じ名前で登場し、会話を重ねながらあなたのことを知っていきます。", "They’ll keep the same name and get to know you better with every conversation.")),
                     primaryButton: .default(Text("常連にする")) {
                         _ = appState.addRegularFollower(from: reply, postContent: post.content)
                     },
@@ -552,6 +558,9 @@ private enum RegularFollowerAlert: Identifiable {
 
 struct ReplyRow: View {
     @EnvironmentObject var appState: AppState
+    @State private var selectedRegular: RegularFollower?
+    @AppStorage("hasSeenRegularImpressionIconHint") private var hasSeenImpressionHint = false
+    @State private var showsImpressionHint = false
     let reply: Reply
     var analyticsPostFlowID: UUID? = nil
     var analyticsIsOnboardingPost: Bool = false
@@ -559,6 +568,7 @@ struct ReplyRow: View {
     var guideReplyCard = false
     var guideReplyAction = false
     var guideRegularAction = false
+    var guideRegularImpression = false
     var usesHomeStyling = false
     var showsTimelineNode = false
     let isRegular: Bool
@@ -617,9 +627,26 @@ struct ReplyRow: View {
         if reply.isDefender { return .green }
         return Theme.lavender
     }
+
+    private func openRegularImpression() {
+        selectedRegular = appState.regularFollower(for: reply)
+        showsImpressionHint = false
+    }
+
+    @ViewBuilder
+    private func identityControl<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        if usesHomeStyling && isRegular {
+            Button(action: openRegularImpression, label: content)
+                .buttonStyle(RegularIdentityButtonStyle())
+                .accessibilityHint(appState.text("タップしてあなたへの印象を見る", "Tap to see their impression of you"))
+        } else {
+            content().onTapGesture { selectedRegular = appState.regularFollower(for: reply) }
+        }
+    }
     
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
+            identityControl {
             Group {
                 if reply.isUserReply,
                    let data = appState.userAvatarData,
@@ -637,15 +664,29 @@ struct ReplyRow: View {
             }
             .modifier(FeedAvatarFrame(size: 36, stroke: avatarStrokeColor, accent: avatarAccentColor,
                                       lineWidth: avatarStrokeWidth, enabled: usesHomeStyling))
+            .overlay {
+                if usesHomeStyling && isRegular {
+                    Circle().strokeBorder(
+                        LinearGradient(colors: [Theme.hotPink, Theme.lavender], startPoint: .topLeading, endPoint: .bottomTrailing),
+                        lineWidth: 1.5)
+                        .allowsHitTesting(false)
+                }
+            }
             .shadow(color: reply.isHater ? Color.red.opacity(0.5) : .clear, radius: reply.isHater ? 6 : 0)
+            }
             .padding(.top, 16) // テキストのpadding(16)と高さを完全に揃えるため、アバターも同じだけ下げる
             
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .center, spacing: 6) {
+                    identityControl {
+                    HStack(spacing: 4) {
                     Text(displayName)
                         .font(.system(size: 12, weight: .black))
                         .foregroundColor(nameColor)
                         .lineLimit(1)
+                    }
+                    .contentShape(Rectangle())
+                    }
 
                     if !reply.isUserReply && !reply.isHater && !reply.isDefender {
                         Text("AI")
@@ -727,6 +768,23 @@ struct ReplyRow: View {
                         .accessibilityLabel(appState.text(isRegular ? "常連設定済み" : "常連に設定", isRegular ? "Already a regular" : "Make a regular"))
                         .homeGuideTarget(guideRegularAction && !isRegular ? .regular : nil)
                     }
+                    if usesHomeStyling && isRegular {
+                        Button(action: openRegularImpression) {
+                            ZStack {
+                                Image(systemName: "bubble.left")
+                                    .font(.system(size: 19, weight: .semibold))
+                                Image(systemName: "heart.fill")
+                                    .font(.system(size: 8, weight: .semibold))
+                                    .offset(y: -1)
+                            }
+                            .foregroundStyle(Theme.lavender)
+                            .frame(width: 26, height: 30)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(RegularIdentityButtonStyle())
+                        .accessibilityLabel(appState.text("この常連から見たあなた", "How this regular sees you"))
+                        .homeGuideTarget(guideRegularImpression ? .regularImpression : nil)
+                    }
                     if reply.isHater {
                         Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.red).font(.system(size: 12))
                     } else if reply.isDefender {
@@ -734,6 +792,31 @@ struct ReplyRow: View {
                     }
                 }
                 
+                if usesHomeStyling && showsImpressionHint {
+                    Text(appState.text("ハートの吹き出しから、この常連があなたをどう思っているか見られます", "Tap the heart bubble to see how this regular sees you"))
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Theme.lavender)
+                        .padding(10)
+                        .background(Theme.deepPurple, in: RoundedRectangle(cornerRadius: 10))
+                        .onTapGesture { showsImpressionHint = false }
+                }
+                if isRegular && !usesHomeStyling {
+                    Button {
+                        selectedRegular = appState.regularFollower(for: reply)
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "sparkles")
+                            Text(appState.text("あなたへの印象", "How they see you"))
+                            Image(systemName: "chevron.right")
+                        }
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Theme.lavender)
+                        .padding(.horizontal, 10).padding(.vertical, 8)
+                        .background(Theme.purpleAccent.opacity(0.18), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.vertical, 3)
+                }
                 Text(reply.text)
                     .font(.system(size: 14, weight: reply.isHater ? .bold : .medium))
                     .foregroundColor(reply.isHater ? .white : .white.opacity(0.9))
@@ -785,6 +868,25 @@ struct ReplyRow: View {
                 }
             }
         }
+        .sheet(item: $selectedRegular) { follower in
+            RegularImpressionView(followerID: follower.id)
+                .environmentObject(appState)
+        }
+        .preference(key: HomeGuideModalPreference.self, value: selectedRegular != nil)
+        .onAppear {
+            if usesHomeStyling && isRegular && !hasSeenImpressionHint {
+                hasSeenImpressionHint = true
+                showsImpressionHint = true
+            }
+        }
+    }
+}
+
+private struct RegularIdentityButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.94 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 

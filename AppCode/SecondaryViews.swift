@@ -424,6 +424,54 @@ struct StatCard: View {
     }
 }
 
+struct RegularImpressionView: View {
+    @EnvironmentObject var appState: AppState
+    let followerID: String
+
+    var body: some View {
+        ScrollView {
+            if let follower = appState.regularFollowers.first(where: { $0.id == followerID }) {
+                VStack(alignment: .leading, spacing: 24) {
+                    HStack(spacing: 14) {
+                        AIAvatarImage(url: follower.avatarURL)
+                            .frame(width: 60, height: 60)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Theme.lavender.opacity(0.7), lineWidth: 2))
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(appState.text("\(follower.authorName)から見たあなた", "How \(follower.authorName) sees you"))
+                                .font(.system(size: 21, weight: .bold))
+                            Text(appState.text("これまでの会話から", "From your conversations"))
+                                .font(.subheadline).foregroundStyle(Theme.lavender)
+                        }
+                    }
+                    if let impression = follower.impression, !impression.isEmpty {
+                        Text(impression)
+                            .font(.system(size: 19, weight: .medium))
+                            .lineSpacing(7)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(22)
+                            .background {
+                                FeedCardSurface(fill: Theme.aiCardBackground, accent: Theme.lavender,
+                                                border: Theme.lavender.opacity(0.4), cornerRadius: 22)
+                            }
+                    } else {
+                        Text(appState.text("まだあなたのことを知っている途中です。次の投稿や会話から、この常連が感じたあなたらしさが届きます。", "Still getting to know you. After your next post or conversation, this regular can share an impression of you."))
+                            .font(.body).foregroundStyle(.white.opacity(0.8)).lineSpacing(5)
+                    }
+                    Text(appState.text("覚えている会話をもとに、この常連が感じたあなたの素敵なところ。会話を重ねると更新されます。", "The lovely things this regular notices about you, drawn from the conversations they remember. It evolves as you talk."))
+                        .font(.caption).foregroundStyle(.white.opacity(0.5)).lineSpacing(3)
+                }
+                .foregroundStyle(.white)
+                .padding(24).padding(.top, 12)
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .presentationCornerRadius(30)
+        .presentationBackground(Theme.bgDeepBlack)
+    }
+}
+
 struct ProfileView: View {
     var guide: HomeGuideCoordinator? = nil
     @EnvironmentObject var appState: AppState
@@ -433,6 +481,7 @@ struct ProfileView: View {
     @FocusState private var isNameFocused: Bool
     @State private var isEditingBio = false
     @State private var followerPendingRemoval: RegularFollower?
+    @State private var selectedRegular: RegularFollower?
     
     var body: some View {
         ScrollViewReader { reader in
@@ -601,24 +650,28 @@ struct ProfileView: View {
                     } else {
                         ForEach(appState.regularFollowers) { follower in
                             HStack(spacing: 12) {
-                                AIAvatarImage(url: follower.avatarURL)
-                                .frame(width: 48, height: 48)
-                                .clipShape(Circle())
-                                .overlay(Circle().stroke(Theme.lavender.opacity(0.75), lineWidth: 2))
-
-                                VStack(alignment: .leading, spacing: 5) {
-                                    HStack(spacing: 6) {
+                                Button { selectedRegular = follower } label: {
+                                    HStack(spacing: 12) {
+                                        AIAvatarImage(url: follower.avatarURL)
+                                            .frame(width: 48, height: 48)
+                                            .clipShape(Circle())
+                                            .overlay(Circle().stroke(Theme.lavender.opacity(0.75), lineWidth: 2))
+                                        VStack(alignment: .leading, spacing: 5) {
                                         Text("@\(follower.authorName)")
                                             .font(.system(size: 15, weight: .black))
                                             .foregroundColor(.white)
+                                            Text(appState.text("あなたへの印象を見る", "See how they see you"))
+                                                .font(.system(size: 11, weight: .medium))
+                                                .foregroundColor(.gray)
+                                                .lineLimit(2)
+                                        }
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption).foregroundStyle(Theme.lavender)
                                     }
-                                    Text(follower.recentInteractions.last ?? appState.text("次の投稿から記憶を使って返信します", "Memory will be used starting with your next post."))
-                                        .font(.system(size: 11, weight: .medium))
-                                        .foregroundColor(.gray)
-                                        .lineLimit(2)
+                                    .contentShape(Rectangle())
                                 }
-
-                                Spacer()
+                                .buttonStyle(.plain)
 
                                 Button("解除") {
                                     followerPendingRemoval = follower
@@ -663,6 +716,10 @@ struct ProfileView: View {
             withAnimation(.easeInOut(duration: 0.25)) { reader.scrollTo(step, anchor: .center) }
         }
         }
+        .sheet(item: $selectedRegular) { follower in
+            RegularImpressionView(followerID: follower.id)
+                .environmentObject(appState)
+        }
         .alert(item: $followerPendingRemoval) { follower in
             Alert(
                 title: Text(appState.text("@\(follower.authorName)の常連を解除しますか？", "Remove @\(follower.authorName) as a regular?")),
@@ -675,7 +732,7 @@ struct ProfileView: View {
         }
         .homeGuideViewport()
         .tint(Theme.lavender)
-        .preference(key: HomeGuideModalPreference.self, value: followerPendingRemoval != nil)
+        .preference(key: HomeGuideModalPreference.self, value: followerPendingRemoval != nil || selectedRegular != nil)
     }
 
     private func saveEditedName() {

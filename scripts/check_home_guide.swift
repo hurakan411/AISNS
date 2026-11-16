@@ -22,20 +22,20 @@ struct HomeGuideChecks {
 
         let home = HomeGuideStep.ordered(for: .home)
         let allScreens = GuideScreen.allCases
-        check(home == [.compose, .reactions, .buzz, .aiReply, .reply, .regular], "Home explains viral posts after reactions")
+        check(home == [.compose, .postContent, .reactions, .buzz, .aiReply, .reply, .regular, .regularImpression], "Home explains the user's post before reactions and viral posts")
         check(allScreens.count == 4, "Each main screen has a guide")
         check(allScreens.allSatisfy { !HomeGuideStep.ordered(for: $0).isEmpty }, "Every screen has guide steps")
-        check(home.map { $0.title(japanese: true) } == ["投稿", "リアクション", "バズ", "AIの返信", "AIとの会話", "常連AI"], "Japanese home headings are concise")
-        check(home.map { $0.title(japanese: false) } == ["Posts", "Reactions", "Going viral", "AI replies", "Conversations", "Regular AIs"], "English home headings are concise")
+        check(home.map { $0.title(japanese: true) } == ["投稿", "あなたの投稿", "リアクション", "バズ", "AIの返信", "AIとの会話", "常連AI", "常連から見たあなた"], "Japanese home headings are concise")
+        check(home.map { $0.title(japanese: false) } == ["Posts", "Your post", "Reactions", "Going viral", "AI replies", "Conversations", "Regular AIs", "How they see you"], "English home headings are concise")
 
         let first = HomeGuideCoordinator(store: store("first"))
         first.presentIfNeeded(screen: .home, available: home)
         check(first.activeStep == .compose && first.screen == .home, "Home starts at compose")
         first.next()
-        check(first.activeStep == .reactions, "Home advances in order")
+        check(first.activeStep == .postContent, "Home advances in order")
         let relaunched = HomeGuideCoordinator(store: store("first"))
         relaunched.presentIfNeeded(screen: .home, available: home)
-        check(relaunched.activeStep == .reactions, "Unfinished home guide resumes")
+        check(relaunched.activeStep == .postContent, "Unfinished home guide resumes")
         while relaunched.activeStep != nil { relaunched.next() }
         check(relaunched.showsCompletion, "Home ends with replay reminder")
         finish(relaunched)
@@ -73,7 +73,7 @@ struct HomeGuideChecks {
         finish(deferred)
         let deferredReply = HomeGuideCoordinator(store: store("deferred"))
         deferredReply.presentIfNeeded(screen: .home, available: home)
-        check(deferredReply.steps == [.reactions, .buzz, .aiReply, .reply, .regular], "Previously unavailable home targets remain pending")
+        check(deferredReply.steps == [.postContent, .reactions, .buzz, .aiReply, .reply, .regular, .regularImpression], "Previously unavailable home targets remain pending")
         let emptyPost = HomeGuideCoordinator(store: store("empty-post"))
         emptyPost.presentIfNeeded(screen: .post, available: [])
         check(!emptyPost.isPresenting, "No guide appears without a visible target")
@@ -103,15 +103,18 @@ struct HomeGuideChecks {
               "Progress from the previous gear-entry tour remains complete")
         let oldHome = "old-home"
         defaults.set(Data(#"{"acknowledged":["compose","reactions","aiReply","reply","regular"]}"#.utf8), forKey: oldHome)
-        check(store(oldHome).pending(for: .home, in: home) == [.buzz],
-              "Existing users receive just the newly added viral explanation")
+        check(store(oldHome).pending(for: .home, in: home) == [.postContent, .buzz, .regularImpression],
+              "Existing users receive only new explanations")
+        let noRegular = HomeGuideCoordinator(store: store("no-regular"))
+        noRegular.presentIfNeeded(screen: .home, available: home.filter { $0 != .regularImpression })
+        finish(noRegular)
+        let addedRegular = HomeGuideCoordinator(store: store("no-regular"))
+        addedRegular.presentIfNeeded(screen: .home, available: home)
+        check(addedRegular.activeStep == .regularImpression, "Impression guide waits until a regular target exists")
         check(!GuideScreen.allCases.map(\.rawValue).contains("settings"), "Settings has no automatic or replayable guide")
-        check(HomeGuideStep.buzz.detail(japanese: true).contains("5倍") && HomeGuideStep.buzz.detail(japanese: false).contains("5×"),
-              "Viral multipliers are explained in both languages")
-        check(HomeGuideStep.buzz.detail(japanese: true).contains("3倍") && HomeGuideStep.buzz.detail(japanese: false).contains("3×"),
-              "Follower gains use the three-times multiplier")
-        check(HomeGuideStep.buzz.detail(japanese: true).contains("24時間") && HomeGuideStep.buzz.detail(japanese: false).contains("24 hours"),
-              "Both languages explain the 24-hour cooldown")
+        check(HomeGuideStep.buzz.detail(japanese: true).contains("いつもよりたくさん") &&
+              HomeGuideStep.buzz.detail(japanese: false).contains("a wave of likes"),
+              "Viral explanation stays simple and benefit-focused in both languages")
         print("PASS: \(count) multi-screen guide checks")
     }
 }

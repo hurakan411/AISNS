@@ -17,7 +17,7 @@ enum GuideScreen: String, CaseIterable, Codable, Identifiable {
 }
 
 enum HomeGuideStep: String, CaseIterable, Codable, Identifiable {
-    case compose, reactions, buzz, aiReply, reply, regular
+    case compose, postContent, reactions, buzz, aiReply, reply, regular, regularImpression
     case postEditor, postImage, postSubmit
     case statsRank, statsBenefits, statsSummary, statsRankList
     case profileAvatar, profileIdentity, profileRank, profileRegulars, profileSettings
@@ -47,11 +47,13 @@ enum HomeGuideStep: String, CaseIterable, Codable, Identifiable {
         case .profileContact: return japanese ? "お問い合わせ" : "Contact us"
         case .profileLegal: return japanese ? "規約とプライバシー" : "Terms & privacy"
         case .profileGuide: return japanese ? "使い方ガイド" : "How to use UPME"
+        case .postContent: return japanese ? "あなたの投稿" : "Your post"
         case .reactions: return japanese ? "リアクション" : "Reactions"
         case .buzz: return japanese ? "バズ" : "Going viral"
         case .aiReply: return japanese ? "AIの返信" : "AI replies"
         case .reply: return japanese ? "AIとの会話" : "Conversations"
         case .regular: return japanese ? "常連AI" : "Regular AIs"
+        case .regularImpression: return japanese ? "常連から見たあなた" : "How they see you"
         case .compose: return japanese ? "投稿" : "Posts"
         }
     }
@@ -79,7 +81,7 @@ enum HomeGuideStep: String, CaseIterable, Codable, Identifiable {
         case .profileRank:
             return japanese ? "現在のランクと、次のランクまでの進み具合です。" : "See your current rank and progress to the next one."
         case .profileRegulars:
-            return japanese ? "常連AIは会話を覚えて返信します。ここから解除もできます。" : "Regular AIs remember your conversations. You can remove them here."
+            return japanese ? "常連をタップすると、これまでの会話から感じたあなたの素敵なところを読めます。会話を重ねると更新されます。常連の解除もここからできます。" : "Tap a regular to read the lovely things they notice about you from your conversations. It evolves as you talk. You can also remove regulars here."
         case .profileSettings:
             return japanese ? "アプリの表示と、今後のAI返信に使う言語を切り替えられます。" : "Choose the language for the app and future AI replies."
         case .profileSettingsEntry:
@@ -94,16 +96,20 @@ enum HomeGuideStep: String, CaseIterable, Codable, Identifiable {
             return japanese ? "利用規約と、個人情報の取り扱いを確認できます。" : "Read the terms of service and how your personal information is handled."
         case .profileGuide:
             return japanese ? "各画面のガイドを、いつでもここから見直せます。" : "Replay any screen guide here, whenever you like."
+        case .postContent:
+            return japanese ? "あなたが投稿した文章や写真が、ここに表示されます。" : "The text and photos you post appear here."
         case .reactions:
             return japanese ? "投稿に届いた、いいねや返信の数を確認できます。" : "See how many likes and replies your post has received."
         case .buzz:
-            return japanese ? "バズると、いいねはランク上限の5倍、フォロワーの増加は3倍、AI返信は2倍になります。バズった後は24時間、通常の反応になります。" : "When a post goes viral, likes reach 5× your rank’s maximum, follower gains 3×, and AI replies 2×. Posts receive normal reactions for the next 24 hours."
+            return japanese ? "投稿がバズると、いつもよりたくさんのいいねや返信が届き、フォロワーも増えやすくなります。" : "When a post goes viral, you get a wave of likes and replies, and your following grows faster."
         case .aiReply:
             return japanese ? "あなたの投稿に、AIフォロワーからの返信が届きます。" : "Replies from your AI followers appear here after you post."
         case .reply:
             return japanese ? "このAIに1回だけ返信できます。返信後は「会話」から続きを確認できます。" : "You can reply once to this AI. After replying, open Thread to see the conversation."
         case .regular:
-            return japanese ? "常連AIは、これまでの会話を踏まえて返信してくれます。人数の上限はランクによって変わります。" : "Regular AIs remember past conversations when they reply. Your rank determines how many you can add."
+            return japanese ? "星をタップすると常連にできます。常連は会話を覚えて返信するほか、あなたをどう思っているかも見られます。人数の上限はランクによって変わります。" : "Tap the star to make an AI a regular. Regulars remember your conversations when they reply, and you can also see how they see you. Your rank determines how many you can add."
+        case .regularImpression:
+            return japanese ? "星の右にあるハートの吹き出しから、この常連が感じたあなたの素敵なところを読めます。覚えている会話をもとに、内容が更新されます。" : "Tap the heart bubble to the right of the star to read the lovely things this regular notices about you. It updates based on the conversations they remember."
         case .compose:
             return japanese ? "ここをタップして、今日の出来事やいまの気持ちを投稿できます。ひとことでも大丈夫です。" : "Tap here to share a moment from your day or how you feel. Even a few words are enough."
         }
@@ -111,7 +117,7 @@ enum HomeGuideStep: String, CaseIterable, Codable, Identifiable {
 
     static func ordered(for screen: GuideScreen) -> [HomeGuideStep] {
         switch screen {
-        case .home: return [.compose, .reactions, .buzz, .aiReply, .reply, .regular]
+        case .home: return [.compose, .postContent, .reactions, .buzz, .aiReply, .reply, .regular, .regularImpression]
         case .post: return [.postEditor, .postImage, .postSubmit]
         case .stats: return [.statsRank, .statsBenefits, .statsSummary, .statsRankList]
         case .profile: return [.profileAvatar, .profileIdentity, .profileRegulars]
@@ -120,7 +126,7 @@ enum HomeGuideStep: String, CaseIterable, Codable, Identifiable {
 
     var screen: GuideScreen {
         switch self {
-        case .compose, .reactions, .buzz, .aiReply, .reply, .regular: return .home
+        case .compose, .postContent, .reactions, .buzz, .aiReply, .reply, .regular, .regularImpression: return .home
         case .postEditor, .postImage, .postSubmit: return .post
         case .statsRank, .statsBenefits, .statsSummary, .statsRankList: return .stats
         case .profileAvatar, .profileIdentity, .profileRank, .profileRegulars, .profileSettingsEntry, .profileSettings,

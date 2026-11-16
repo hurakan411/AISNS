@@ -104,6 +104,8 @@ struct RegularFollower: Identifiable, Equatable, Codable {
     var recentInteractions: [String]
     let createdAt: Date
     var lastInteractionAt: Date?
+    var impression: String? = nil
+    var impressionLanguage: String? = nil
 }
 
 enum AddRegularFollowerResult {
@@ -627,6 +629,14 @@ class AppState: ObservableObject {
         }
     }
 
+    func regularFollower(for reply: Reply) -> RegularFollower? {
+        guard !reply.isUserReply else { return nil }
+        return regularFollowers.first { follower in
+            if let id = reply.regularFollowerId { return follower.id == id }
+            return follower.authorName == reply.authorName && follower.avatarURL == reply.img
+        }
+    }
+
     @discardableResult
     func addRegularFollower(from reply: Reply, postContent: String) -> AddRegularFollowerResult {
         if isRegularFollower(reply) {
@@ -913,6 +923,14 @@ class AppState: ObservableObject {
                 mergedMemories.append(memory)
             }
             updatedFollowers[index].memories = Array(mergedMemories.suffix(8))
+
+            if let impression = update["impression"] as? String {
+                let trimmed = String(impression.prefix(600)).trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty {
+                    updatedFollowers[index].impression = trimmed
+                    updatedFollowers[index].impressionLanguage = update["impression_language"] as? String
+                }
+            }
 
             if let interaction = update["interaction_summary"] as? String {
                 let trimmed = String(interaction.prefix(180)).trimmingCharacters(in: .whitespacesAndNewlines)
