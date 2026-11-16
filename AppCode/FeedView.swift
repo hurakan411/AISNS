@@ -65,6 +65,13 @@ struct HomeGuideSelection: Equatable {
     var regularActionID: UUID?
 }
 
+private enum ReplyTimelineLayout {
+    static let contentInset: CGFloat = 32
+    static let centerX: CGFloat = 23
+    static let lineWidth: CGFloat = 2
+    static let nodeDiameter: CGFloat = 8
+}
+
 struct FeedView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -73,7 +80,7 @@ struct FeedView: View {
     var onGoPost: () -> Void
 
     private var liveGuideSelection: HomeGuideSelection {
-        let replies = appState.posts.flatMap(\.replies).filter {
+        let replies = appState.posts.flatMap { $0.replies.reversed() }.filter {
             !$0.isUserReply && $0.replyToId == nil && !$0.isHater && !$0.isDefender
         }
         return HomeGuideSelection(
@@ -129,18 +136,20 @@ struct FeedView: View {
                                 }
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 14)
-                                .background(Theme.cardBackground)
-                                .cornerRadius(16)
-                                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.subtleBorder, lineWidth: 1))
+                                .background {
+                                    FeedCardSurface(fill: Theme.cardBackground, accent: Theme.lavender,
+                                                    border: Theme.lavender.opacity(0.30), cornerRadius: 18,
+                                                    showsAccent: false)
+                                }
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(TactileButtonStyle())
                             .homeGuideTarget(.compose)
                             .padding(.horizontal, 16)
                             .padding(.top, 16)
 
                             VStack(spacing: 32) {
                                 ForEach(appState.posts) { post in
-                                    PostCard(post: post, guideSelection: guideSelection)
+                                    PostCard(post: post, guideSelection: guideSelection, usesHomeStyling: true)
                                 }
                             }
                             .padding(.vertical, 20)
@@ -183,6 +192,114 @@ struct FeedView: View {
     }
 }
 
+/// The accent sits inside the card's bounds, keeping image and text layout independent of it.
+struct FeedCornerAccent: Shape {
+    let cornerRadius: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        let radius = min(cornerRadius, min(rect.width, rect.height) / 2)
+        let rise = min(64, rect.height * 0.48)
+        let thickness = min(12, radius * 0.52, rise * 0.32)
+        // Several short diagonals define the fold; tiny fillets soften only their joins.
+        let innerEdge = [
+            CGPoint(x: rect.maxX, y: rect.maxY - rise),
+            CGPoint(x: rect.maxX - thickness * 0.25, y: rect.maxY - rise * 0.68),
+            CGPoint(x: rect.maxX - thickness * 0.65, y: rect.maxY - max(thickness * 1.9, rise * 0.3)),
+            CGPoint(x: rect.maxX - thickness * 1.05, y: rect.maxY - thickness * 0.9),
+            CGPoint(x: rect.maxX - thickness * 2.1, y: rect.maxY - thickness * 0.45),
+            CGPoint(x: rect.minX + rect.width * 0.46, y: rect.maxY)
+        ]
+        var path = Path()
+        path.move(to: innerEdge.last!)
+        // Extend beyond the card, then clip to its exact continuous rounded outline.
+        path.addLine(to: CGPoint(x: rect.maxX + 2, y: rect.maxY + 2))
+        path.addLine(to: CGPoint(x: rect.maxX + 2, y: rect.maxY - rise))
+        path.addLine(to: innerEdge[0])
+        for index in 1..<(innerEdge.count - 1) {
+            let previous = innerEdge[index - 1]
+            let corner = innerEdge[index]
+            let next = innerEdge[index + 1]
+            let incoming = hypot(corner.x - previous.x, corner.y - previous.y)
+            let outgoing = hypot(next.x - corner.x, next.y - corner.y)
+            let smoothing = min(1.8, incoming * 0.18, outgoing * 0.18)
+            let entry = CGPoint(x: corner.x + (previous.x - corner.x) * smoothing / max(incoming, 0.001),
+                                y: corner.y + (previous.y - corner.y) * smoothing / max(incoming, 0.001))
+            let exit = CGPoint(x: corner.x + (next.x - corner.x) * smoothing / max(outgoing, 0.001),
+                               y: corner.y + (next.y - corner.y) * smoothing / max(outgoing, 0.001))
+            path.addLine(to: entry)
+            path.addQuadCurve(to: exit, control: corner)
+        }
+        path.addLine(to: innerEdge.last!)
+        path.closeSubpath()
+        return path
+    }
+}
+
+struct FeedCardSurface: View {
+    let fill: Color
+    let accent: Color
+    let border: Color
+    let cornerRadius: CGFloat
+    var showsAccent = true
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(fill)
+            .overlay {
+                LinearGradient(colors: [.white.opacity(0.025), .clear],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(border, lineWidth: 1)
+            }
+            .overlay {
+                if showsAccent {
+                    FeedCornerAccent(cornerRadius: cornerRadius)
+                        .fill(LinearGradient(colors: [accent.opacity(0.35), accent],
+                                             startPoint: .leading, endPoint: .trailing))
+                        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                }
+            }
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+}
+
+struct FeedAvatarFrame: ViewModifier {
+    let size: CGFloat
+    let stroke: Color
+    let accent: Color
+    let lineWidth: CGFloat
+    let enabled: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .frame(width: size, height: size)
+            .background(Theme.cardBackground, in: Circle())
+            .clipShape(Circle())
+            .overlay {
+                Circle().strokeBorder(
+                    LinearGradient(colors: enabled ? [accent, accent.opacity(0.4), accent] : [stroke, stroke],
+                                   startPoint: .topTrailing, endPoint: .bottomLeading),
+                    lineWidth: enabled ? max(1.2, lineWidth) : lineWidth
+                )
+            }
+            .background {
+                if enabled {
+                    Circle()
+                        .fill(LinearGradient(colors: [accent, accent.opacity(0.65)],
+                                             startPoint: .topTrailing, endPoint: .bottomLeading))
+                        .overlay { Circle().strokeBorder(Theme.cardBackground, lineWidth: 1) }
+                        .offset(x: size * 0.13, y: -size * 0.04)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
+            }
+    }
+}
+
 private struct ViralPostBorder: View {
     let startedAt: Date
     let active: Bool
@@ -209,6 +326,7 @@ struct PostCard: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let post: PostModel
     var guideSelection = HomeGuideSelection()
+    var usesHomeStyling = false
     @State private var regularFollowerAlert: RegularFollowerAlert?
     @State private var replyTarget: Reply?
     
@@ -228,21 +346,19 @@ struct PostCard: View {
                         .transition(.opacity)
                 }
                 HStack(alignment: .top, spacing: 12) {
-                    if let data = appState.userAvatarData, let uiImage = UIImage(data: data) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 44, height: 44)
-                            .clipShape(Circle())
-                            .overlay(Circle().stroke(Theme.hotPink.opacity(0.75), lineWidth: 2))
-                    } else {
-                        Image(Theme.defaultAvatarAsset)
-                            .resizable()
-                            .scaledToFill()
-                        .frame(width: 44, height: 44)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Theme.hotPink.opacity(0.75), lineWidth: 2))
+                    Group {
+                        if let data = appState.userAvatarData, let uiImage = UIImage(data: data) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFill()
+                        } else {
+                            Image(Theme.defaultAvatarAsset)
+                                .resizable()
+                                .scaledToFill()
+                        }
                     }
+                    .modifier(FeedAvatarFrame(size: 44, stroke: Theme.hotPink.opacity(0.75),
+                                              accent: Theme.hotPink, lineWidth: 2, enabled: usesHomeStyling))
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text(appState.userName)
@@ -278,8 +394,8 @@ struct PostCard: View {
                             .animation(reduceMotion ? nil : .easeOut(duration: 0.08), value: appState.displayedLikes(for: post))
                     }
                     HStack(spacing: 8) {
-                        Image(systemName: "bubble.right.fill").foregroundColor(Theme.cyan).font(.system(size: 16))
-                        Text("\(post.replies.count)").font(.system(size: 15, weight: .black, design: .monospaced)).foregroundColor(Theme.cyan)
+                        Image(systemName: "bubble.right.fill").foregroundColor(usesHomeStyling ? Theme.lavender : Theme.cyan).font(.system(size: 16))
+                        Text("\(post.replies.count)").font(.system(size: 15, weight: .black, design: .monospaced)).foregroundColor(usesHomeStyling ? Theme.lavender : Theme.cyan)
                     }
                 }
                 .padding(.horizontal, 20)
@@ -298,9 +414,21 @@ struct PostCard: View {
                         .transition(.opacity)
                 }
             }
-            .background(Theme.cardBackground)
-            .cornerRadius(22)
-            .overlay(RoundedRectangle(cornerRadius: 22).stroke(Theme.subtleBorder, lineWidth: 1))
+            .background {
+                FeedCardSurface(fill: Theme.cardBackground, accent: Theme.hotPink,
+                                border: usesHomeStyling ? Theme.lavender.opacity(0.28) : Theme.subtleBorder,
+                                cornerRadius: 22, showsAccent: false)
+            }
+            .overlay {
+                if usesHomeStyling {
+                    FeedCornerAccent(cornerRadius: 22)
+                        .fill(LinearGradient(colors: [Theme.hotPink.opacity(0.35), Theme.hotPink],
+                                             startPoint: .leading, endPoint: .trailing))
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             .overlay {
                 if appState.isViralRevealed(post) {
                     ViralPostBorder(startedAt: post.reaction?.startedAt ?? .distantPast,
@@ -325,7 +453,7 @@ struct PostCard: View {
                         }
                     }
 
-                    ForEach(post.replies) { reply in
+                    ForEach(post.replies.reversed()) { reply in
                         VStack(alignment: .leading, spacing: 10) {
                             ReplyRow(
                                 reply: reply,
@@ -335,6 +463,8 @@ struct PostCard: View {
                                 guideReplyCard: guideSelection.aiReplyID == reply.id,
                                 guideReplyAction: guideSelection.replyActionID == reply.id,
                                 guideRegularAction: guideSelection.regularActionID == reply.id,
+                                usesHomeStyling: usesHomeStyling,
+                                showsTimelineNode: usesHomeStyling,
                                 isRegular: !reply.isUserReply && appState.isRegularFollower(reply),
                                 canManageRegulars: !appState.isInOnboarding && !reply.isUserReply,
                                 canReply: !appState.isInOnboarding && reply.canReceiveUserReply,
@@ -359,22 +489,23 @@ struct PostCard: View {
                                let thread = post.replyThreads.first(where: { $0.targetReplyID == reply.id }) {
                                 ReplyThreadView(
                                     thread: thread,
-                                    isLoading: appState.isReplyThreadLoading(reply.id)
+                                    isLoading: appState.isReplyThreadLoading(reply.id),
+                                    usesHomeStyling: usesHomeStyling
                                 )
                                 .environmentObject(appState)
                             }
                         }
-                        .transition(.opacity)
+                        .transition(reduceMotion ? .opacity : .move(edge: .top).combined(with: .opacity))
                     }
                 }
                 .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: post.replies.count)
                 .padding(.top, 20)
-                .padding(.leading, 32)
+                .padding(.leading, ReplyTimelineLayout.contentInset)
                 .overlay(
                     Rectangle()
-                        .fill(LinearGradient(gradient: Gradient(colors: [Theme.hotPink.opacity(0.7), Theme.purpleAccent.opacity(0.45), .clear]), startPoint: .top, endPoint: .bottom))
-                        .frame(width: 2)
-                        .padding(.leading, 22)
+                        .fill(LinearGradient(gradient: Gradient(colors: [Theme.hotPink.opacity(0.7), Theme.hotPink.opacity(usesHomeStyling ? 0.5 : 0.25), Theme.purpleAccent.opacity(usesHomeStyling ? 0.35 : 0)]), startPoint: .top, endPoint: .bottom))
+                        .frame(width: ReplyTimelineLayout.lineWidth)
+                        .padding(.leading, ReplyTimelineLayout.centerX - ReplyTimelineLayout.lineWidth / 2)
                         .padding(.top, 24)
                     , alignment: .topLeading
                 )
@@ -428,6 +559,8 @@ struct ReplyRow: View {
     var guideReplyCard = false
     var guideReplyAction = false
     var guideRegularAction = false
+    var usesHomeStyling = false
+    var showsTimelineNode = false
     let isRegular: Bool
     let canManageRegulars: Bool
     let canReply: Bool
@@ -458,6 +591,12 @@ struct ReplyRow: View {
         reply.isUserReply || reply.isHater ? 2 : 1
     }
 
+    private var avatarAccentColor: Color {
+        if reply.isHater { return .red }
+        if reply.isDefender { return .green }
+        return Theme.hotPink
+    }
+
     private var cardBackground: Color {
         if reply.isUserReply { return Theme.hotPink.opacity(0.10) }
         if reply.isHater { return Color(red: 0.2, green: 0, blue: 0).opacity(0.4) }
@@ -469,7 +608,14 @@ struct ReplyRow: View {
         if reply.isUserReply { return Theme.hotPink.opacity(0.45) }
         if reply.isHater { return Color.red.opacity(0.5) }
         if reply.isDefender { return Color.green.opacity(0.5) }
-        return Theme.subtleBorder
+        return usesHomeStyling ? Theme.lavender.opacity(0.27) : Theme.subtleBorder
+    }
+
+    private var cornerAccentColor: Color {
+        if reply.isUserReply { return Theme.hotPink }
+        if reply.isHater { return .red }
+        if reply.isDefender { return .green }
+        return Theme.lavender
     }
     
     var body: some View {
@@ -489,17 +635,17 @@ struct ReplyRow: View {
                     AIAvatarImage(url: reply.img, isHater: reply.isHater)
                 }
             }
-            .frame(width: 36, height: 36)
-            .clipShape(Circle())
-            .overlay(Circle().stroke(avatarStrokeColor, lineWidth: avatarStrokeWidth))
+            .modifier(FeedAvatarFrame(size: 36, stroke: avatarStrokeColor, accent: avatarAccentColor,
+                                      lineWidth: avatarStrokeWidth, enabled: usesHomeStyling))
             .shadow(color: reply.isHater ? Color.red.opacity(0.5) : .clear, radius: reply.isHater ? 6 : 0)
             .padding(.top, 16) // テキストのpadding(16)と高さを完全に揃えるため、アバターも同じだけ下げる
             
             VStack(alignment: .leading, spacing: 6) {
-                HStack(alignment: .center) {
+                HStack(alignment: .center, spacing: 6) {
                     Text(displayName)
                         .font(.system(size: 12, weight: .black))
                         .foregroundColor(nameColor)
+                        .lineLimit(1)
 
                     if !reply.isUserReply && !reply.isHater && !reply.isDefender {
                         Text("AI")
@@ -551,7 +697,7 @@ struct ReplyRow: View {
                     if canReply {
                         Button(action: onReplyTap) {
                             Image(systemName: "arrowshape.turn.up.left.circle")
-                                .foregroundColor(Theme.cyan)
+                                .foregroundColor(usesHomeStyling ? Theme.lavender : Theme.cyan)
                                 .font(.system(size: 18, weight: .bold))
                         }
                         .buttonStyle(.plain)
@@ -594,14 +740,30 @@ struct ReplyRow: View {
                     .lineSpacing(4)
             }
             .padding(16)
-            .background(cardBackground)
-            .cornerRadius(16)
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(cardStrokeColor, lineWidth: 1))
+            .padding(.bottom, usesHomeStyling ? 3 : 0)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background {
+                FeedCardSurface(fill: cardBackground, accent: cornerAccentColor,
+                                border: cardStrokeColor, cornerRadius: usesHomeStyling ? 20 : 16,
+                                showsAccent: usesHomeStyling)
+            }
             .homeGuideTarget(guideReplyCard ? .aiReply : nil)
             
-            Spacer(minLength: 16)
+            if !usesHomeStyling { Spacer(minLength: 16) }
         }
         .padding(.trailing, 16)
+        .overlay(alignment: .topLeading) {
+            if showsTimelineNode {
+                Circle()
+                    .fill(Theme.hotPink)
+                    .frame(width: ReplyTimelineLayout.nodeDiameter, height: ReplyTimelineLayout.nodeDiameter)
+                    .shadow(color: Theme.hotPink.opacity(0.45), radius: 4)
+                    .offset(x: ReplyTimelineLayout.centerX - ReplyTimelineLayout.contentInset - ReplyTimelineLayout.nodeDiameter / 2,
+                            y: 30)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+        }
         .background {
             GeometryReader { proxy in
                 if !reply.isUserReply,
@@ -630,6 +792,12 @@ struct ReplyThreadView: View {
     @EnvironmentObject var appState: AppState
     let thread: ReplyThread
     let isLoading: Bool
+    var usesHomeStyling = false
+
+    private var displayedReplies: [Reply] {
+        thread.replies.filter(\.isUserReply)
+            + Array(thread.replies.filter { !$0.isUserReply }.reversed())
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -642,9 +810,10 @@ struct ReplyThreadView: View {
                 Spacer()
             }
 
-            ForEach(thread.replies) { reply in
+            ForEach(displayedReplies) { reply in
                 ReplyRow(
                     reply: reply,
+                    usesHomeStyling: usesHomeStyling,
                     isRegular: !reply.isUserReply && appState.isRegularFollower(reply),
                     canManageRegulars: false,
                     canReply: false,

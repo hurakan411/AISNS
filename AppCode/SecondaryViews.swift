@@ -13,13 +13,15 @@ struct StatsView: View {
             // Fit the available space after the safe areas, tab bar and ad banners.
             // Smaller displays use a smaller illustration and tighter spacing, without scrolling.
             ViewThatFits(in: .vertical) {
-                statisticsContent(ringSize: min(300, geometry.size.width * 0.72), compact: false)
-                statisticsContent(ringSize: min(300, geometry.size.width * 0.72), compact: true)
-                statisticsContent(ringSize: min(260, geometry.size.width * 0.64), compact: true)
-                statisticsContent(ringSize: min(240, geometry.size.width * 0.60), compact: true)
-                statisticsContent(ringSize: min(210, geometry.size.width * 0.54), compact: true)
-                statisticsContent(ringSize: min(180, geometry.size.width * 0.48), compact: true)
-                statisticsContent(ringSize: min(140, max(72, geometry.size.height - 390)), compact: true)
+                statisticsContent(ringSize: min(220, geometry.size.width * 0.52), compact: false)
+                statisticsContent(ringSize: 180, compact: false)
+                statisticsContent(ringSize: 150, compact: false)
+                statisticsContent(ringSize: min(240, geometry.size.width * 0.58), compact: true)
+                statisticsContent(ringSize: 180, compact: true)
+                statisticsContent(ringSize: 140, compact: true)
+                statisticsContent(ringSize: 110, compact: true)
+                statisticsContent(ringSize: 80, compact: true)
+                statisticsContent(ringSize: max(48, min(70, geometry.size.height - 490)), compact: true)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .task { if !DesignPreview.isActive { appState.fetchUser() } }
@@ -45,111 +47,123 @@ struct StatsView: View {
 
     private func statisticsContent(ringSize: CGFloat, compact: Bool) -> some View {
         VStack(spacing: 0) {
-            VStack(spacing: compact ? 8 : 10) {
+            VStack(spacing: compact ? 7 : 10) {
                 RankProgressRing(rank: appState.currentRank,
                                  progress: RankProgress.fraction(followers: appState.followers, rank: appState.currentRank))
-                    .frame(width: ringSize, height: ringSize)
+                .frame(width: ringSize, height: ringSize)
 
-                Text(appState.text("ランク \(appState.currentRank)", "Rank \(appState.currentRank)"))
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(StatsTheme.lavender)
-                    .padding(.horizontal, 12).padding(.vertical, 5)
-                    .background(StatsTheme.purpleAccent.opacity(0.14), in: Capsule())
-
-                Text(LocalizedStringKey(currentInfo.name))
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
+                rankBadge
+                rankName(compact: compact)
             }
             .homeGuideTarget(.statsRank)
             .frame(maxWidth: .infinity)
 
-            RankBenefits(info: currentInfo)
+            RankBenefits(info: currentInfo, compact: compact)
                 .homeGuideTarget(.statsBenefits)
-                .padding(.top, compact ? 12 : 20)
+                .padding(.top, compact ? 10 : 16)
 
             statisticsSummary(compact: compact)
                 .homeGuideTarget(.statsSummary)
-                .padding(.top, compact ? 12 : 24)
+                .padding(.top, compact ? 12 : 18)
 
-            Button { showsRankGuide = true } label: {
-                HStack(spacing: 8) {
-                    Text(appState.text("ランク一覧を見る", "View all ranks"))
-                    Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold))
+            HStack(spacing: 10) {
+                Label(appState.text("いいね・返信は保存済み投稿の集計", "Likes and replies: saved posts only"), systemImage: "info.circle")
+                    .font(.system(size: 9))
+                    .foregroundStyle(StatsTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Button { showsRankGuide = true } label: {
+                    HStack(spacing: 8) {
+                        Text(appState.text("ランク一覧を見る", "View all ranks"))
+                        Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold))
+                    }
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.vertical, 8)
+                    .overlay(alignment: .bottom) {
+                        Capsule().fill(Theme.lavender).frame(height: 1.5)
+                    }
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
                 }
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(StatsTheme.secondaryText)
-                .frame(minHeight: 44)
-                .contentShape(Rectangle())
+                .buttonStyle(TactileButtonStyle())
+                .accessibilityIdentifier("stats.rankGuide")
+                .homeGuideTarget(.statsRankList)
             }
-            .buttonStyle(TactileButtonStyle())
-            .accessibilityIdentifier("stats.rankGuide")
-            .homeGuideTarget(.statsRankList)
-            .frame(maxWidth: .infinity, alignment: .trailing)
             .padding(.top, compact ? 4 : 8)
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, 18)
         .padding(.vertical, compact ? 6 : 16)
         .fixedSize(horizontal: false, vertical: true)
     }
 
+    private var rankBadge: some View {
+        Text(appState.text("ランク \(appState.currentRank)", "Rank \(appState.currentRank)"))
+            .font(.system(size: 12, weight: .bold))
+            .foregroundStyle(StatsTheme.lavender)
+            .padding(.horizontal, 14).padding(.vertical, 5)
+            .background(StatsTheme.purpleAccent.opacity(0.22), in: Capsule())
+            .fixedSize()
+    }
+
+    private func rankName(compact: Bool) -> some View {
+        Text(LocalizedStringKey(currentInfo.name))
+            .font(.system(size: compact ? 16 : 18, weight: .bold))
+            .foregroundStyle(.white)
+            .multilineTextAlignment(.center)
+            .lineLimit(compact ? 1 : 2).minimumScaleFactor(0.65)
+    }
+
     private func statisticsSummary(compact: Bool) -> some View {
         VStack(alignment: .leading, spacing: compact ? 8 : 10) {
-            Text(appState.text("あなたの記録", "Your activity"))
-                .font(.system(size: compact ? 16 : 18, weight: .semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 8)
-                .accessibilityAddTraits(.isHeader)
+            HStack(spacing: 8) {
+                Image(systemName: "triangle.fill")
+                    .font(.system(size: 11)).rotationEffect(.degrees(20))
+                    .foregroundStyle(Theme.lavender)
+                Text(appState.text("あなたの記録", "Your activity"))
+                    .font(.system(size: compact ? 15 : 18, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+            .accessibilityAddTraits(.isHeader)
 
-            VStack(alignment: .leading, spacing: compact ? 16 : 24) {
+            VStack(alignment: .leading, spacing: compact ? 6 : 10) {
                 HStack(alignment: .center, spacing: 16) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(appState.text("AIフォロワー", "AI followers"))
-                            .font(.system(size: 12, weight: .medium))
+                        Label(appState.text("AIフォロワー", "AI followers"), systemImage: "person.2")
+                            .font(.system(size: compact ? 11 : 12, weight: .medium))
                             .foregroundStyle(StatsTheme.secondaryText)
-                        statisticValue(appState.followers, unit: appState.text("人", ""), size: compact ? 32 : 36)
+                        statisticValue(appState.followers, unit: appState.text("人", ""), size: compact ? 30 : 36)
+                        if let next = appState.nextRankFollowers {
+                            let remaining = max(0, next - appState.followers).formatted(.number.locale(appState.locale))
+                            (Text(appState.text("次のランクまで ", "Next rank: ")).foregroundColor(StatsTheme.hotPink)
+                             + Text(appState.text("あと\(remaining)人", "\(remaining) to go")).foregroundColor(.white.opacity(0.85)))
+                                .font(.system(size: 10, weight: .medium))
+                                .lineLimit(1).minimumScaleFactor(0.75)
+                        } else {
+                            Text(appState.text("最高ランク到達済み", "Top rank reached"))
+                                .font(.system(size: 10)).foregroundStyle(StatsTheme.hotPink)
+                        }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityElement(children: .combine)
 
-                    VStack(alignment: .trailing, spacing: 6) {
-                        Text(appState.nextRankFollowers == nil ? appState.text("最高ランク", "Top rank") : appState.text("次のランクまで", "Next rank"))
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(StatsTheme.hotPink.opacity(0.85))
-                        if let next = appState.nextRankFollowers {
-                            let remaining = max(0, next - appState.followers).formatted(.number.locale(appState.locale))
-                            Text(appState.text("あと\(remaining)人", "\(remaining) to go"))
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(.white)
-                        } else {
-                            Text(appState.text("最高ランク到達済み", "Top rank reached"))
-                                .font(.system(size: 12))
-                                .foregroundStyle(.white)
-                        }
-                    }
-                    .fixedSize(horizontal: true, vertical: false)
-                    .accessibilityElement(children: .combine)
-                }
-
-                HStack(alignment: .top, spacing: compact ? 8 : 12) {
-                    summaryMetric(appState.text("投稿数", "Posts"), value: appState.totalPosts,
-                                  icon: "pencil", color: StatsTheme.lavender, compact: compact)
-                    summaryMetric(appState.text("もらったいいね", "Likes received"), value: appState.posts.reduce(0) { $0 + $1.likes },
-                                  icon: "heart", color: StatsTheme.hotPink, compact: compact)
-                    summaryMetric(appState.text("AIからの返信", "AI replies"),
-                                  value: appState.posts.reduce(0) { $0 + $1.replies.count + $1.replyThreads.reduce(0) { $0 + $1.replies.filter { !$0.isUserReply }.count } },
-                                  icon: "bubble.left", color: StatsTheme.lavender, compact: compact)
                 }
             }
-            .padding(compact ? 14 : 22)
-            .background(StatsTheme.surfaceGradient, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .padding(compact ? 12 : 18)
+            .background {
+                FeedCardSurface(fill: Theme.aiCardBackground.opacity(0.94), accent: Theme.lavender,
+                                border: Theme.lavender.opacity(0.42), cornerRadius: 22)
+            }
 
-            Text(appState.text("いいね・返信は保存済みの投稿を集計", "Likes and replies are counted from posts saved on this device."))
-                .font(.system(size: 10))
-                .foregroundStyle(StatsTheme.secondaryText)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 8)
+            HStack(alignment: .top, spacing: compact ? 8 : 10) {
+                summaryMetric(appState.text("投稿数", "Posts"), value: appState.totalPosts,
+                              icon: "pencil", color: StatsTheme.lavender, compact: compact)
+                summaryMetric(appState.text("もらったいいね", "Likes received"), value: appState.posts.reduce(0) { $0 + $1.likes },
+                              icon: "heart", color: StatsTheme.hotPink, compact: compact)
+                summaryMetric(appState.text("AIからの返信", "AI replies"),
+                              value: appState.posts.reduce(0) { $0 + $1.replies.filter { !$0.isUserReply }.count + $1.replyThreads.reduce(0) { $0 + $1.replies.filter { !$0.isUserReply }.count } },
+                              icon: "bubble.left", color: StatsTheme.lavender, compact: compact)
+            }
         }
     }
 
@@ -157,18 +171,23 @@ struct StatsView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 4) {
                 Image(systemName: icon)
-                    .font(.system(size: 12, weight: .regular))
+                    .font(.system(size: compact ? 13 : 16, weight: .medium))
                     .foregroundStyle(color.opacity(0.9))
                     .accessibilityHidden(true)
                 Text(title)
-                    .font(.system(size: compact ? 10 : 11, weight: .medium))
+                    .font(.system(size: compact ? 9 : 10, weight: .medium))
                     .foregroundStyle(StatsTheme.secondaryText)
             }
             .lineLimit(1)
             .minimumScaleFactor(0.8)
-            statisticValue(value, unit: appState.text("件", ""), size: compact ? 24 : 27)
+            statisticValue(value, unit: appState.text("件", ""), size: compact ? 22 : 25)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.horizontal, 8).padding(.vertical, compact ? 10 : 13)
+        .background {
+            FeedCardSurface(fill: color.opacity(0.10), accent: Theme.lavender,
+                            border: Theme.lavender.opacity(0.42), cornerRadius: 20)
+        }
         .accessibilityElement(children: .combine)
     }
 
@@ -192,12 +211,26 @@ struct StatsView: View {
 struct RankBenefits: View {
     @EnvironmentObject private var appState: AppState
     let info: RankInfo
+    var compact = false
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .center, spacing: 8) {
+            VStack(alignment: .leading, spacing: 4) {
+                Image(systemName: "crown.fill").font(.system(size: 14))
+                Text(appState.text("このランクの\n特典", "Rank\nbenefits"))
+                    .font(.system(size: 10, weight: .bold))
+                    .fixedSize(horizontal: true, vertical: true)
+            }
+            .foregroundStyle(Theme.lavender)
+            Rectangle().fill(Theme.lavender.opacity(0.35)).frame(width: 1, height: compact ? 34 : 42)
             benefit("heart", title: appState.text("いいね / 投稿", "Likes / post"), value: likesRange)
             benefit("bubble.left", title: appState.text("返信 / 投稿", "Replies / post"), value: appState.text(info.replies, info.replies.replacingOccurrences(of: "〜", with: "–")))
             benefit("star", title: appState.text("常連枠", "Regular slots"), value: appState.text("\(info.regularFollowerLimit)人", "\(info.regularFollowerLimit)"))
+        }
+        .padding(.horizontal, 14).padding(.vertical, compact ? 10 : 13)
+        .background {
+            FeedCardSurface(fill: Theme.aiCardBackground.opacity(0.8), accent: Theme.hotPink,
+                            border: Theme.hotPink.opacity(0.26), cornerRadius: 20)
         }
         .accessibilityElement(children: .combine)
         .accessibilityHint(appState.text("いいねと返信は1投稿あたりの目安です", "Likes and replies are estimates per post."))
@@ -211,11 +244,12 @@ struct RankBenefits: View {
     }
 
     private func benefit(_ icon: String, title: String, value: String) -> some View {
-        VStack(spacing: 7) {
-            Image(systemName: icon).font(.system(size: 18, weight: .regular))
-                .foregroundStyle(StatsTheme.hotPink.opacity(0.75))
-            Text(title).font(.system(size: 10)).foregroundStyle(StatsTheme.secondaryText)
-            Text(value).font(.system(size: 14, weight: .medium))
+        VStack(spacing: compact ? 3 : 5) {
+            Image(systemName: icon).font(.system(size: compact ? 15 : 18, weight: .regular))
+                .foregroundStyle(icon == "heart" ? StatsTheme.hotPink : StatsTheme.lavender)
+            Text(title).font(.system(size: 9)).foregroundStyle(StatsTheme.secondaryText)
+                .lineLimit(1).minimumScaleFactor(0.75)
+            Text(value).font(.system(size: compact ? 12 : 14, weight: .semibold))
                 .foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.65)
         }
         .frame(maxWidth: .infinity)
@@ -560,16 +594,17 @@ struct ProfileView: View {
                                 .lineSpacing(4)
                         }
                         .padding(16)
-                        .background(Theme.deepPurple.opacity(0.65))
-                        .cornerRadius(16)
-                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.subtleBorder, lineWidth: 1))
+                        .background {
+                            FeedCardSurface(fill: Theme.deepPurple.opacity(0.65), accent: Theme.lavender,
+                                            border: Theme.lavender.opacity(0.42), cornerRadius: 20)
+                        }
                     } else {
                         ForEach(appState.regularFollowers) { follower in
                             HStack(spacing: 12) {
                                 AIAvatarImage(url: follower.avatarURL)
                                 .frame(width: 48, height: 48)
                                 .clipShape(Circle())
-                                .overlay(Circle().stroke(Theme.purpleAccent.opacity(0.75), lineWidth: 2))
+                                .overlay(Circle().stroke(Theme.lavender.opacity(0.75), lineWidth: 2))
 
                                 VStack(alignment: .leading, spacing: 5) {
                                     HStack(spacing: 6) {
@@ -596,9 +631,10 @@ struct ProfileView: View {
                                 .cornerRadius(10)
                             }
                             .padding(14)
-                            .background(Theme.aiCardBackground.opacity(0.86))
-                            .cornerRadius(16)
-                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.subtleBorder, lineWidth: 1))
+                            .background {
+                                FeedCardSurface(fill: Theme.aiCardBackground.opacity(0.86), accent: Theme.lavender,
+                                                border: Theme.lavender.opacity(0.42), cornerRadius: 20)
+                            }
                         }
                     }
 

@@ -43,6 +43,65 @@ class PromptCaptureClient:
 
 
 class RegularFollowerApiTests(unittest.TestCase):
+    def test_onboarding_off_has_no_critic_arc_even_when_viral(self):
+        for language in ("ja", "en"):
+            capture = PromptCaptureClient(GenerateRepliesResponse(replies=[], memory_updates=[]))
+            with patch.object(backend_main, "openai_client", capture):
+                asyncio.run(backend_main.generate_ai_replies(
+                    content="first post", followers=20_000_000, is_hater_enabled=False,
+                    is_onboarding=True, is_viral=True, language=language,
+                ))
+            self.assertEqual(len(capture.calls), 1)
+            call = capture.calls[0]
+            prompt = call["messages"][0]["content"]
+            self.assertNotIn("ONBOARDING THREE-STEP ARC", prompt)
+            self.assertNotIn("アンチ→擁護→改心", prompt)
+            schema = call["response_format"].model_json_schema()
+            self.assertEqual(schema["$defs"]["SupportiveReplySchema"]["properties"]["is_hater"]["const"], False)
+            self.assertEqual(schema["properties"]["replies"]["minItems"], 32)
+
+    def test_thread_off_overrides_old_critic_and_legacy_missing_setting(self):
+        for language in ("ja", "en"):
+            for setting in ({}, {"is_hater_enabled": False}):
+                parsed = GenerateReplyThreadResponse(replies=[ReplySchema(
+                    author_name="ゆき", content="好きな気持ちを受け止めるよ。", is_hater=False,
+                    is_defender=False, regular_follower_id=None,
+                )], memory_updates=[])
+                capture = PromptCaptureClient(parsed)
+                req = ReplyToAiRequest(user_id="test", post_content="好き", ai_author_name="ゆき",
+                    ai_reply_content="批判", user_reply="傷ついた", ai_is_hater=True,
+                    language=language, **setting)
+                with patch.object(backend_main, "openai_client", capture):
+                    replies, _ = asyncio.run(backend_main.generate_ai_reply_to_user(req))
+                self.assertFalse(replies[0]["is_hater"])
+                self.assertFalse(replies[0]["is_defender"])
+                self.assertTrue(req.ai_is_hater)  # Input history was not mutated.
+                self.assertEqual(len(capture.calls), 1)
+                prompt = capture.calls[0]["messages"][0]["content"]
+                self.assertNotIn("maintain restrained sarcasm", prompt)
+                self.assertNotIn("皮肉や具体的な反論を維持", prompt)
+
+    def test_supportive_schema_rejects_critic_flags_instead_of_relabeling(self):
+        from pydantic import ValidationError
+        for field in ("is_hater", "is_defender"):
+            item = dict(author_name="ゆき", content="批判", is_hater=False,
+                        is_defender=False, regular_follower_id=None)
+            item[field] = True
+            for response_type in (backend_main.SupportiveRepliesResponse, backend_main.SupportiveReplyThreadResponse):
+                with self.assertRaises(ValidationError):
+                    response_type.model_validate({"replies": [item], "memory_updates": []})
+
+    def test_thread_on_retains_explicitly_enabled_critic_role(self):
+        capture = PromptCaptureClient(GenerateReplyThreadResponse(replies=[ReplySchema(
+            author_name="ゆき", content="議論を続ける", is_hater=True,
+            is_defender=False, regular_follower_id=None,
+        )], memory_updates=[]))
+        req = ReplyToAiRequest(user_id="test", post_content="test", ai_author_name="ゆき",
+            ai_reply_content="criticism", user_reply="reply", ai_is_hater=True, is_hater_enabled=True)
+        with patch.object(backend_main, "openai_client", capture):
+            replies, _ = asyncio.run(backend_main.generate_ai_reply_to_user(req))
+        self.assertTrue(replies[0]["is_hater"])
+
     def test_default_avatar_pool_uses_all_200_supabase_storage_assets(self):
         self.assertEqual(len(backend_main.AVATARS), 200)
         self.assertIn("/storage/v1/object/public/images/avatar-01.jpg", backend_main.AVATARS[0])
@@ -57,6 +116,20 @@ class RegularFollowerApiTests(unittest.TestCase):
         self.assertEqual(len(urls), 237)
         self.assertIn("/avatar-237.jpg", urls[-1])
         self.assertEqual(backend_main.avatar_urls_from_manifest({"count": 0}), [])
+
+    def test_avatar_storage_is_independent_of_database_project(self):
+        with patch.object(backend_main, "SUPABASE_URL", "https://database-only.supabase.co"):
+            self.assertEqual(backend_main.build_avatar_urls(1)[0],
+                             f"{backend_main.AVATAR_STORAGE_URL}/storage/v1/object/public/images/avatar-01.jpg")
+
+    def test_saved_wrong_origin_is_repaired_without_changing_image_identity(self):
+        path = "/storage/v1/object/public/images/avatar-159.jpg"
+        self.assertEqual(backend_main.resolve_avatar_url(f"https://xfnircfralbgkslbvaov.supabase.co{path}"),
+                         f"{backend_main.AVATAR_STORAGE_URL}{path}")
+        legacy = "https://picsum.photos/seed/user61/150/150"
+        self.assertEqual(backend_main.resolve_avatar_url(legacy), legacy)
+        unrelated = "https://example.com" + path
+        self.assertEqual(backend_main.resolve_avatar_url(unrelated), unrelated)
 
     def test_avatar_selection_never_waits_for_image_network(self):
         with patch("requests.get", side_effect=AssertionError("Unexpected image download")):
@@ -209,7 +282,7 @@ class RegularFollowerApiTests(unittest.TestCase):
             messages = capture.calls[0]["messages"]
             self.assertNotIn("HISTORY-ONLY", messages[0]["content"])
             self.assertIn("HISTORY-ONLY", messages[1]["content"][0]["text"])
-            self.assertIs(capture.calls[0]["response_format"], GenerateRepliesResponse)
+            self.assertIs(capture.calls[0]["response_format"], backend_main.SupportiveRepliesResponse)
 
     def test_reaction_slots_exclude_critics_and_defenders(self):
         for onboarding, expected in ((False, 14), (True, 13)):
@@ -245,7 +318,7 @@ class RegularFollowerApiTests(unittest.TestCase):
                     call = capture_client.calls[0]
                     self.assertEqual(call["model"], "gpt-6-luna")
                     self.assertEqual(call["reasoning_effort"], "none")
-                    self.assertIs(call["response_format"], GenerateRepliesResponse)
+                    self.assertIs(call["response_format"], backend_main.SupportiveRepliesResponse)
                     prompt = call["messages"][0]["content"]
                     self.assertIn(build_reply_style_instruction(language, bool(image)), prompt)
                     self.assertNotIn("3〜5個以上", prompt)
@@ -588,7 +661,7 @@ class RegularFollowerApiTests(unittest.TestCase):
 
         self.assertEqual(capture_client.calls[0]["model"], "gpt-6-luna")
         self.assertEqual(capture_client.calls[0]["reasoning_effort"], "none")
-        self.assertIs(capture_client.calls[0]["response_format"], GenerateReplyThreadResponse)
+        self.assertIs(capture_client.calls[0]["response_format"], backend_main.SupportiveReplyThreadResponse)
         messages = capture_client.calls[0]["messages"]
         system_prompt = messages[0]["content"]
         self.assertIn(build_reply_style_instruction("en"), system_prompt)

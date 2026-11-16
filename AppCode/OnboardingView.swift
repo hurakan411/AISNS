@@ -11,6 +11,7 @@ enum OnboardingPhase: Int, Equatable {
 
 struct OnboardingView: View {
     @EnvironmentObject var appState: AppState
+    var onPhaseChange: ((OnboardingPhase) -> Void)? = nil
     @State private var phase: OnboardingPhase = .fakeCompose
     @State private var fakeText = ""
     @FocusState private var fakeFocused: Bool
@@ -69,6 +70,10 @@ struct OnboardingView: View {
         .animation(.easeInOut(duration: 0.6), value: phase)
         .onAppear {
             if !appState.isDebugOnboardingReplay { UPMEAnalytics.capture("onboarding_started") }
+            onPhaseChange?(phase)
+        }
+        .onChange(of: phase) { _, newPhase in
+            onPhaseChange?(newPhase)
         }
     }
 
@@ -414,26 +419,31 @@ struct OnboardingView: View {
 struct DebugOnboardingReplayView: View {
     @StateObject private var replay: AppState
     @Environment(\.dismiss) private var dismiss
+    @State private var showsReplayClose = true
 
     init(source: AppState) {
         _replay = StateObject(wrappedValue: AppState.onboardingReplay(from: source))
     }
 
     var body: some View {
-        OnboardingView()
+        OnboardingView { phase in
+            showsReplayClose = phase != .realCompose
+        }
             .environmentObject(replay)
             .environment(\.locale, replay.locale)
             .preferredColorScheme(.dark)
             .overlay(alignment: .topTrailing) {
-                Button { dismiss() } label: {
-                    Label(replay.text("閉じる", "Close"), systemImage: "xmark")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12).padding(.vertical, 10)
-                        .background(.black.opacity(0.7), in: Capsule())
+                if showsReplayClose {
+                    Button { dismiss() } label: {
+                        Label(replay.text("閉じる", "Close"), systemImage: "xmark")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 12).padding(.vertical, 10)
+                            .background(.black.opacity(0.7), in: Capsule())
+                    }
+                    .padding(.trailing, 16).padding(.top, 8)
+                    .accessibilityIdentifier("onboardingReplay.close")
                 }
-                .padding(.trailing, 16).padding(.top, 8)
-                .accessibilityIdentifier("onboardingReplay.close")
             }
             .onChange(of: replay.hasCompletedOnboarding) { _, completed in
                 if completed { dismiss() }

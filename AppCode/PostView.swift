@@ -15,18 +15,15 @@ struct PostView: View {
     var isOnboarding: Bool = false
     
     var body: some View {
+        GeometryReader { geometry in
         ScrollViewReader { proxy in
         VStack(spacing: 0) {
             HStack {
-                if isOnboarding {
-                    Text("").frame(width: 50)
-                } else {
+                if !isOnboarding {
                     Button(action: onCancel) {
-                        Text("閉じる").font(.system(size: 15, weight: .bold)).foregroundColor(.gray)
+                        Text("閉じる").font(.system(size: 15, weight: .bold)).foregroundColor(.white.opacity(0.75))
                     }
                 }
-                Spacer()
-                Text("NEW POST").font(.system(size: 16, weight: .black)).foregroundColor(Theme.hotPink).tracking(2)
                 Spacer()
                 Button(action: {
                     if canSubmit {
@@ -43,58 +40,50 @@ struct PostView: View {
                         .foregroundColor(.white)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 10)
-                        .background(!canSubmit ? Color.gray.opacity(0.2) : Theme.hotPink)
+                        .background(Theme.hotPink.opacity(canSubmit ? 1 : 0.35))
                         .cornerRadius(20)
                         .neonShadow(color: !canSubmit ? .clear : Theme.hotPink, radius: 8)
                 }
                 .disabled(!canSubmit)
                 .homeGuideTarget(.postSubmit)
             }
+            .overlay {
+                Text("NEW POST").font(.system(size: 16, weight: .black))
+                    .foregroundColor(Theme.hotPink).tracking(2)
+                    .allowsHitTesting(false)
+            }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
-            .background(Theme.bgDeepBlack)
-            .overlay(Rectangle().fill(Theme.subtleBorder).frame(height: 1), alignment: .bottom)
+            .background(isOnboarding ? Theme.bgDeepBlack : Color.clear)
             
             ScrollView {
                 VStack(spacing: 24) {
-                    HStack(alignment: .top, spacing: 16) {
-                        if let data = appState.userAvatarData, let uiImage = UIImage(data: data) {
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 50, height: 50)
-                                .clipShape(Circle())
-                                .overlay(Circle().stroke(Theme.hotPink.opacity(0.75), lineWidth: 2))
-                        } else {
-                            Image(Theme.defaultAvatarAsset)
-                                .resizable()
-                                .scaledToFill()
-                            .frame(width: 50, height: 50)
-                            .clipShape(Circle())
-                            .overlay(Circle().stroke(Theme.hotPink.opacity(0.75), lineWidth: 2))
+                    HStack(alignment: .top, spacing: 14) {
+                        Group {
+                            if let data = appState.userAvatarData, let uiImage = UIImage(data: data) {
+                                Image(uiImage: uiImage).resizable().scaledToFill()
+                            } else {
+                                Image(Theme.defaultAvatarAsset).resizable().scaledToFill()
+                            }
                         }
-                        
-                        if #available(iOS 16.0, *) {
-                            TextEditor(text: $text)
-                                .focused($isFocused)
-                                .scrollContentBackground(.hidden)
-                                .background(Color.clear)
-                                .foregroundColor(.white)
-                                .font(.system(size: 22, weight: .bold))
-                                .frame(minHeight: 180)
-                        } else {
-                            TextEditor(text: $text)
-                                .focused($isFocused)
-                                .background(Color.clear)
-                                .foregroundColor(.white)
-                                .font(.system(size: 22, weight: .bold))
-                                .frame(minHeight: 180)
-                        }
+                        .modifier(FeedAvatarFrame(size: 46, stroke: Theme.hotPink.opacity(0.75),
+                                                  accent: Theme.hotPink, lineWidth: 1.5, enabled: true))
+
+                        TextEditor(text: $text)
+                            .focused($isFocused)
+                            .scrollContentBackground(.hidden)
+                            .background(Color.clear)
+                            .foregroundColor(.white)
+                            .tint(Theme.hotPink)
+                            .font(.system(size: 20, weight: .medium))
+                            .accessibilityLabel(appState.text("投稿内容", "Post content"))
                     }
                     .padding(18)
-                    .background(Theme.cardBackground)
-                    .cornerRadius(18)
-                    .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.subtleBorder, lineWidth: 1))
+                    .frame(height: max(210, min(460, geometry.size.height - 210)), alignment: .top)
+                    .background {
+                        FeedCardSurface(fill: Theme.aiCardBackground.opacity(0.92), accent: Theme.hotPink,
+                                        border: Theme.lavender.opacity(0.44), cornerRadius: 22)
+                    }
                     .padding(.horizontal, 16)
                     .padding(.top, 16)
                     .homeGuideTarget(.postEditor)
@@ -131,10 +120,12 @@ struct PostView: View {
                                 }
                                 .padding(.horizontal, 20)
                                 .padding(.vertical, 12)
-                                .background(Theme.deepPurple)
-                                .foregroundColor(Theme.cyan)
-                                .cornerRadius(16)
-                                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.subtleBorder, lineWidth: 1))
+                                .foregroundColor(Theme.lavender)
+                                .background {
+                                    FeedCardSurface(fill: Theme.deepPurple.opacity(0.7), accent: Theme.lavender,
+                                                    border: Theme.lavender.opacity(0.25), cornerRadius: 16,
+                                                    showsAccent: false)
+                                }
                             }
                             .disabled(isLoadingImage)
                             .homeGuideTarget(.postImage)
@@ -154,7 +145,9 @@ struct PostView: View {
                         .padding(.top, 8)
                     }
                 }
+                .padding(.bottom, 16)
             }
+            .scrollDismissesKeyboard(.interactively)
 
             HStack(spacing: 6) {
                 Image(systemName: "exclamationmark.triangle.fill")
@@ -162,7 +155,7 @@ struct PostView: View {
                     .foregroundColor(.orange.opacity(0.7))
                 Text("個人情報（本名・住所・電話番号など）は入力しないでください")
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.gray)
+                    .foregroundColor(.white.opacity(0.65))
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 12)
@@ -174,10 +167,12 @@ struct PostView: View {
         }
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
-                isFocused = !DesignPreview.isActive && guide?.isPresenting != true
+                isFocused = (!DesignPreview.isActive || DesignPreview.argument("--ui-keyboard") == "true")
+                    && guide?.isPresenting != true
             }
         }
         .homeGuideViewport()
+        }
         }
     }
 }

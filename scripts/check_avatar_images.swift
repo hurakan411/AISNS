@@ -40,6 +40,22 @@ final class AvatarMockProtocol: URLProtocol {
 @main
 struct AvatarChecks {
     static func main() async throws {
+        if CommandLine.arguments.contains("--live") {
+            let loader = AvatarImageLoader.shared
+            let urls = ["01", "19", "27", "51", "159", "200"].map {
+                "https://woxotmmgvabizjgizwow.supabase.co/storage/v1/object/public/images/avatar-\($0).jpg"
+            } + ["https://xfnircfralbgkslbvaov.supabase.co/storage/v1/object/public/images/avatar-159.jpg"]
+            try await withThrowingTaskGroup(of: Int.self) { group in
+                for url in urls {
+                    group.addTask { try await loader.load(url).count }
+                }
+                for try await bytes in group {
+                    print("Live avatar decoded: \(bytes) bytes")
+                }
+            }
+            print("PASS: \(urls.count) Storage downloads, including repair of a saved wrong-origin URL; no image files saved.")
+            return
+        }
         var checks = 0
         func check(_ value: Bool, _ name: String) {
             precondition(value, name); checks += 1
@@ -61,10 +77,24 @@ struct AvatarChecks {
         let loader = AvatarImageLoader(session: session, retryDelays: [0, 0])
         let seed = "https://picsum.photos/seed/user24/150/150"
 
+        let storagePath = "/storage/v1/object/public/images/avatar-159.jpg"
+        let brokenStorage = "https://xfnircfralbgkslbvaov.supabase.co" + storagePath
+        AvatarMockProtocol.configure([.init(data: png)])
+        _ = try await loader.load(brokenStorage)
+        check(AvatarMockProtocol.requests.first?.url?.absoluteString ==
+              "https://woxotmmgvabizjgizwow.supabase.co" + storagePath,
+              "Saved wrong Storage origin is repaired before the first request, preserving image identity")
+        let otherStorage = URL(string: "https://example.com" + storagePath)!
+        check(AvatarImageLoader.storageURL(for: otherStorage) == otherStorage,
+              "Unrelated Storage origins are preserved")
+
         AvatarMockProtocol.configure([.init(status: 503), .init(error: URLError(.timedOut)), .init(data: png)])
         let recovered = try await loader.load(seed)
         check(recovered == png && AvatarMockProtocol.requests.count == 3, "503 then timeout recovers on third attempt")
-        check(AvatarMockProtocol.requests.allSatisfy { $0.url?.absoluteString == seed }, "Seed stays fixed across retries")
+        let backup = AvatarImageLoader.backupURL(for: URL(string: seed)!)!
+        check(AvatarMockProtocol.requests[0].url?.absoluteString == seed, "Original image is requested first")
+        check(AvatarMockProtocol.requests.dropFirst().allSatisfy { $0.url == backup }, "Unavailable Picsum uses a stable alternate provider")
+        check(AvatarMockProtocol.requests[0].timeoutInterval == 5, "Unavailable origin has a short timeout")
 
         AvatarMockProtocol.configure([.init(data: png)])
         _ = try await loader.load(seed)
@@ -97,6 +127,10 @@ struct AvatarChecks {
         check(AvatarImageLoader.retryURL(for: URL(string: seed)!).absoluteString == seed, "Stable seed URL is not rewritten")
         let unrelated = URL(string: "https://example.com/photo.jpg?token=private")!
         check(AvatarImageLoader.retryURL(for: unrelated) == unrelated, "Other services are unchanged")
+        check(AvatarImageLoader.backupURL(for: unrelated) == nil, "Unrelated providers are not replaced")
+        check(backup == AvatarImageLoader.backupURL(for: URL(string: seed)!), "Backup identity is stable")
+        let newSignature = URL(string: "https://fastly.picsum.photos/id/237/150/150.jpg?hmac=new")!
+        check(AvatarImageLoader.backupURL(for: cdn) == AvatarImageLoader.backupURL(for: newSignature), "Signed URL changes preserve backup identity")
         print("PASS: \(checks) avatar image checks; networking mocked, no disk image storage.")
     }
 }

@@ -50,6 +50,7 @@
       }
     },
     "CURRENT RANK" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -62,13 +63,13 @@
     "GUARDIAN" : {
 
     },
+    "Guide replay" : {
+
+    },
     "HATER" : {
 
     },
     "ID: %@" : {
-
-    },
-    "LEGAL" : {
 
     },
     "Lv.%lld" : {
@@ -103,6 +104,9 @@
         }
       }
     },
+    "Rank %lld" : {
+
+    },
     "RANK UP!" : {
 
     },
@@ -110,6 +114,7 @@
 
     },
     "REGULAR FOLLOWERS" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -119,13 +124,11 @@
         }
       }
     },
-    "SETTINGS" : {
-
-    },
-    "SUPPORT" : {
+    "Replay this guide anytime from How to use UPME in the Settings tab at the bottom right." : {
 
     },
     "UIと今後のAI返信に使用します" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -134,6 +137,9 @@
           }
         }
       }
+    },
+    "UPME" : {
+
     },
     "UPME! | AI SNS" : {
 
@@ -172,6 +178,7 @@
       }
     },
     "アンチ・炎上の発生" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -201,6 +208,9 @@
           }
         }
       }
+    },
+    "ガイドの再表示" : {
+
     },
     "キャンセル" : {
       "localizations" : {
@@ -242,6 +252,9 @@
           }
         }
       }
+    },
+    "このガイドは、画面下の一番右にある「設定」の「使い方ガイド」からいつでも見直せます。" : {
+
     },
     "このフォロワーの会話記憶も端末から削除されます。" : {
       "extractionState" : "stale",
@@ -307,6 +320,7 @@
       }
     },
     "バナー広告を非表示にします" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -317,6 +331,7 @@
       }
     },
     "フォロワー数" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -338,6 +353,7 @@
       }
     },
     "プライバシーポリシー" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -353,16 +369,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Read the Privacy Policy"
-          }
-        }
-      }
-    },
-    "設定" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Settings"
           }
         }
       }
@@ -410,6 +416,7 @@
       }
     },
     "ユーザー名" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -419,7 +426,11 @@
         }
       }
     },
+    "ランク %lld" : {
+
+    },
     "ランクステータス" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -480,6 +491,7 @@
       }
     },
     "最高ランク到達済み" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -500,6 +512,7 @@
       }
     },
     "利用規約" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -603,6 +616,7 @@
       }
     },
     "広告を消す (買い切り)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -613,6 +627,7 @@
       }
     },
     "広告削除の読み込み中..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -623,6 +638,7 @@
       }
     },
     "承認ランク" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -714,6 +730,7 @@
       }
     },
     "累計いいね" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -724,6 +741,7 @@
       }
     },
     "累計リプライ" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -734,6 +752,7 @@
       }
     },
     "累計投稿数" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -754,6 +773,7 @@
       }
     },
     "表示言語" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -783,7 +803,18 @@
         }
       }
     },
+    "設定" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        }
+      }
+    },
     "購入の復元" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -794,6 +825,7 @@
       }
     },
     "購入済み" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -916,6 +948,7 @@
       }
     },
     "高ランク到達時のアンチ登場をON/OFFします" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

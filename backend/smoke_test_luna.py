@@ -74,10 +74,12 @@ async def run(output, case_ids=None):
         ("ja_short", "トイレ行けた"),
         ("ja_sad", "会議でうまく話せなくて、帰ってからも思い出して落ち込んでる。今日はもう何もしたくない。"),
         ("ja_food", "昼ごはんにカレー食べた。辛さを欲張りすぎて水ばっか飲んでたw"),
+        ("ja_supportive_veteran", "若手俳優の阿部寛さん、最近知ったけど演技が好き。"),
     ):
         cases.append((case_id, "/api/posts", {**base, "content": text}))
     cases += [
         ("en_work", "/api/posts", {**base, "language": "en", "content": "I finally finished the presentation I was nervous about!"}),
+        ("en_supportive_veteran", "/api/posts", {**base, "language": "en", "content": "I just discovered young actor Tom Hanks. I love his acting."}),
         ("ja_style_history", "/api/posts", {**base, "content": "今日も１日仕事頑張ったー！！！", "recent_ai_replies": [
             "一日やり切ったね。今夜はゆっくり休んでね。",
             "仕事頑張ったんだね。今日は自分を甘やかしてあげて。",
@@ -108,6 +110,12 @@ async def run(output, case_ids=None):
             "user_id": base["user_id"], "language": language, "post_content": post,
             "ai_author_name": name, "ai_reply_content": comment, "user_reply": reply,
         }))
+    cases.append(("ja_old_critic_off", "/api/replies", {
+        "user_id": base["user_id"], "language": "ja", "post_content": "若手俳優の阿部寛さんの演技が好き。",
+        "ai_author_name": "ゆき", "ai_reply_content": "若手扱いは無理があるでしょ。",
+        "ai_is_hater": True, "is_hater_enabled": False,
+        "user_reply": "そういう言い方は傷つく。私の感想として受け止めてほしい。",
+    }))
 
     if case_ids:
         selected = set(case_ids)
@@ -148,10 +156,12 @@ async def run(output, case_ids=None):
                     for item in data["replies"]:
                         main.ReplySchema.model_validate(item)
                         assert item["content"].strip() and item["author_img"]
+                    if not payload.get("is_hater_enabled", False):
+                        assert not any(item["is_hater"] or item["is_defender"] for item in data["replies"])
                     if route == "/api/replies":
                         assert data["reply"] == data["replies"][0]
                         assert data["reply"]["author_name"] == payload["ai_author_name"]
-                    elif payload.get("is_onboarding"):
+                    elif payload.get("is_onboarding") and payload.get("is_hater_enabled"):
                         replies = data["replies"]
                         critics = [i for i, item in enumerate(replies) if item["is_hater"]]
                         assert len(critics) == 1

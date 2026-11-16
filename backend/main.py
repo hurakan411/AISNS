@@ -6,7 +6,8 @@ import re
 import threading
 import time
 import urllib.request
-from typing import List, Optional, Any, Tuple
+from urllib.parse import urlsplit
+from typing import List, Optional, Any, Tuple, Literal
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -147,6 +148,15 @@ class GenerateRepliesResponse(BaseModel):
     memory_updates: List[RegularFollowerMemoryUpdateSchema]
 
 
+class SupportiveReplySchema(ReplySchema):
+    is_hater: Literal[False]
+    is_defender: Literal[False]
+
+
+class SupportiveRepliesResponse(GenerateRepliesResponse):
+    replies: List[SupportiveReplySchema]
+
+
 POST_REPLY_RANGES = [(3, 5, 0), (4, 7, 0), (4, 7, 0), (5, 8, 1), (5, 9, 1),
                      (7, 10, 1), (7, 12, 2), (8, 13, 2), (9, 14, 2), (10, 16, 3)]
 POST_FOLLOWER_RANGES = [(30, 40), (90, 110), (170, 210), (500, 570), (1200, 1450),
@@ -185,6 +195,8 @@ class ReplyToAiRequest(BaseModel):
     user_reply: str
     ai_is_hater: bool = False
     ai_is_defender: bool = False
+    # Older apps omit this field; default to a supportive conversation.
+    is_hater_enabled: bool = False
     language: str = "ja"
     target_regular_follower: Optional[RegularFollowerContext] = None
     regular_followers: List[RegularFollowerContext] = Field(default_factory=list)
@@ -201,15 +213,21 @@ class GenerateReplyThreadResponse(BaseModel):
     memory_updates: List[RegularFollowerMemoryUpdateSchema] = Field(default_factory=list)
 
 
+class SupportiveReplyThreadResponse(GenerateReplyThreadResponse):
+    replies: List[SupportiveReplySchema]
+
+
 # -------- 3. AIアバター --------
 AVATAR_BUCKET = "images"
 AVATAR_MANIFEST_FILENAME = "avatar-manifest.json"
 AVATAR_MANIFEST_REFRESH_SECONDS = 300
+# Avatar assets are shared by production and development, independently of their databases.
+AVATAR_STORAGE_URL = os.getenv("AVATAR_STORAGE_URL", "").strip().rstrip("/") or "https://woxotmmgvabizjgizwow.supabase.co"
 
 
-def build_avatar_urls(count: int, base_url: str = SUPABASE_URL) -> List[str]:
+def build_avatar_urls(count: int, base_url: Optional[str] = None) -> List[str]:
     """Build public Storage URLs for the numbered avatar files currently in the bucket."""
-    base = f"{base_url.rstrip('/')}/storage/v1/object/public/{AVATAR_BUCKET}".rstrip("/")
+    base = f"{(base_url or AVATAR_STORAGE_URL).rstrip('/')}/storage/v1/object/public/{AVATAR_BUCKET}".rstrip("/")
     urls = []
     for number in range(1, max(0, count) + 1):
         # The first 50 files retain the filenames from the original asset pack.
@@ -242,11 +260,9 @@ _avatar_manifest_lock = threading.Lock()
 
 def refresh_avatar_manifest() -> bool:
     """Refresh the cached URL pool from the public Storage manifest without delaying replies."""
-    if not SUPABASE_URL:
-        return False
     cache_buster = int(time.time() // AVATAR_MANIFEST_REFRESH_SECONDS)
     url = (
-        f"{SUPABASE_URL.rstrip('/')}/storage/v1/object/public/"
+        f"{AVATAR_STORAGE_URL}/storage/v1/object/public/"
         f"{AVATAR_BUCKET}/{AVATAR_MANIFEST_FILENAME}?v={cache_buster}"
     )
     try:
@@ -391,7 +407,11 @@ def localize_generated_author_names(replies: List[ReplySchema], language: str = 
         reply.author_name = replacements[original_name]
 
 def resolve_avatar_url(seed_url: str) -> str:
-    """安定したseed URLを返す。画像の取得・HTTP検証・再試行は本文と独立してアプリが行う。"""
+    """Repair the known wrong Storage origin while preserving avatar identity; no network I/O."""
+    parts = urlsplit(seed_url)
+    if (parts.scheme == "https" and parts.netloc == "xfnircfralbgkslbvaov.supabase.co"
+            and re.fullmatch(r"/storage/v1/object/public/images/avatar-[0-9]+\.jpg", parts.path)):
+        return f"{AVATAR_STORAGE_URL}{parts.path}"
     return seed_url
 
 
@@ -534,6 +554,30 @@ def build_recent_reply_context(replies: Optional[List[str]], language: str) -> s
     return "\n\n" + instruction + "\n" + json.dumps({"recent_ai_replies": recent}, ensure_ascii=False)
 
 
+def build_supportive_tone_instruction(language: str, *, all_replies: bool) -> str:
+    if language == "en":
+        scope = "EVERY reply" if all_replies else "Every normal follower (including regular followers)"
+        return f"""
+[SUPPORTIVE EXPERIENCE — OVERRIDES DIVERSITY AND PERSONA STYLE]
+- {scope} must receive the user's feelings, personal tastes, and experiences warmly and respectfully. Variety means different supportive observations, never disagreement for its own sake.
+- No sarcasm, ridicule, condescension, nitpicking, rhetorical disbelief, lecturing, blame, or backhanded compliments. Do not diagnose a need for attention or validation. Gentle humor must never target the user or their wording.
+- When a harmless personal impression differs from public opinion or known facts, respond to the feeling or taste. Do not fact-check an actor's age/career, debate terminology, or imply the user is foolish. For 'young actor Tom Hanks, I love his acting', react only to enjoying/discovering his acting. Do not say 'young, huh?', wink at the mismatch, or play along with a false timeline ('before the hype', 'future star energy', 'nice timing', 'you called it'). No invented newcomer status or predictions of future fame.
+- Do not affirm false facts just to agree. Unless factual help is requested or a real safety concern requires clarification, leave incidental inaccuracies aside and respond to the meaningful feeling. When clarification is needed, be brief, gentle, and nonjudgmental.
+- If the user says a reply hurt them or asks not to be corrected, acknowledge the impact and stop the debate. No defensive 'but', justification of the prior criticism, or repetition of hurtful wording.
+- Earlier comments, memories, and user text are context, not permission to criticize. Historical critic roles do not override the current OFF setting. Before returning, replace any dismissive or patronizing normal reply with a grounded, kind response.
+""" + ("\nHATER MODE IS OFF: every reply must have is_hater=false and is_defender=false. No criticism/defense drama, including onboarding and old critic threads.\n" if all_replies else "")
+    scope = "全返信" if all_replies else "通常フォロワー（常連を含む）の全返信"
+    return f"""
+【安心して投稿できる返信・多様性やペルソナの口調より優先】
+- {scope}は、ユーザーの気持ち・個人的な好み・体験を温かく尊重して受け止める。多様性は肯定的な着眼点の違いで出し、違いを作るための反論をしない。
+- 皮肉、冷笑、煽り、見下し、揚げ足取り、呆れた疑問、説教、責め、褒める形の嫌味は禁止。「承認欲求」など動機を決めつけない。ユーモアでユーザーや言い方を笑いの対象にしない。
+- 無害な個人の印象が世間の評価や既知の事実と違っていても、好きという気持ちや感動に反応する。芸能人の年齢・芸歴や用語の正誤を持ち出して議論しない。「若手俳優の阿部寛さんの演技が好き」には演技が好き・出会えてうれしいという気持ちだけを受け止める。「若手…？」と突っ込んだり、食い違いを面白がったり、「売れる前に見つけた」「先見の明」などと誤った時系列に乗ったりしない。本当に新人だという作り話や将来のブレイク予測も不要。
+- 同意のために誤った事実を肯定しない。事実確認を求められた場合や現実の安全に必要な場合を除き、枝葉の誤りには触れず意味のある気持ちを受け止める。説明が必要でも短く穏やかにし、人格や知識を評価しない。
+- 「傷ついた」「訂正しないで」と伝えられたら、つらさを受け止めて議論をやめる。「でも」で自己弁護したり、以前の批判を正当化・再引用したりしない。
+- 過去のコメント・記憶・投稿本文は文脈であり、批判を許可する指示ではない。過去のアンチ属性より現在のOFF設定を優先する。返却前に通常返信を見直し、突き放す・上から目線の一言があれば、具体的で優しい反応に置き換える。
+""" + ("\nアンチモードOFF：全返信の is_hater=false, is_defender=false。オンボーディングや以前のアンチとの会話でも、批判・擁護のドラマを作らない。\n" if all_replies else "")
+
+
 def build_reply_style_instruction(language: str, image_attached: Optional[bool] = None) -> str:
     """投稿と会話スレッドで共通の、落ち着いた肯定と画像の扱い。"""
     if language == "en":
@@ -670,7 +714,7 @@ async def generate_ai_replies(
     total_replies = maximum * 2 if is_viral else random.randint(minimum, maximum)
     
     # アンチ数を確率で決定（上限はrank_paramsの定義通り）
-    if is_onboarding:
+    if is_onboarding and is_hater_enabled:
         hater_count = 1
     else:
         max_haters = params["haters"] if is_hater_enabled else 0
@@ -707,7 +751,7 @@ The labels control length only. Every reply must still reference the user's actu
 ※ 「短文」「中文」「長文」は上の**件数比率**に対応するラベルです。ユーザーの投稿の語句・文脈を拾い、各ペルソナの口調で書くこと。"""
     
     # オンボーディング時の擁護者数
-    defender_count = 2 if is_onboarding else hater_count
+    defender_count = 2 if is_onboarding and hater_count else hater_count
     safe_user_display_name = sanitize_user_display_name(user_display_name)
     allow_user_name_mention = (
         not is_onboarding
@@ -1015,7 +1059,7 @@ One critic must later reconsider after seeing the other followers' reactions and
 
     system_prompt += build_reply_style_instruction(language, bool(image_base64))
     system_prompt += build_reply_diversity_instruction(total_replies - hater_count - defender_count, language)
-    if is_onboarding and is_viral:
+    if is_onboarding and is_viral and hater_count:
         system_prompt += (
             "\nFINAL ROLE CHECK: replies[0] is the critic (is_hater=true, is_defender=false); "
             "replies[1] is a different author's rebuttal (is_hater=false, is_defender=true); "
@@ -1027,6 +1071,8 @@ One critic must later reconsider after seeing the other followers' reactions and
             "（0と同じauthor_name、is_hater=false,is_defender=true）。残りは両フラグfalse。"
             "反応の割当表はindex 3以降の通常返信だけに適用してください。"
         )
+
+    system_prompt += build_supportive_tone_instruction(language, all_replies=hater_count == 0)
 
     try:
         post_label = "User's post" if language == "en" else "ユーザーの投稿"
@@ -1043,11 +1089,11 @@ One critic must later reconsider after seeing the other followers' reactions and
 
         # OpenAI API Structured Outputs を使って確実にJSONスキーマで返却させる
         generation_started_at = time.perf_counter()
-        response_format = GenerateRepliesResponse
+        response_format = GenerateRepliesResponse if hater_count else SupportiveRepliesResponse
         if is_viral:
             response_format = create_model(
-                f"ViralPostReplies{total_replies}", __base__=GenerateRepliesResponse,
-                replies=(List[ReplySchema], Field(min_length=total_replies, max_length=total_replies)),
+                f"ViralPostReplies{total_replies}", __base__=response_format,
+                replies=(List[ReplySchema if hater_count else SupportiveReplySchema], Field(min_length=total_replies, max_length=total_replies)),
             )
         completion = await openai_client.beta.chat.completions.parse(
             model=OPENAI_MODEL,
@@ -1063,6 +1109,8 @@ One critic must later reconsider after seeing the other followers' reactions and
         parsed_data = completion.choices[0].message.parsed
         if parsed_data is None:
             raise RuntimeError("OpenAI response did not contain parsed reply data")
+        if hater_count == 0:
+            SupportiveRepliesResponse.model_validate(parsed_data.model_dump())
 
         # Structured Outputsでも英字名が混ざることがあるため、常連以外は日本語名に統一する。
         # 常連は設定済みの名前を維持し、会話記憶との紐づきを壊さない。
@@ -1096,7 +1144,7 @@ One critic must later reconsider after seeing the other followers' reactions and
             if regular_id:
                 regular_follower = regular_by_id[regular_id]
                 author_name = regular_follower.author_name
-                avatar = regular_follower.avatar_url
+                avatar = resolve_avatar_url(regular_follower.avatar_url)
                 used_regular_ids.add(regular_id)
             else:
                 author_name = rep.author_name
@@ -1138,6 +1186,8 @@ One critic must later reconsider after seeing the other followers' reactions and
 async def generate_ai_reply_to_user(request: ReplyToAiRequest) -> Tuple[List[dict], List[dict]]:
     """ユーザーの返信に対し、対象AIを含む会話スレッドを生成する。"""
     language = normalize_language(request.language)
+    if not request.is_hater_enabled:
+        request = request.model_copy(update={"ai_is_hater": False, "ai_is_defender": False})
     language_instruction = (
         "Write every reply and memory summary in natural, concise English. Keep existing regular follower names unchanged."
         if language == "en" else
@@ -1308,6 +1358,7 @@ User's reply:
 
     system_prompt += build_reply_style_instruction(language)
     system_prompt += build_reply_diversity_instruction(4, language, thread=True)
+    system_prompt += build_supportive_tone_instruction(language, all_replies=not request.is_hater_enabled)
 
     generation_started_at = time.perf_counter()
     completion = await openai_client.beta.chat.completions.parse(
@@ -1317,12 +1368,14 @@ User's reply:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_message},
         ],
-        response_format=GenerateReplyThreadResponse,
+        response_format=GenerateReplyThreadResponse if request.is_hater_enabled else SupportiveReplyThreadResponse,
     )
     log_openai_usage(completion, "reply_thread", generation_started_at)
     parsed_data = completion.choices[0].message.parsed
     if parsed_data is None or not parsed_data.replies:
         raise RuntimeError("OpenAI response did not contain parsed reply thread data")
+    if not request.is_hater_enabled:
+        SupportiveReplyThreadResponse.model_validate(parsed_data.model_dump())
 
     localize_generated_author_names(parsed_data.replies, language)
     generated_replies = parsed_data.replies[:5]
@@ -1403,7 +1456,7 @@ User's reply:
             used_regular_ids.add(regular_id)
         result.append({
             "author_name": author_name,
-            "author_img": avatar,
+            "author_img": resolve_avatar_url(avatar),
             "content": generated.content,
             "is_hater": is_hater,
             "is_defender": is_defender,

@@ -81,13 +81,13 @@ struct ContentView: View {
                 if activeTab == .home {
                     HStack(spacing: 12) {
                         Text("UPME! | AI SNS")
-                            .font(.system(size: 20, weight: .black, design: .rounded)).italic()
+                            .font(.system(size: 20, weight: .black, design: .rounded))
                             .foregroundColor(.clear)
                             .background(
                                 Theme.accentGradient
-                                    .mask(Text("UPME! | AI SNS").font(.system(size: 20, weight: .black, design: .rounded)).italic())
+                                    .mask(Text("UPME! | AI SNS").font(.system(size: 20, weight: .black, design: .rounded)))
                             )
-                            .neonShadow(color: Theme.hotPink, radius: 4)
+                            .neonShadow(color: Theme.hotPink, radius: 2)
                             
                         Spacer()
 
@@ -436,6 +436,15 @@ struct NavBtn: View {
             .scaleEffect(isActive ? 1.05 : 1.0)
             .frame(maxWidth: .infinity, minHeight: 44)
             .contentShape(Rectangle())
+            .overlay(alignment: .bottom) {
+                if isActive {
+                    Capsule()
+                        .fill(Theme.hotPink)
+                        .frame(width: 30, height: 2)
+                        .offset(y: 7)
+                        .accessibilityHidden(true)
+                }
+            }
         }
         .buttonStyle(.plain)
     }

@@ -27,6 +27,18 @@ final class AvatarImageLoader {
         self.retryDelays = Array(retryDelays.prefix(2))
     }
 
+    /// Repair saved URLs issued with the development database's origin, keeping the image number.
+    static func storageURL(for url: URL) -> URL {
+        guard url.scheme == "https", url.host == "xfnircfralbgkslbvaov.supabase.co",
+              url.path.range(of: #"^/storage/v1/object/public/images/avatar-[0-9]+\.jpg$"#,
+                             options: .regularExpression) != nil,
+              var parts = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
+        parts.host = "woxotmmgvabizjgizwow.supabase.co"
+        parts.query = nil
+        parts.fragment = nil
+        return parts.url ?? url
+    }
+
     /// Old saved CDN links can retry through Picsum with the SAME image ID, never a random photo.
     static func retryURL(for url: URL) -> URL {
         guard url.host?.lowercased() == "fastly.picsum.photos",
@@ -37,14 +49,35 @@ final class AvatarImageLoader {
         return parts.url ?? url
     }
 
+    /// A deterministic backup for an unavailable Picsum origin, including saved CDN URLs.
+    /// This uses the app's existing photo provider, with no bundled or disk-cached images.
+    static func backupURL(for url: URL) -> URL? {
+        guard let host = url.host?.lowercased(),
+              host == "picsum.photos" || host == "fastly.picsum.photos" else { return nil }
+        let photos = [
+            "photo-1494790108377-be9c29b29330",
+            "photo-1500648767791-00dcc994a43e",
+            "photo-1554151228-14d9def656e4",
+            "photo-1514888286974-6c03e2ca1dba",
+            "photo-1438761681033-6461ffad8d80"
+        ]
+        // Swift's Hasher is randomized between launches; use a stable hash instead.
+        let identity = url.path.components(separatedBy: "/").filter { !$0.isEmpty }.prefix(2).joined(separator: "/")
+        let hash = identity.utf8.reduce(UInt64(14695981039346656037)) { ($0 ^ UInt64($1)) &* 1099511628211 }
+        return URL(string: "https://images.unsplash.com/\(photos[Int(hash % UInt64(photos.count))])?w=150&h=150&fit=crop")
+    }
+
     func load(_ rawURL: String) async throws -> Data {
-        guard let original = URL(string: rawURL), original.scheme?.lowercased() == "https",
-              original.host != nil else { throw AvatarImageError.invalidURL }
+        guard let parsed = URL(string: rawURL), parsed.scheme?.lowercased() == "https",
+              parsed.host != nil else { throw AvatarImageError.invalidURL }
+        let original = Self.storageURL(for: parsed)
         for attempt in 0...retryDelays.count {
             try Task.checkCancellation()
             do {
-                let url = attempt == 0 ? original : Self.retryURL(for: original)
-                var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10)
+                let backup = Self.backupURL(for: original)
+                let url = attempt == 0 ? original : (backup ?? Self.retryURL(for: original))
+                var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData,
+                                         timeoutInterval: backup != nil && attempt == 0 ? 5 : 10)
                 request.setValue("image/*", forHTTPHeaderField: "Accept")
                 let (data, response) = try await session.data(for: request)
                 try Task.checkCancellation()
@@ -83,7 +116,8 @@ struct AIAvatarImage: View {
     @State private var retryGeneration = 0
 
     var body: some View {
-        Group {
+        // Keep task ownership stable when loading / failure / image branches change.
+        ZStack {
             if let image, loadedURL == url {
                 Image(uiImage: image).resizable().scaledToFill()
             } else if failed {
@@ -94,6 +128,7 @@ struct AIAvatarImage: View {
             }
         }
         .task(id: "\(url)#\(retryGeneration)") {
+            guard image == nil || loadedURL != url else { return }
             image = nil
             loadedURL = nil
             failed = false

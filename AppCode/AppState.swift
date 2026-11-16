@@ -1086,6 +1086,7 @@ class AppState: ObservableObject {
             "user_reply": trimmed,
             "ai_is_hater": reply.isHater,
             "ai_is_defender": reply.isDefender,
+            "is_hater_enabled": isHaterEnabled,
             "language": languageCode,
             "regular_followers": regularFollowerPayload(),
             "other_ai_replies": otherReplies
