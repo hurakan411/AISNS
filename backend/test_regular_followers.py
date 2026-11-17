@@ -43,6 +43,19 @@ class PromptCaptureClient:
 
 
 class RegularFollowerApiTests(unittest.TestCase):
+    def test_profile_viewpoints_are_distinct_order_independent_and_do_not_include_memories(self):
+        followers = [backend_main.RegularFollowerContext(follower_id=id, author_name=id,
+            avatar_url="https://example.test/avatar", memories=["PRIVATE-CONTEXT"])
+            for id in ("yuki", "miku", "ren")]
+        for language in ("ja", "en"):
+            instruction = backend_main.build_regular_impression_viewpoints(followers, language)
+            self.assertEqual(instruction, backend_main.build_regular_impression_viewpoints(followers[::-1], language))
+            self.assertNotIn("PRIVATE-CONTEXT", instruction)
+            rows = json.loads(instruction.strip().splitlines()[-1])
+            self.assertEqual({r["follower_id"] for r in rows}, {"yuki", "miku", "ren"})
+            self.assertEqual(len({r["editorial_lens"] for r in rows}), 3)
+        self.assertEqual(backend_main.build_regular_impression_viewpoints([], "ja"), "")
+
     def test_ten_memories_and_summaries_reach_post_and_thread_prompts(self):
         def regular(id, name):
             return backend_main.RegularFollowerContext(follower_id=id, author_name=name,
@@ -71,6 +84,10 @@ class RegularFollowerApiTests(unittest.TestCase):
                                 regular_followers=[target, other], language=language))
                     self.assertEqual(len(capture.calls), 1)
                     prompt = json.dumps(capture.calls[0]["messages"], ensure_ascii=False)
+                    viewpoint_rows = json.loads(backend_main.build_regular_impression_viewpoints(
+                        [target, other], language).strip().splitlines()[-1])
+                    for row in viewpoint_rows:
+                        self.assertIn(row["editorial_lens"], prompt)
                     for id in ("target", "other"):
                         for kind in ("FACT", "HISTORY"):
                             self.assertNotIn(f"{id}-{kind}-00", prompt)
@@ -90,7 +107,7 @@ class RegularFollowerApiTests(unittest.TestCase):
                         "memory_updates": [
                             {"follower_id": id, "new_memories": ["Likes walks"],
                              "interaction_summary": "Talked about a walk", "impression": impression,
-                             "impression_summary": "小さな発見を楽しめる人。" if language == "ja" else "You find joy in small discoveries."}
+                             "impression_summary": ("小さな発見を楽しめる人。" if language == "ja" else "Someone who finds joy in small discoveries. ") * 12}
                             for id in ("yuki", "not-a-participant")],
                     })
                     regular = backend_main.RegularFollowerContext(follower_id="yuki", author_name="ゆき",
@@ -110,7 +127,7 @@ class RegularFollowerApiTests(unittest.TestCase):
                     self.assertEqual(result[1][0]["impression"], impression)
                     self.assertEqual(result[1][0]["impression_language"], language)
                     self.assertEqual(result[1][0]["impression_summary"],
-                        "小さな発見を楽しめる人。" if language == "ja" else "You find joy in small discoveries.")
+                        (("小さな発見を楽しめる人。" if language == "ja" else "Someone who finds joy in small discoveries. ") * 12).strip())
 
     def test_onboarding_off_has_no_critic_arc_even_when_viral(self):
         for language in ("ja", "en"):

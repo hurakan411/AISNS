@@ -551,6 +551,18 @@ struct RegularImpressionView: View {
                 }
                 .padding(.top, 10)
             }
+            if follower.canShowImpression {
+                HStack(spacing: 5) {
+                    Image(systemName: "clock")
+                    if let date = follower.impressionUpdatedAt {
+                        Text(appState.text("評価更新", "Profile updated"))
+                        Text(date, format: .dateTime.year().month().day().hour().minute().locale(appState.locale))
+                    } else {
+                        Text(appState.text("評価の更新日時は未記録", "Profile update time not recorded"))
+                    }
+                }
+                .font(.caption2).foregroundStyle(.white.opacity(0.5))
+            }
             Spacer(minLength: 0)
             Button {
                 selectedConversation = nil

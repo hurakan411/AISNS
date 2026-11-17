@@ -1,3 +1,4 @@
+import hashlib
 import json
 import logging
 import os
@@ -558,11 +559,48 @@ def build_recent_reply_context(replies: Optional[List[str]], language: str) -> s
     return "\n\n" + instruction + "\n" + json.dumps({"recent_ai_replies": recent}, ensure_ascii=False)
 
 
+def build_regular_impression_viewpoints(followers: List[RegularFollowerContext], language: str) -> str:
+    """Separate editorial lenses, deterministic for a roster; never user personality facts."""
+    if not followers:
+        return ""
+    lenses = (
+        ["what they value in their choices", "how they engage with things that interest them",
+         "how they express and respect their feelings", "their approach to effort and challenges",
+         "how they make room for everyday fulfillment", "their personal pace and priorities"]
+        if language == "en" else
+        ["選択に表れる大切にしていること", "興味を持った物事への向き合い方",
+         "気持ちの表し方と自分の気持ちを大切にする姿勢", "努力や挑戦への向き合い方",
+         "日常の充実を見つける姿勢", "自分のペースや優先順位への向き合い方"]
+    )
+    assigned = []
+    used = set()
+    for follower_id in sorted({f.follower_id for f in followers}):
+        ranked = sorted(range(len(lenses)), key=lambda i: hashlib.sha256(f"{follower_id}:{i}".encode()).digest())
+        lens = next((i for i in ranked if i not in used), ranked[0])
+        used.add(lens)
+        assigned.append({"follower_id": follower_id, "editorial_lens": lenses[lens]})
+    rule = (
+        "[INDIVIDUAL PROFILE VIEWPOINTS]\nThese are editorial lenses, NOT facts about the user or follower personalities. "
+        "For each follower, base both profile fields only on that follower's own history and current exchange; never borrow another follower's memories. "
+        "Use the assigned lens only where supported. If unsupported, choose another grounded quality from their own history. "
+        "Differentiate the central observation and nuance, not just wording. Compare participating profiles before returning and avoid copy-paste conclusions. "
+        "Similar evidence may support shared qualities; do not invent opposing traits to force variety. These lenses apply only to impression and impression_summary, not reply dialogue.\n"
+        if language == "en" else
+        "【常連ごとの総評の着眼点】\n以下は文章を構成する着眼点であり、ユーザーの性格の事実や常連の架空の性格設定ではない。"
+        "各常連の総評2項目は、その常連自身の履歴と今回のやり取りだけを根拠にし、他の常連の記憶を流用しない。"
+        "指定の着眼点に根拠がある場合に優先し、根拠がなければ自身の履歴にある別の魅力を選ぶ。"
+        "単なる言い換えでなく、中心となる気づきと深める側面を常連ごとに変える。返却前に常連同士の総評を比較し、同じ結論の使い回しを避ける。"
+        "似た履歴から同じ魅力が見えることはあってよい。違いのために正反対の性格や根拠のない美点を作らない。"
+        "この着眼点はimpressionとimpression_summaryだけに適用し、返信の口調やキャラクターは変えない。\n"
+    )
+    return "\n" + rule + json.dumps(assigned, ensure_ascii=False) + "\n"
+
+
 def build_regular_impression_instruction(language: str) -> str:
     if language == "en":
         return """
 [REGULAR FOLLOWER PROFILE — THIRD-PERSON NARRATION]
-For each participating regular's memory_updates entry, supply impression (3–4 connected sentences, at most 600 characters) and impression_summary (one headline, at most 80 characters). Both describe the user's positive qualities in a warm third-person narrator's voice, never in the follower's voice. Example headline: 'Someone who cherishes everyday discoveries.' Example detail: 'Their conversations show an appreciation for small everyday pleasures.'
+For each participating regular's memory_updates entry, supply impression (3–4 connected sentences, at most 600 characters) and impression_summary (exactly one natural sentence, aim for 100–180 characters, at most 220 characters). The overview combines a grounded central quality with its appealing nuance in one sentence, not a terse label such as 'A curious person.' Avoid a string of adjectives or generic padding. The back detail deepens that quality rather than repeating the overview. Both describe the user's positive qualities in a warm third-person narrator's voice, never in the follower's voice. Grounding takes priority over the length target; never invent traits to fill space.
 Do not use 'I', 'we', 'you', or 'your', direct address, dialogue, a personal sign-off, or advice. Synthesize all available recent conversations into one coherent overall profile, using stored memories as supporting context; do not list episodes, quote individual posts, or merely recap the latest post. The headline and detail must agree.
 Interpretation, not a post recap: identify one or two grounded patterns in what the person values, how they approach things, and what is appealing about that approach. The grammatical subject should be the person or their outlook, not their posts, topics, wording or writing style. The front headline names the central quality; the back explains its nuances without retelling the evidence. Use events only as internal evidence, not a list of activities in the final text. Never evaluate the quality of the posts or the act of posting.
 Keep evidence and the displayed profile separate: interaction_summary and memories retain concrete events; impression and impression_summary describe the person. In both displayed fields, omit specific objects, hobbies, foods, places, names, dates, quotations and timelines from the source posts, including paraphrases. Do not organize the detail as 'when they did X, they showed Y'. First identify a supported attitude across the available history, then describe that attitude and its appealing nuance without retelling any episode. The current post is only one observation, not a replacement for the whole profile. If evidence is sparse, one or two restrained sentences are better than padding the text with activities or invented traits. Before returning, check that both fields still describe a recognizable outlook after all source-topic words have been removed; revise if they read like a diary synopsis.
@@ -571,10 +609,10 @@ Ground everything only in that regular's supplied memories, interactions, and th
 """
     return """
 【総評・詳細は第三者目線の紹介文】
-参加した各常連の memory_updates に impression（3〜4文・240字以内）と impression_summary（40字以内のひとこと見出し）を記載する。どちらも常連の語りかけではなく、第三者の語り手がユーザーの人柄を温かく説明する文章にする。見出しの例「日々の小さな発見を楽しめる人。」。詳細の例「会話には、日常の楽しみを大切にする姿勢が表れています。」。
+参加した各常連の memory_updates に impression（裏の詳細：3〜4文・240字以内）と impression_summary（表の総評：必ず自然な一文、40〜60字を目安に80字以内）を記載する。表は「好奇心のある人。」のような10〜15字程度の短いラベルで終えず、履歴に根拠のある中心的な魅力と、その魅力のニュアンスを一文で伝える。形容詞の羅列や定型の称賛による水増しはしない。裏は表の繰り返しではなく、同じ人物像の別の側面を深める。どちらも常連の語りかけではなく、第三者の語り手がユーザーの人柄を温かく説明する。文字数より根拠を優先し、長さのために美点を捏造しない。
 「私は」「あなたは」「〜だと思うよ」「〜だね」「話してくれる」「素敵だと感じてる」など一人称・呼びかけ・会話口調・署名・助言は使わない。提供された直近の会話全体を横断して一つの総評にまとめ、記憶は背景の補助に使う。出来事の列挙、個別投稿の引用、直近の投稿だけの要約は不要。表の見出しと裏の詳細の意味を一致させる。
 【出来事の要約ではなく、そこから見える人柄】
-複数の会話に表れた「大切にしていること」「物事への向き合い方」「その姿勢の魅力」を1〜2点読み取り、一段抽象化して表現する。主語は本人やその姿勢とし、「投稿には〜が書かれています」「〜について話しています」「言葉選びが〜」と投稿内容や文章自体を評価しない。表は中心となる魅力をひとことで、裏はその魅力の意味や別の側面を説明する。出来事は判断の根拠として内部で使い、最終文に行動の一覧として並べ直さない。
+複数の会話に表れた「大切にしていること」「物事への向き合い方」「その姿勢の魅力」を1〜2点読み取り、一段抽象化して表現する。主語は本人やその姿勢とし、「投稿には〜が書かれています」「〜について話しています」「言葉選びが〜」と投稿内容や文章自体を評価しない。表は中心となる魅力とそのニュアンスを一文で、裏はその魅力の意味や別の側面をさらに深める。出来事は判断の根拠として内部で使い、最終文に行動の一覧として並べ直さない。
 【記憶と人物紹介を分離する】具体的な出来事は interaction_summary と memories に保存する。画面に出す impression と impression_summary には、投稿に出た物・趣味・食べ物・場所・人名・日付・発言の引用・時系列を、言い換えも含めて持ち込まない。「○○したときにも△△したときにも」のような証拠の説明はしない。履歴全体から根拠のある姿勢を読み取り、その姿勢と魅力のニュアンスだけを紹介する。今回の投稿は観察の一つであり、人物像をその話題に置き換えない。根拠が少なければ1〜2文でもよく、出来事や架空の美点で文数を埋めない。返却前に、元の投稿の話題を表す単語が残っていないか、日記のあらすじになっていないかを確認して書き直す。
 抽象度の例（内容を全ユーザーへ使い回さない）：仕事への努力・花への気づき・カフェでの休息が別々の会話にある場合、避ける表現は「仕事を頑張り、花やカフェを楽しんでいる人。」。目指す表現は「頑張る時間も、自分を満たす時間も大切にする人。」。詳細も「目の前のことに取り組むひたむきさと、日常を楽しむ柔らかさが感じられる人です。」のように、根拠のある価値観・向き合い方を深め、出来事の再説明には戻らない。例の美点を無関係な履歴へ当てはめない。
 隠れた動機・生来の能力・逆境からの回復力・他者への優しさなど、履歴に根拠のない内面まで推測しない。読み取れる姿勢が一つだけなら、それを丁寧に表現し、誰にでも言える褒め言葉で埋めない。返却前に、行動や話題を並べただけの文は価値観や姿勢の説明へ書き直し、裏づけのない解釈は削除する。
@@ -1101,6 +1139,7 @@ One critic must later reconsider after seeing the other followers' reactions and
         )
 
     system_prompt += build_regular_impression_instruction(language)
+    system_prompt += build_regular_impression_viewpoints(active_regular_followers, language)
     system_prompt += build_supportive_tone_instruction(language, all_replies=hater_count == 0)
 
     try:
@@ -1203,7 +1242,7 @@ One critic must later reconsider after seeing the other followers' reactions and
                 "interaction_summary": str(update.interaction_summary)[:180],
                 "impression": (update.impression or "").strip()[:600],
                 "impression_language": language,
-                "impression_summary": (update.impression_summary or "").strip()[:120],
+                "impression_summary": (update.impression_summary or "").strip()[:600],
             })
             seen_update_ids.add(update.follower_id)
             
@@ -1391,6 +1430,10 @@ User's reply:
     system_prompt += build_reply_style_instruction(language)
     system_prompt += build_reply_diversity_instruction(4, language, thread=True)
     system_prompt += build_regular_impression_instruction(language)
+    impression_followers = list(regular_context_by_id.values())
+    if target:
+        impression_followers = [f for f in impression_followers if f.follower_id != target.follower_id] + [target]
+    system_prompt += build_regular_impression_viewpoints(impression_followers, language)
     system_prompt += build_supportive_tone_instruction(language, all_replies=not request.is_hater_enabled)
 
     generation_started_at = time.perf_counter()
@@ -1507,7 +1550,7 @@ User's reply:
             "interaction_summary": str(update.interaction_summary)[:180],
             "impression": (update.impression or "").strip()[:600],
             "impression_language": language,
-            "impression_summary": (update.impression_summary or "").strip()[:120],
+            "impression_summary": (update.impression_summary or "").strip()[:600],
         })
         seen_update_ids.add(update.follower_id)
 

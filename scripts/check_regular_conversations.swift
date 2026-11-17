@@ -7,6 +7,20 @@ let legacy = """
 """.data(using: .utf8)!
 var follower = try JSONDecoder().decode(RegularFollower.self, from: legacy)
 precondition(follower.conversationTexts == nil)
+precondition(follower.impressionUpdatedAt == nil)
+let profileDate = Date(timeIntervalSince1970: 1_700_000_100)
+let overview = String(repeating: "自然な総評。", count: 30)
+follower.storeImpression("Detailed profile", summary: overview, language: "ja", receivedAt: profileDate)
+precondition(follower.impressionSummary == overview)
+precondition(follower.impressionUpdatedAt == profileDate)
+for empty in [nil, "", " \n "] as [String?] {
+    follower.storeImpression(empty, summary: "must not replace", language: "en", receivedAt: profileDate.addingTimeInterval(100))
+    precondition(follower.impressionUpdatedAt == profileDate)
+    precondition(follower.impression == "Detailed profile")
+    precondition(follower.impressionSummary == overview)
+}
+let savedProfile = try JSONDecoder().decode(RegularFollower.self, from: JSONEncoder().encode(follower))
+precondition(savedProfile.impressionUpdatedAt == profileDate)
 let legacyConversation = """
 {"userText":"original","replyText":"reply","isUserReply":false}
 """.data(using: .utf8)!

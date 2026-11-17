@@ -116,12 +116,23 @@ struct RegularFollower: Identifiable, Equatable, Codable {
     var impression: String? = nil
     var impressionLanguage: String? = nil
     var impressionSummary: String? = nil
+    var impressionUpdatedAt: Date? = nil
     // Aligned with recentInteractions. Nil entries belong to older, summary-only data.
     var conversationTexts: [RegularConversation?]? = nil
     // Keep the first three distinct post IDs so replies and retries cannot unlock this early.
     var impressionPostIDs: [UUID]? = nil
 
     var canShowImpression: Bool { (impressionPostIDs?.count ?? 0) >= 3 }
+
+    mutating func storeImpression(_ detail: String?, summary: String?, language: String?, receivedAt: Date) {
+        let text = String((detail ?? "").prefix(600)).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        impression = text
+        impressionLanguage = language
+        let shortText = String((summary ?? "").prefix(600)).trimmingCharacters(in: .whitespacesAndNewlines)
+        impressionSummary = shortText.isEmpty ? nil : shortText
+        impressionUpdatedAt = receivedAt
+    }
 
     mutating func recordImpressionPost(_ id: UUID) {
         var ids = impressionPostIDs ?? []
@@ -983,16 +994,9 @@ class AppState: ObservableObject {
             }
             updatedFollowers[index].memories = Array(mergedMemories.suffix(RegularFollower.memoryLimit))
 
-            if let impression = update["impression"] as? String {
-                let trimmed = String(impression.prefix(600)).trimmingCharacters(in: .whitespacesAndNewlines)
-                if !trimmed.isEmpty {
-                    updatedFollowers[index].impression = trimmed
-                    updatedFollowers[index].impressionLanguage = update["impression_language"] as? String
-                    let summary = (update["impression_summary"] as? String ?? "")
-                        .trimmingCharacters(in: .whitespacesAndNewlines)
-                    updatedFollowers[index].impressionSummary = summary.isEmpty ? nil : String(summary.prefix(120))
-                }
-            }
+            updatedFollowers[index].storeImpression(update["impression"] as? String,
+                summary: update["impression_summary"] as? String,
+                language: update["impression_language"] as? String, receivedAt: Date())
 
             if let interaction = update["interaction_summary"] as? String {
                 let trimmed = String(interaction.prefix(180)).trimmingCharacters(in: .whitespacesAndNewlines)
