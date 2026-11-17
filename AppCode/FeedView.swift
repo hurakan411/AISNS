@@ -688,16 +688,6 @@ struct ReplyRow: View {
                     .contentShape(Rectangle())
                     }
 
-                    if !reply.isUserReply && !reply.isHater && !reply.isDefender {
-                        Text("AI")
-                            .font(.system(size: 8, weight: .black, design: .monospaced))
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 2)
-                            .background(Theme.purpleAccent.opacity(0.45))
-                            .foregroundColor(.white.opacity(0.9))
-                            .cornerRadius(4)
-                    }
-
                     if reply.isUserReply {
                         Text("あなた")
                             .font(.system(size: 8, weight: .black))

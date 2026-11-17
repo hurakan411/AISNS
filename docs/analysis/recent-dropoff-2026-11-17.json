@@ -1,0 +1,70 @@
+{
+  "generated_date_jst": "2026-11-17",
+  "project": 565898,
+  "timezone": "Asia/Tokyo",
+  "observation_end_exclusive": "2026-11-17T00:00:00+09:00",
+  "filters": [
+    {
+      "key": "$is_sideloaded",
+      "type": "event",
+      "operator": "is_not",
+      "value": [
+        "true"
+      ]
+    },
+    {
+      "key": "$is_emulator",
+      "type": "event",
+      "operator": "is_not",
+      "value": [
+        "true"
+      ]
+    },
+    {
+      "key": "$is_testflight",
+      "type": "event",
+      "operator": "is_not",
+      "value": [
+        "true"
+      ]
+    }
+  ],
+  "filterTestAccounts": true,
+  "queries": {
+    "cohorts": "SELECT cohort_day, count() AS installs,\n countIf(onboard_day0) AS onboard_day0_users,\n countIf(day0_posts >= 1) AS posted_day0_users,\n countIf(day0_posts >= 2) AS posted_twice_day0_users,\n countIf(day0_posts >= 3) AS posted_three_day0_users,\n countIf(arrayExists(d -> dateDiff('day',cohort_day,d)=1, active_days)) AS returned_d1,\n countIf(arrayExists(d -> dateDiff('day',cohort_day,d)=3, active_days)) AS returned_d3,\n countIf(arrayExists(d -> dateDiff('day',cohort_day,d)=7, active_days)) AS returned_d7,\n countIf(arrayExists(d -> dateDiff('day',cohort_day,d) BETWEEN 1 AND 7, active_days)) AS returned_days1_7,\n countIf(arrayExists(d -> d>cohort_day, active_days)) AS returned_any_later,\n sum(day0_posts) AS posts_day0\nFROM (\n SELECT *, arrayCount(d -> d=cohort_day,post_days) AS day0_posts, arrayExists(d -> d=cohort_day,onboarding_days) AS onboard_day0 FROM (\n SELECT person_id,\n toDate(toTimeZone(minIf(timestamp,event='Application Installed'),'Asia/Tokyo')) AS cohort_day,\n groupUniqArrayIf(toDate(toTimeZone(timestamp,'Asia/Tokyo')),event='daily_active') AS active_days,\n groupArrayIf(toDate(toTimeZone(timestamp,'Asia/Tokyo')),event='post_created') AS post_days,\n groupArrayIf(toDate(toTimeZone(timestamp,'Asia/Tokyo')),event='onboarding_completed') AS onboarding_days\n FROM events WHERE {filters}\n AND timestamp>=toDateTime('2026-10-19 15:00:00','UTC') AND timestamp<toDateTime('2026-11-16 15:00:00','UTC')\n AND event IN ('Application Installed','daily_active','post_created','onboarding_completed')\n GROUP BY person_id HAVING countIf(event='Application Installed')>0\n)\n) GROUP BY cohort_day ORDER BY cohort_day LIMIT 40",
+    "firstDayDepth": "SELECT if(day0_posts=0,'0',if(day0_posts=1,'1',if(day0_posts=2,'2','3+'))) AS day0_post_group,\ncount() AS users, countIf(onboard_day0) AS onboard_users,\ncountIf(arrayExists(d -> dateDiff('day',cohort_day,d)=1,active_days)) AS returned_d1,\ncountIf(arrayExists(d -> dateDiff('day',cohort_day,d) BETWEEN 1 AND 7,active_days)) AS returned_days1_7\nFROM (\n SELECT *, arrayCount(d -> d=cohort_day,post_days) AS day0_posts, arrayExists(d -> d=cohort_day,onboarding_days) AS onboard_day0 FROM (\n SELECT person_id,\n toDate(toTimeZone(minIf(timestamp,event='Application Installed'),'Asia/Tokyo')) AS cohort_day,\n groupUniqArrayIf(toDate(toTimeZone(timestamp,'Asia/Tokyo')),event='daily_active') AS active_days,\n groupArrayIf(toDate(toTimeZone(timestamp,'Asia/Tokyo')),event='post_created') AS post_days,\n groupArrayIf(toDate(toTimeZone(timestamp,'Asia/Tokyo')),event='onboarding_completed') AS onboarding_days\n FROM events WHERE {filters}\n AND timestamp>=toDateTime('2026-10-19 15:00:00','UTC') AND timestamp<toDateTime('2026-11-16 15:00:00','UTC')\n AND event IN ('Application Installed','daily_active','post_created','onboarding_completed')\n GROUP BY person_id HAVING countIf(event='Application Installed')>0\n)\n) WHERE cohort_day >= toDate('2026-11-03') AND cohort_day<=toDate('2026-11-09') GROUP BY day0_post_group ORDER BY day0_post_group LIMIT 10",
+    "validFlows": "SELECT count() AS normal_post_flows, countIf(received>0) AS received_flows,\ncountIf(failed>0) AS had_failure_flows, countIf(received=0) AS not_received_flows,\ncountIf(viewed>0) AS viewed_flows,\nquantile(0.5)(latency_ms) AS median_ms, quantile(0.9)(latency_ms) AS p90_ms,\nquantile(0.95)(latency_ms) AS p95_ms\nFROM (SELECT person_id, properties.post_flow_id AS flow,\ncountIf(event='ai_replies_received') AS received, countIf(event='ai_replies_failed') AS failed,\ncountIf(event='ai_replies_viewed') AS viewed,\nmaxIf(toFloat(properties.duration_ms),event='ai_replies_received') AS latency_ms\nFROM events WHERE {filters} AND timestamp >=toDateTime('2026-11-02 15:00:00','UTC')\nAND timestamp <toDateTime('2026-11-16 15:00:00','UTC')\nAND event IN ('post_created','ai_replies_received','ai_replies_failed','ai_replies_viewed')\nAND properties.post_flow_id IS NOT NULL AND properties.post_flow_id!=''\nGROUP BY person_id, flow HAVING countIf(event='post_created')>0)"
+  },
+  "results": {
+    "cohort": [
+      {
+        "type": "text",
+        "text": "cohort_day|installs|onboard_day0_users|posted_day0_users|posted_twice_day0_users|posted_three_day0_users|returned_d1|returned_d3|returned_d7|returned_days1_7|returned_any_later|posts_day0\n2026-10-20|8|5|4|3|2|4|2|2|4|6|11\n2026-10-21|6|5|5|5|3|0|0|0|2|2|22\n2026-10-22|4|3|2|0|0|1|0|0|1|1|2\n2026-10-23|9|8|4|2|1|3|0|0|3|3|22\n2026-10-24|3|1|1|0|0|1|0|0|1|2|1\n2026-10-25|14|13|10|7|6|3|0|0|3|4|56\n2026-10-26|16|14|12|8|5|6|0|0|6|6|54\n2026-10-27|10|9|4|3|2|1|1|0|1|3|13\n2026-10-28|6|4|4|3|1|2|0|0|2|2|8\n2026-10-29|7|6|4|4|2|1|1|0|2|2|55\n2026-10-30|10|9|8|7|4|3|1|0|3|3|67\n2026-10-31|4|3|3|2|1|2|0|0|2|2|7\n2026-11-01|8|6|6|5|4|3|1|1|6|6|54\n2026-11-02|8|6|5|3|3|2|2|0|3|3|39\n2026-11-03|10|8|8|5|3|1|1|0|2|2|35\n2026-11-04|5|4|3|2|2|2|2|0|2|2|9\n2026-11-05|2|2|2|0|0|0|0|0|0|0|2\n2026-11-06|4|4|3|2|2|1|0|0|1|1|18\n2026-11-07|9|5|6|2|0|2|0|0|3|3|8\n2026-11-08|16|15|14|10|8|4|0|0|4|4|97\n2026-11-09|14|13|9|9|8|2|0|1|3|3|141\n2026-11-10|12|12|11|7|7|5|3|0|5|5|87\n2026-11-11|7|7|7|3|3|1|0|0|2|2|17\n2026-11-12|4|2|1|1|1|0|0|0|0|0|6\n2026-11-13|9|6|2|2|0|0|0|0|1|1|4\n2026-11-14|13|13|11|11|10|3|0|0|4|4|109\n2026-11-15|13|12|11|6|5|2|0|0|2|2|89\n2026-11-16|9|9|9|6|5|0|0|0|0|0|127"
+      }
+    ],
+    "depth": [
+      {
+        "type": "text",
+        "text": "day0_post_group|users|onboard_users|returned_d1|returned_days1_7\n0|15|9|1|1\n1|15|13|2|3\n2|7|6|1|2\n3+|23|23|8|9"
+      }
+    ],
+    "validFlows": [
+      {
+        "type": "text",
+        "text": "normal_post_flows|received_flows|had_failure_flows|not_received_flows|viewed_flows|median_ms|p90_ms|p95_ms\n302|301|1|1|300|4387.0|5982.0|6842.0"
+      }
+    ],
+    "coverage": [
+      {
+        "type": "text",
+        "text": "event|version|n|has_flow|first_flow\nai_replies_failed|1.1.1|34|0|1970-01-01T00:00:00Z\nai_replies_failed|1.1.2|1|1|2026-11-14T08:03:37.584000Z\nai_replies_received|1.1.1|891|0|1970-01-01T00:00:00Z\nai_replies_received|1.1.2|334|334|2026-11-13T13:33:05.350000Z\nai_replies_viewed|1.1.2|349|349|2026-11-13T13:33:12.427000Z\npost_created|1.1.1|839|0|1970-01-01T00:00:00Z\npost_created|1.1.2|302|302|2026-11-14T00:59:29.906000Z"
+      }
+    ],
+    "failures": [
+      {
+        "type": "text",
+        "text": "reason|failures|users|median_ms\nnetwork|35|15|6087.0"
+      }
+    ]
+  }
+}

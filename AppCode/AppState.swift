@@ -96,7 +96,16 @@ struct Reply: Identifiable, Equatable, Codable {
     }
 }
 
+struct RegularConversation: Equatable, Codable {
+    let userText: String
+    let replyText: String
+    let isUserReply: Bool
+    var occurredAt: Date? = nil
+}
+
 struct RegularFollower: Identifiable, Equatable, Codable {
+    static let memoryLimit = 10
+    static let interactionLimit = 10
     let id: String
     let authorName: String
     let avatarURL: String
@@ -106,6 +115,31 @@ struct RegularFollower: Identifiable, Equatable, Codable {
     var lastInteractionAt: Date?
     var impression: String? = nil
     var impressionLanguage: String? = nil
+    var impressionSummary: String? = nil
+    // Aligned with recentInteractions. Nil entries belong to older, summary-only data.
+    var conversationTexts: [RegularConversation?]? = nil
+    // Keep the first three distinct post IDs so replies and retries cannot unlock this early.
+    var impressionPostIDs: [UUID]? = nil
+
+    var canShowImpression: Bool { (impressionPostIDs?.count ?? 0) >= 3 }
+
+    mutating func recordImpressionPost(_ id: UUID) {
+        var ids = impressionPostIDs ?? []
+        guard ids.count < 3, !ids.contains(id) else { return }
+        ids.append(id)
+        impressionPostIDs = ids
+    }
+
+    mutating func rememberConversation(summary: String, original: RegularConversation?) {
+        var originals = Array((conversationTexts ?? []).suffix(recentInteractions.count))
+        if originals.count < recentInteractions.count {
+            originals.insert(contentsOf: Array(repeating: nil, count: recentInteractions.count - originals.count), at: 0)
+        }
+        recentInteractions.append(summary)
+        originals.append(original)
+        recentInteractions = Array(recentInteractions.suffix(Self.interactionLimit))
+        conversationTexts = Array(originals.suffix(Self.interactionLimit))
+    }
 }
 
 enum AddRegularFollowerResult {
@@ -186,6 +220,7 @@ struct PostModel: Identifiable, Codable {
     var replyThreads: [ReplyThread]
     var reaction: PostReaction?
     let time: String
+    var createdAt: Date? = nil
 
     init(
         id: UUID = UUID(),
@@ -195,7 +230,8 @@ struct PostModel: Identifiable, Codable {
         replies: [Reply],
         replyThreads: [ReplyThread] = [],
         isOnboarding: Bool = false,
-        time: String
+        time: String,
+        createdAt: Date? = Date()
     ) {
         self.id = id
         self.isOnboarding = isOnboarding
@@ -205,10 +241,11 @@ struct PostModel: Identifiable, Codable {
         self.replies = replies
         self.replyThreads = replyThreads
         self.time = time
+        self.createdAt = createdAt
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, isOnboarding, content, imageData, likes, replies, replyThreads, reaction, time
+        case id, isOnboarding, content, imageData, likes, replies, replyThreads, reaction, time, createdAt
     }
 
     init(from decoder: Decoder) throws {
@@ -222,6 +259,7 @@ struct PostModel: Identifiable, Codable {
         replyThreads = try container.decodeIfPresent([ReplyThread].self, forKey: .replyThreads) ?? []
         reaction = try container.decodeIfPresent(PostReaction.self, forKey: .reaction)
         time = try container.decodeIfPresent(String.self, forKey: .time) ?? ""
+        createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -235,6 +273,7 @@ struct PostModel: Identifiable, Codable {
         try container.encode(replyThreads, forKey: .replyThreads)
         try container.encodeIfPresent(reaction, forKey: .reaction)
         try container.encode(time, forKey: .time)
+        try container.encodeIfPresent(createdAt, forKey: .createdAt)
     }
 }
 
@@ -596,6 +635,16 @@ class AppState: ObservableObject {
         guard let data = try? Data(contentsOf: regularFollowersURL),
               let decoded = try? JSONDecoder().decode([RegularFollower].self, from: data) else { return }
         regularFollowers = Array(decoded.prefix(3))
+        // Older installations have no counter. Recover only posts that are still on device.
+        for index in regularFollowers.indices {
+            let follower = regularFollowers[index]
+            for post in posts where post.replies.contains(where: {
+                $0.regularFollowerId == follower.id ||
+                (!$0.isUserReply && $0.authorName == follower.authorName && $0.img == follower.avatarURL)
+            }) {
+                regularFollowers[index].recordImpressionPost(post.id)
+            }
+        }
     }
     
     var currentRank: Int {
@@ -653,15 +702,21 @@ class AppState: ObservableObject {
         let postSummary = String(postContent.prefix(100))
         let replySummary = String(reply.text.prefix(120))
         let initialInteraction = "投稿「\(postSummary)」に「\(replySummary)」と返信した"
-        let follower = RegularFollower(
+        let originatingPost = posts.first(where: { $0.replies.contains(where: { $0.id == reply.id }) })
+        var follower = RegularFollower(
             id: reply.regularFollowerId ?? UUID().uuidString.lowercased(),
             authorName: reply.authorName,
             avatarURL: reply.img,
             memories: [],
             recentInteractions: [initialInteraction],
             createdAt: Date(),
-            lastInteractionAt: Date()
+            lastInteractionAt: Date(),
+            conversationTexts: [RegularConversation(userText: postContent, replyText: reply.text, isUserReply: false,
+                                                     occurredAt: originatingPost?.createdAt)]
         )
+        if let post = originatingPost {
+            follower.recordImpressionPost(post.id)
+        }
         regularFollowers.append(follower)
         UPMEAnalytics.capture("regular_follower_added", properties: [
             "rank": currentRank,
@@ -901,19 +956,23 @@ class AppState: ObservableObject {
                 "follower_id": follower.id,
                 "author_name": follower.authorName,
                 "avatar_url": follower.avatarURL,
-                "memories": Array(follower.memories.suffix(8)),
-                "recent_interactions": Array(follower.recentInteractions.suffix(3))
+                "memories": Array(follower.memories.suffix(RegularFollower.memoryLimit)),
+                "recent_interactions": Array(follower.recentInteractions.suffix(RegularFollower.interactionLimit))
             ]
         }
     }
 
-    private func applyRegularFollowerMemoryUpdates(_ updates: [[String: Any]]) {
+    private func applyRegularFollowerMemoryUpdates(_ updates: [[String: Any]], userText: String,
+                                                  replies: [Reply], postID: UUID, occurredAt: Date, isUserReply: Bool = false) {
         guard !updates.isEmpty else { return }
         var updatedFollowers = regularFollowers
 
         for update in updates {
             guard let followerID = update["follower_id"] as? String,
                   let index = updatedFollowers.firstIndex(where: { $0.id == followerID }) else { continue }
+            if !isUserReply, replies.contains(where: { $0.regularFollowerId == followerID }) {
+                updatedFollowers[index].recordImpressionPost(postID)
+            }
 
             let incomingMemories = (update["new_memories"] as? [String] ?? [])
                 .map { String($0.prefix(160)) }
@@ -922,21 +981,26 @@ class AppState: ObservableObject {
             for memory in incomingMemories where !mergedMemories.contains(memory) {
                 mergedMemories.append(memory)
             }
-            updatedFollowers[index].memories = Array(mergedMemories.suffix(8))
+            updatedFollowers[index].memories = Array(mergedMemories.suffix(RegularFollower.memoryLimit))
 
             if let impression = update["impression"] as? String {
                 let trimmed = String(impression.prefix(600)).trimmingCharacters(in: .whitespacesAndNewlines)
                 if !trimmed.isEmpty {
                     updatedFollowers[index].impression = trimmed
                     updatedFollowers[index].impressionLanguage = update["impression_language"] as? String
+                    let summary = (update["impression_summary"] as? String ?? "")
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                    updatedFollowers[index].impressionSummary = summary.isEmpty ? nil : String(summary.prefix(120))
                 }
             }
 
             if let interaction = update["interaction_summary"] as? String {
                 let trimmed = String(interaction.prefix(180)).trimmingCharacters(in: .whitespacesAndNewlines)
                 if !trimmed.isEmpty {
-                    updatedFollowers[index].recentInteractions.append(trimmed)
-                    updatedFollowers[index].recentInteractions = Array(updatedFollowers[index].recentInteractions.suffix(3))
+                    let original = replies.first(where: { $0.regularFollowerId == followerID }).map {
+                        RegularConversation(userText: userText, replyText: $0.text, isUserReply: isUserReply, occurredAt: occurredAt)
+                    }
+                    updatedFollowers[index].rememberConversation(summary: trimmed, original: original)
                 }
             }
             updatedFollowers[index].lastInteractionAt = Date()
@@ -1119,8 +1183,8 @@ class AppState: ObservableObject {
                 "follower_id": targetRegular.id,
                 "author_name": targetRegular.authorName,
                 "avatar_url": targetRegular.avatarURL,
-                "memories": Array(targetRegular.memories.suffix(8)),
-                "recent_interactions": Array(targetRegular.recentInteractions.suffix(3))
+                "memories": Array(targetRegular.memories.suffix(RegularFollower.memoryLimit)),
+                "recent_interactions": Array(targetRegular.recentInteractions.suffix(RegularFollower.interactionLimit))
             ]
         }
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
@@ -1200,7 +1264,8 @@ class AppState: ObservableObject {
             }
 
             DispatchQueue.main.async {
-                self.applyRegularFollowerMemoryUpdates(memoryUpdates)
+                self.applyRegularFollowerMemoryUpdates(memoryUpdates, userText: trimmed, replies: followUps, postID: postID,
+                                                       occurredAt: replyRequestStartedAt, isUserReply: true)
                 guard let currentPostIndex = self.posts.firstIndex(where: { $0.id == postID }) else {
                     self.isSubmittingUserReply = false
                     self.failReplyThread(postID: postID, targetReplyID: reply.id, message: self.text("投稿が見つからないため、返信を表示できませんでした。", "The post could not be found, so the replies could not be shown."))
@@ -1324,7 +1389,6 @@ class AppState: ObservableObject {
                 DispatchQueue.main.async {
                     self.debugText = "OK \(repliesJson.count) replies"
                     self.finishPostRequest(postFlowID)
-                    self.applyRegularFollowerMemoryUpdates(memoryUpdates)
                     var pending: [Reply] = []
                     for r in repliesJson {
                         let author = r["author_name"] as? String ?? self.text("名無し", "Anonymous")
@@ -1335,6 +1399,8 @@ class AppState: ObservableObject {
                         let regularFollowerID = r["regular_follower_id"] as? String
                         pending.append(Reply(authorName: author, text: content, img: img, isHater: isHater, isDefender: isDefender, regularFollowerId: regularFollowerID))
                     }
+                    self.applyRegularFollowerMemoryUpdates(memoryUpdates, userText: content, replies: pending, postID: postFlowID,
+                                                           occurredAt: requestStartedAt)
                     UPMEAnalytics.capture("ai_replies_received", properties: [
                         "post_flow_id": postFlowID.uuidString.lowercased(),
                         "duration_ms": Int(Date().timeIntervalSince(requestStartedAt) * 1_000),

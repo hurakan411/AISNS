@@ -426,6 +426,12 @@ struct StatCard: View {
 
 struct RegularImpressionView: View {
     @EnvironmentObject var appState: AppState
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isBack = false
+    @State private var selectedConversation: Int?
+    @Namespace private var conversationTransition
+    @State private var sheetDetent: PresentationDetent = .fraction(0.85)
     let followerID: String
 
     var body: some View {
@@ -434,41 +440,347 @@ struct RegularImpressionView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     HStack(spacing: 14) {
                         AIAvatarImage(url: follower.avatarURL)
-                            .frame(width: 60, height: 60)
+                            .frame(width: 48, height: 48)
                             .clipShape(Circle())
-                            .overlay(Circle().stroke(Theme.lavender.opacity(0.7), lineWidth: 2))
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(appState.text("\(follower.authorName)から見たあなた", "How \(follower.authorName) sees you"))
-                                .font(.system(size: 21, weight: .bold))
-                            Text(appState.text("これまでの会話から", "From your conversations"))
-                                .font(.subheadline).foregroundStyle(Theme.lavender)
-                        }
-                    }
-                    if let impression = follower.impression, !impression.isEmpty {
-                        Text(impression)
-                            .font(.system(size: 19, weight: .medium))
-                            .lineSpacing(7)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(22)
-                            .background {
-                                FeedCardSurface(fill: Theme.aiCardBackground, accent: Theme.lavender,
-                                                border: Theme.lavender.opacity(0.4), cornerRadius: 22)
+                            .overlay(Circle().stroke(Theme.lavender.opacity(0.45), lineWidth: 1))
+                        VStack(alignment: .leading, spacing: 5) {
+                            HStack(spacing: 8) {
+                                Text(follower.authorName).font(.system(size: 19, weight: .semibold))
+                                Text(appState.text("常連", "Regular"))
+                                    .font(.system(size: 10, weight: .semibold)).foregroundStyle(Theme.lavender)
+                                    .padding(.horizontal, 7).padding(.vertical, 4)
+                                    .background(Theme.lavender.opacity(0.1), in: Capsule())
                             }
-                    } else {
-                        Text(appState.text("まだあなたのことを知っている途中です。次の投稿や会話から、この常連が感じたあなたらしさが届きます。", "Still getting to know you. After your next post or conversation, this regular can share an impression of you."))
-                            .font(.body).foregroundStyle(.white.opacity(0.8)).lineSpacing(5)
+                        }
+                        Spacer(minLength: 0)
+                        Button { dismiss() } label: {
+                            Image(systemName: "xmark").font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(.white.opacity(0.75))
+                                .frame(width: 30, height: 30)
+                                .background(.white.opacity(0.07), in: Circle())
+                                .frame(width: 44, height: 44)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(appState.text("閉じる", "Close"))
                     }
-                    Text(appState.text("覚えている会話をもとに、この常連が感じたあなたの素敵なところ。会話を重ねると更新されます。", "The lovely things this regular notices about you, drawn from the conversations they remember. It evolves as you talk."))
-                        .font(.caption).foregroundStyle(.white.opacity(0.5)).lineSpacing(3)
+                    ZStack {
+                        card(follower, back: false)
+                            .modifier(ImpressionCardFace(angle: isBack ? 180 : 0))
+                            .allowsHitTesting(!isBack).accessibilityHidden(isBack)
+                        card(follower, back: true)
+                            .modifier(ImpressionCardFace(angle: isBack ? 0 : -180))
+                            .allowsHitTesting(isBack).accessibilityHidden(!isBack)
+                    }
                 }
                 .foregroundStyle(.white)
-                .padding(24).padding(.top, 12)
+                .padding(.horizontal, 26).padding(.top, 20).padding(.bottom, 24)
+            } else {
+                Text(appState.text("この常連は解除されています", "This regular has been removed"))
+                    .foregroundStyle(.secondary).padding(32)
             }
         }
-        .presentationDetents([.medium, .large])
+        .accessibilityHidden(selectedConversation != nil)
+        .scrollDisabled(selectedConversation != nil)
+        .overlay {
+            if let slot = selectedConversation,
+               let follower = appState.regularFollowers.first(where: { $0.id == followerID }) {
+                let count = min(follower.recentInteractions.count, 10)
+                let index = slot - (10 - count)
+                if index >= 0 && index < count {
+                    ZStack {
+                        Color.black.opacity(0.65)
+                            .contentShape(Rectangle())
+                            .onTapGesture { selectConversation(nil) }
+                            .accessibilityHidden(true)
+                            .transition(.opacity)
+                        rememberedConversation(follower, index: index)
+                            .background(Color(red: 0.13, green: 0.09, blue: 0.18), in: RoundedRectangle(cornerRadius: 25))
+                            .clipShape(RoundedRectangle(cornerRadius: 25))
+                            .matchedGeometryEffect(id: slot, in: conversationTransition, properties: reduceMotion ? [] : .frame)
+                            .shadow(color: .black.opacity(0.4), radius: 24, y: 8)
+                            .padding(16)
+                            .accessibilityAddTraits(.isModal)
+                            .transition(.opacity)
+                    }
+                }
+            }
+        }
+        .interactiveDismissDisabled(selectedConversation != nil)
+        .presentationDetents([.fraction(0.85), .large], selection: $sheetDetent)
         .presentationDragIndicator(.visible)
-        .presentationCornerRadius(30)
-        .presentationBackground(Theme.bgDeepBlack)
+        .presentationCornerRadius(34)
+        .presentationBackground {
+            Color.black
+                .overlay {
+                    FeedCornerAccent(cornerRadius: 34)
+                        .fill(LinearGradient(colors: [Theme.lavender.opacity(0.35), Theme.lavender],
+                                             startPoint: .leading, endPoint: .trailing))
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+    }
+
+    private func card(_ follower: RegularFollower, back: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 20) {
+            if back {
+                impressionSectionHeading(appState.text("\(follower.authorName)から見たあなた", "How \(follower.authorName) sees you"), icon: "heart.text.square")
+                Text(!follower.canShowImpression ? waitingForPosts : (nonempty(follower.impression) ?? appState.text(
+                    "会話を重ねると、ここに人柄や大切にしていることの総評が表示されます。",
+                    "A profile of their qualities and values will appear as conversations build up.")))
+                    .font(.system(size: 17)).lineSpacing(9)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                VStack(alignment: .leading, spacing: 18) {
+                    impressionSectionHeading(appState.text("\(follower.authorName)から見たあなた", "How \(follower.authorName) sees you"), icon: "heart.text.square")
+                    Text(headline(follower))
+                        .font(.system(size: 20, weight: .semibold)).lineSpacing(5)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                VStack(alignment: .leading, spacing: 14) {
+                    impressionSectionHeading(appState.text("覚えている会話", "Remembered conversations"),
+                                             icon: "bubble.left.and.bubble.right",
+                                             count: "\(min(follower.recentInteractions.count, 10)) / 10")
+                    mosaic(follower)
+                    Text(appState.text("光るマスひとつが、ひとつの会話。タップして読み返せます。", "Each lit tile is a conversation. Tap to read it again."))
+                        .font(.caption).foregroundStyle(.white.opacity(0.6))
+                }
+                .padding(.top, 10)
+            }
+            Spacer(minLength: 0)
+            Button {
+                selectedConversation = nil
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.4)) { isBack.toggle() }
+            } label: {
+                Label(back ? appState.text("戻る", "Back") : appState.text("詳しく", "Details"),
+                      systemImage: "arrow.triangle.2.circlepath")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Theme.lavender)
+                    .frame(maxWidth: .infinity, minHeight: 48)
+                    .background(Theme.lavender.opacity(0.08), in: Capsule())
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+    }
+
+    private func impressionSectionHeading(_ title: String, icon: String, count: String? = nil) -> some View {
+        HStack(spacing: 9) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Theme.lavender)
+                .frame(width: 28, height: 28)
+                .background(Theme.lavender.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+                .accessibilityHidden(true)
+            Text(title)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.9))
+                .fixedSize(horizontal: false, vertical: true)
+                .layoutPriority(1)
+            Rectangle()
+                .fill(Theme.lavender.opacity(0.25))
+                .frame(minWidth: 12, maxWidth: 32, minHeight: 1, maxHeight: 1)
+                .accessibilityHidden(true)
+            Spacer(minLength: 0)
+            if let count {
+                Text(count)
+                    .font(.system(size: 11, weight: .medium)).monospacedDigit()
+                    .foregroundStyle(Theme.lavender)
+                    .padding(.horizontal, 8).padding(.vertical, 5)
+                    .background(Theme.lavender.opacity(0.1), in: Capsule())
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+    }
+
+    private func mosaic(_ follower: RegularFollower) -> some View {
+        let conversations = Array(follower.recentInteractions.suffix(10))
+        return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 9), count: 5), spacing: 9) {
+            ForEach(0..<10, id: \.self) { slot in
+                let index = slot - (10 - conversations.count)
+                let isLit = index >= 0
+                let isLatest = isLit && index == conversations.count - 1
+                Button { selectConversation(slot) } label: {
+                    Group {
+                        if selectedConversation == slot {
+                            Color.clear
+                        } else {
+                            RoundedRectangle(cornerRadius: 10)
+                        .fill(LinearGradient(colors: isLit
+                            ? (isLatest ? [Theme.hotPink, Theme.hotPink.opacity(0.65)] : [Theme.lavender, Theme.lavender.opacity(0.65)])
+                            : [Theme.lavender.opacity(0.12), Theme.lavender.opacity(0.06)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 10)
+                                .strokeBorder(selectedConversation == slot ? Color.white : (isLit ? Color.white.opacity(0.18) : Theme.lavender.opacity(0.4)),
+                                              lineWidth: selectedConversation == slot ? 2 : 1)
+                        }
+                        .overlay(alignment: .bottomTrailing) {
+                            if isLatest { Circle().fill(.white.opacity(0.9)).frame(width: 4, height: 4).padding(7) }
+                        }
+                        .shadow(color: isLit ? Theme.lavender.opacity(0.14) : .clear, radius: 7)
+                        .matchedGeometryEffect(id: slot, in: conversationTransition, properties: reduceMotion ? [] : .frame)
+                        }
+                    }
+                    .aspectRatio(1, contentMode: .fit).frame(minHeight: 44)
+                }
+                .buttonStyle(.plain).disabled(!isLit)
+                .accessibilityLabel(isLit ? appState.text("会話 \(index + 1)を見る", "View conversation \(index + 1)") : appState.text("まだ会話がありません", "No conversation yet"))
+            }
+        }
+    }
+
+    private func selectConversation(_ slot: Int?) {
+        withAnimation(reduceMotion ? nil : .spring(response: 0.38, dampingFraction: 0.88)) {
+            selectedConversation = slot
+        }
+    }
+
+    private func rememberedConversation(_ follower: RegularFollower, index: Int) -> some View {
+        let originals = follower.conversationTexts ?? []
+        let original = originals.indices.contains(index) ? originals[index] : nil
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center, spacing: 10) {
+                Image(systemName: "bubble.left.and.bubble.right")
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(Theme.lavender)
+                    .frame(width: 36, height: 36)
+                    .background(Theme.lavender.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(appState.text("覚えている会話", "Remembered conversation"))
+                        .font(.system(size: 14, weight: .semibold))
+                    if let date = original?.occurredAt {
+                        Text(date, format: .dateTime.year().month().day().locale(appState.locale))
+                            .font(.system(size: 11, weight: .medium)).foregroundStyle(.white.opacity(0.55))
+                    } else {
+                        Text(appState.text("日付は未保存", "Date not saved"))
+                            .font(.system(size: 11)).foregroundStyle(.white.opacity(0.45))
+                    }
+                }
+                Spacer(minLength: 0)
+                Button { selectConversation(nil) } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.7))
+                        .frame(width: 28, height: 28)
+                        .background(.white.opacity(0.07), in: Circle())
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(appState.text("閉じる", "Close"))
+            }
+            Rectangle()
+                .fill(LinearGradient(colors: [Theme.lavender.opacity(0.35), Theme.lavender.opacity(0.03)], startPoint: .leading, endPoint: .trailing))
+                .frame(height: 0.5)
+            if let original {
+                ViewThatFits(in: .vertical) {
+                    conversationExchange(original, follower: follower)
+                    ScrollView {
+                        conversationExchange(original, follower: follower)
+                    }
+                    .scrollBounceBehavior(.basedOnSize)
+                }
+                .frame(maxHeight: 260)
+                .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text(appState.text("この会話の原文は保存されていません。これからのやり取りは、投稿と返信をそのまま表示します。", "The original text of this conversation wasn’t saved. Future conversations will show your words and their reply."))
+                    .font(.subheadline).foregroundStyle(.white.opacity(0.65))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .foregroundStyle(.white)
+        .padding(14)
+        .frame(idealWidth: 290, maxWidth: 310)
+        .background {
+            RoundedRectangle(cornerRadius: 22)
+                .strokeBorder(Theme.lavender.opacity(0.3), lineWidth: 0.75)
+        }
+        .padding(3)
+    }
+
+    private func conversationExchange(_ original: RegularConversation, follower: RegularFollower) -> some View {
+                    VStack(alignment: .leading, spacing: 16) {
+                        conversationText(label: original.isUserReply ? appState.text("あなたの返信", "Your reply") : appState.text("あなたの投稿", "Your post"),
+                                         text: original.userText, color: Theme.hotPink)
+                            .padding(.leading, 18)
+                        VStack(alignment: .leading, spacing: 9) {
+                            HStack(spacing: 8) {
+                                AIAvatarImage(url: follower.avatarURL)
+                                    .frame(width: 24, height: 24).clipShape(Circle())
+                                    .overlay(Circle().stroke(Theme.lavender.opacity(0.4), lineWidth: 0.5))
+                                Text(follower.authorName)
+                                    .font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.lavender)
+                            }
+                            conversationBubble(original.replyText, color: Theme.lavender)
+                        }
+                        .padding(.trailing, 18)
+                    }
+                    .padding(.vertical, 2)
+                    .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func conversationText(label: String, text: String, color: Color) -> some View {
+        VStack(alignment: .trailing, spacing: 9) {
+            Text(label).font(.system(size: 12, weight: .semibold)).foregroundStyle(color)
+            conversationBubble(text, color: color)
+        }
+    }
+
+    private func conversationBubble(_ text: String, color: Color) -> some View {
+        Text(text).font(.system(size: 15)).lineSpacing(6)
+                .fixedSize(horizontal: false, vertical: true)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(14)
+                .background(color.opacity(0.09), in: RoundedRectangle(cornerRadius: 16))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16).strokeBorder(color.opacity(0.23), lineWidth: 0.75)
+                }
+    }
+
+    private func nonempty(_ value: String?) -> String? {
+        guard let value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        return value
+    }
+
+    private func headline(_ follower: RegularFollower) -> String {
+        guard follower.canShowImpression else { return waitingForPosts }
+        if let summary = nonempty(follower.impressionSummary) { return summary }
+        // Older responses only have the detailed impression. Show a complete first sentence,
+        // rather than inventing a new personality assessment or making an API call on opening.
+        if let impression = nonempty(follower.impression) {
+            if let end = impression.firstIndex(where: { "。.!！?？".contains($0) }) {
+                return String(impression[...end])
+            }
+            return impression
+        }
+        return appState.text("あなたらしさを、これから少しずつ。", "Getting to know what makes you, you.")
+    }
+
+    private var waitingForPosts: String {
+        appState.text("まだわかりません。\n3件の投稿で会話を重ねると、総評が表示されます。",
+                      "Not enough to tell yet.\nA profile appears after conversations on three posts.")
+    }
+}
+
+/// Opacity follows the animated angle, so mirrored lettering never shows during a flip.
+private struct ImpressionCardFace: AnimatableModifier {
+    var angle: Double
+    var animatableData: Double {
+        get { angle }
+        set { angle = newValue }
+    }
+    func body(content: Content) -> some View {
+        content
+            .opacity(cos(angle * .pi / 180) > 0 ? 1 : 0)
+            .rotation3DEffect(.degrees(angle), axis: (x: 0, y: 1, z: 0), perspective: 0.25)
     }
 }
 

@@ -43,6 +43,41 @@ class PromptCaptureClient:
 
 
 class RegularFollowerApiTests(unittest.TestCase):
+    def test_ten_memories_and_summaries_reach_post_and_thread_prompts(self):
+        def regular(id, name):
+            return backend_main.RegularFollowerContext(follower_id=id, author_name=name,
+                avatar_url="https://example.test/avatar",
+                memories=[f"{id}-FACT-{i:02d}" for i in range(12)],
+                recent_interactions=[f"{id}-HISTORY-{i:02d}" for i in range(12)])
+        target, other = regular("target", "ゆき"), regular("other", "みく")
+        for language in ("ja", "en"):
+            for thread in (False, True):
+                with self.subTest(language=language, thread=thread):
+                    response = (GenerateReplyThreadResponse if thread else GenerateRepliesResponse)(
+                        replies=[ReplySchema(author_name="ゆき", content="Nice!", is_hater=False,
+                            is_defender=False, regular_follower_id="target")], memory_updates=[])
+                    capture = PromptCaptureClient(response)
+                    with (patch.object(backend_main, "openai_client", capture),
+                          patch.object(backend_main, "resolve_avatar_url", return_value="https://example.test/avatar")):
+                        if thread:
+                            asyncio.run(backend_main.generate_ai_reply_to_user(ReplyToAiRequest(
+                                user_id="synthetic", post_content="Walk", ai_author_name="ゆき",
+                                ai_reply_content="Nice!", user_reply="Thanks", is_hater_enabled=False,
+                                language=language, target_regular_follower=target, regular_followers=[target, other],
+                                other_ai_replies=[backend_main.ThreadReplyContext(author_name="みく", content="Nice too!",
+                                    regular_follower_id="other")])) )
+                        else:
+                            asyncio.run(backend_main.generate_ai_replies("Walk", 200000, False,
+                                regular_followers=[target, other], language=language))
+                    self.assertEqual(len(capture.calls), 1)
+                    prompt = json.dumps(capture.calls[0]["messages"], ensure_ascii=False)
+                    for id in ("target", "other"):
+                        for kind in ("FACT", "HISTORY"):
+                            self.assertNotIn(f"{id}-{kind}-00", prompt)
+                            self.assertNotIn(f"{id}-{kind}-01", prompt)
+                            for i in range(2, 12):
+                                self.assertIn(f"{id}-{kind}-{i:02d}", prompt)
+
     def test_impressions_travel_with_participating_regular_memory_in_one_call(self):
         for language in ("ja", "en"):
             for thread in (False, True):
@@ -54,7 +89,8 @@ class RegularFollowerApiTests(unittest.TestCase):
                                      "is_defender": False, "regular_follower_id": "yuki"}],
                         "memory_updates": [
                             {"follower_id": id, "new_memories": ["Likes walks"],
-                             "interaction_summary": "Talked about a walk", "impression": impression}
+                             "interaction_summary": "Talked about a walk", "impression": impression,
+                             "impression_summary": "小さな発見を楽しめる人。" if language == "ja" else "You find joy in small discoveries."}
                             for id in ("yuki", "not-a-participant")],
                     })
                     regular = backend_main.RegularFollowerContext(follower_id="yuki", author_name="ゆき",
@@ -73,6 +109,8 @@ class RegularFollowerApiTests(unittest.TestCase):
                     self.assertEqual(len(result[1]), 1)
                     self.assertEqual(result[1][0]["impression"], impression)
                     self.assertEqual(result[1][0]["impression_language"], language)
+                    self.assertEqual(result[1][0]["impression_summary"],
+                        "小さな発見を楽しめる人。" if language == "ja" else "You find joy in small discoveries.")
 
     def test_onboarding_off_has_no_critic_arc_even_when_viral(self):
         for language in ("ja", "en"):
