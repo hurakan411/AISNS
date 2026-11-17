@@ -1,0 +1,1953 @@
+{
+  "synthetic": true,
+  "experimental_only": true,
+  "db_writes": false,
+  "created_at": "2026-11-17T23:30:58.028855+00:00",
+  "fx_assumed": 160,
+  "max_cost_usd": 0.1,
+  "samples": [
+    {
+      "case": "work",
+      "post": "今日も１日仕事頑張ったー！！！",
+      "language": "ja",
+      "variant": "baseline",
+      "character_ids": [],
+      "model_returned": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 233,
+        "prompt_tokens": 5263,
+        "total_tokens": 5496,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0,
+          "cache_write_tokens": 5260
+        }
+      },
+      "cost": {
+        "usd_lower": 0.0007743000000000001,
+        "usd_upper": 0.0007743000000000001,
+        "input_only_no_cache_jpy": 0.10526
+      },
+      "latency_ms": 3437,
+      "prompt_sha256": "b6ed239da1ad1e8622a9bd2f54d777a850147f3247e4e74ee4c0eee126bba66b",
+      "replies": [
+        {
+          "author_name": "ゆき",
+          "content": "今日も一日おつかれさま！頑張りきった感じ、伝わってくるよ。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "たけし",
+          "content": "えらい！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "みく",
+          "content": "仕事完了、今日はもう達成感に浸ろう。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "れん",
+          "content": "「今日も」ってところに、続けて頑張ってる感じが出てるね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "あおい",
+          "content": "おつかれ！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "work",
+      "post": "今日も１日仕事頑張ったー！！！",
+      "language": "ja",
+      "variant": "characters",
+      "character_ids": [
+        "v1-01",
+        "v1-02",
+        "v1-03",
+        "v1-04",
+        "v1-05"
+      ],
+      "model_returned": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 278,
+        "prompt_tokens": 5238,
+        "total_tokens": 5516,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0,
+          "cache_write_tokens": 5235
+        }
+      },
+      "cost": {
+        "usd_lower": 0.0007936750000000001,
+        "usd_upper": 0.0007936750000000001,
+        "input_only_no_cache_jpy": 0.10475999999999999
+      },
+      "latency_ms": 2518,
+      "prompt_sha256": "ff29ef2cdc116f18fa7c314cea90030fb8b99def3d1bc5c1ea07117a379fc0b5",
+      "replies": [
+        {
+          "author_name": "ゆき",
+          "content": "今日も一日お仕事おつかれさまでした。頑張ったって言えるの、いいですね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-01"
+        },
+        {
+          "author_name": "たけし",
+          "content": "おつかれ！今日も乗り切ったね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-02"
+        },
+        {
+          "author_name": "みく",
+          "content": "頑張ったね！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-03"
+        },
+        {
+          "author_name": "れん",
+          "content": "一日しっかり働いた達成感、今日はちゃんと味わっていい日ですね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-04"
+        },
+        {
+          "author_name": "あおい",
+          "content": "今日の仕事、無事終わってよかったね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-05"
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "work",
+      "post": "今日も１日仕事頑張ったー！！！",
+      "language": "ja",
+      "variant": "characters",
+      "character_ids": [
+        "v1-06",
+        "v1-07",
+        "v1-08",
+        "v1-09",
+        "v1-10"
+      ],
+      "model_returned": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 286,
+        "prompt_tokens": 5250,
+        "total_tokens": 5536,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0,
+          "cache_write_tokens": 5247
+        }
+      },
+      "cost": {
+        "usd_lower": 0.000799175,
+        "usd_upper": 0.000799175,
+        "input_only_no_cache_jpy": 0.10500000000000001
+      },
+      "latency_ms": 4194,
+      "prompt_sha256": "f51b35927f4c81c1584ef44ac1f2f2eb4d66f57d6b3dbf14786ed5783f9712b1",
+      "replies": [
+        {
+          "author_name": "ゆき",
+          "content": "今日も一日お仕事おつかれさま！頑張った分、ゆっくりできる時間がありますように。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-06"
+        },
+        {
+          "author_name": "みく",
+          "content": "おつかれさま！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-07"
+        },
+        {
+          "author_name": "れん",
+          "content": "今日の仕事、無事完走だね。あとはのんびりモードかな",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-08"
+        },
+        {
+          "author_name": "たけし",
+          "content": "一日やり切ったんだね。まずはその達成感を味わって。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-09"
+        },
+        {
+          "author_name": "あおい",
+          "content": "今日も頑張ったね！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-10"
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "work",
+      "post": "今日も１日仕事頑張ったー！！！",
+      "language": "ja",
+      "variant": "characters",
+      "character_ids": [
+        "v1-11",
+        "v1-12",
+        "v1-13",
+        "v1-14",
+        "v1-15"
+      ],
+      "model_returned": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 269,
+        "prompt_tokens": 5246,
+        "total_tokens": 5515,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0,
+          "cache_write_tokens": 5243
+        }
+      },
+      "cost": {
+        "usd_lower": 0.0007901750000000001,
+        "usd_upper": 0.0007901750000000001,
+        "input_only_no_cache_jpy": 0.10492
+      },
+      "latency_ms": 3247,
+      "prompt_sha256": "ce7e004b811a9086d46e208dddc3fe045a0f8bf532668348f10c30034e6a8eb4",
+      "replies": [
+        {
+          "author_name": "ゆき",
+          "content": "今日も一日やり切ったんだね、頑張りが伝わってくる！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-11"
+        },
+        {
+          "author_name": "たけし",
+          "content": "おつかれさま！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-12"
+        },
+        {
+          "author_name": "みく",
+          "content": "仕事終わりの解放感！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-13"
+        },
+        {
+          "author_name": "れん",
+          "content": "今日も仕事を頑張った自分に、ちゃんと丸をあげていい日だね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-14"
+        },
+        {
+          "author_name": "さくら",
+          "content": "よく頑張ったね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-15"
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "work",
+      "post": "今日も１日仕事頑張ったー！！！",
+      "language": "ja",
+      "variant": "characters",
+      "character_ids": [
+        "v1-16",
+        "v1-17",
+        "v1-18",
+        "v1-19",
+        "v1-20"
+      ],
+      "model_returned": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 282,
+        "prompt_tokens": 5248,
+        "total_tokens": 5530,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0,
+          "cache_write_tokens": 5245
+        }
+      },
+      "cost": {
+        "usd_lower": 0.000796925,
+        "usd_upper": 0.000796925,
+        "input_only_no_cache_jpy": 0.10496
+      },
+      "latency_ms": 3543,
+      "prompt_sha256": "71fe60223d20676cddc4b6702dcf7f414041939fed0c414fd58175efc5270293",
+      "replies": [
+        {
+          "author_name": "ゆき",
+          "content": "今日もお仕事おつかれさま！頑張った一日、ちゃんと終えられてよかったね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-16"
+        },
+        {
+          "author_name": "たけし",
+          "content": "一日やりきったね！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-17"
+        },
+        {
+          "author_name": "みく",
+          "content": "えらい！おつかれ！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-18"
+        },
+        {
+          "author_name": "れん",
+          "content": "今日も頑張れたって思えるのいいね。自分でそう言えるの、気持ちよさそう。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-19"
+        },
+        {
+          "author_name": "あおい",
+          "content": "今日はよく眠れそうだね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-20"
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "work",
+      "post": "今日も１日仕事頑張ったー！！！",
+      "language": "ja",
+      "variant": "characters",
+      "character_ids": [
+        "v1-21",
+        "v1-22",
+        "v1-23",
+        "v1-24",
+        "v1-25"
+      ],
+      "model_returned": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 286,
+        "prompt_tokens": 5267,
+        "total_tokens": 5553,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0,
+          "cache_write_tokens": 5264
+        }
+      },
+      "cost": {
+        "usd_lower": 0.0008013,
+        "usd_upper": 0.0008013,
+        "input_only_no_cache_jpy": 0.10534
+      },
+      "latency_ms": 3371,
+      "prompt_sha256": "250fe989785e3f40b7740fa5f0d2b7fa8ef5153627248b5b62514fd442f1af1d",
+      "replies": [
+        {
+          "author_name": "ゆき",
+          "content": "今日も一日お仕事おつかれさま！頑張りきったね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-21"
+        },
+        {
+          "author_name": "たけし",
+          "content": "おつかれ！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-22"
+        },
+        {
+          "author_name": "みく",
+          "content": "今日も頑張った自分を、少しねぎらってあげてくださいね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-23"
+        },
+        {
+          "author_name": "れん",
+          "content": "仕事をやり切った日の解放感、帰り道からもう始まってそう",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-24"
+        },
+        {
+          "author_name": "あおい",
+          "content": "一日頑張ったあとのごはん、いつもよりおいしく感じそう",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-25"
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "work",
+      "post": "今日も１日仕事頑張ったー！！！",
+      "language": "ja",
+      "variant": "characters",
+      "character_ids": [
+        "v1-26",
+        "v1-27",
+        "v1-28",
+        "v1-29",
+        "v1-30"
+      ],
+      "model_returned": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 286,
+        "prompt_tokens": 5254,
+        "total_tokens": 5540,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0,
+          "cache_write_tokens": 5251
+        }
+      },
+      "cost": {
+        "usd_lower": 0.000799675,
+        "usd_upper": 0.000799675,
+        "input_only_no_cache_jpy": 0.10508
+      },
+      "latency_ms": 3141,
+      "prompt_sha256": "eaa1402cc03ca50986f927662b58f1e7a75013eaa5a3f9066d5b877f071312fc",
+      "replies": [
+        {
+          "author_name": "ゆき",
+          "content": "今日も一日お仕事おつかれさま！頑張ったぶん、ゆっくりできる時間がありますように",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-26"
+        },
+        {
+          "author_name": "たけし",
+          "content": "おつかれー！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-27"
+        },
+        {
+          "author_name": "みく",
+          "content": "今日も乗り切ったね、おつかれさま！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-28"
+        },
+        {
+          "author_name": "れん",
+          "content": "仕事を頑張った日の「終わったー！」って感じ、ちょっと肩の力抜けるよね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-29"
+        },
+        {
+          "author_name": "あおい",
+          "content": "今日は自分をねぎらってね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-30"
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "down",
+      "post": "会議でうまく話せなくて、帰ってからも思い出して落ち込んでる。今日はもう何もしたくない。",
+      "language": "ja",
+      "variant": "baseline",
+      "character_ids": [],
+      "model_returned": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 263,
+        "prompt_tokens": 5286,
+        "total_tokens": 5549,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 5240,
+          "cache_write_tokens": 43
+        }
+      },
+      "cost": {
+        "usd_lower": 0.00018957500000000001,
+        "usd_upper": 0.00018957500000000001,
+        "input_only_no_cache_jpy": 0.10572
+      },
+      "latency_ms": 2648,
+      "prompt_sha256": "683b692a031497124b11253c55f0336290911e87fba5c235374e381b85a2aaf4",
+      "replies": [
+        {
+          "author_name": "ゆき",
+          "content": "会議のことが頭から離れないの、しんどいね。今日は何もしたくないくらい疲れたんだね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "たけし",
+          "content": "帰ってからも引きずるのつらいね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "みく",
+          "content": "今日はもう何もしなくていいよ",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "れん",
+          "content": "会議のあとまで思い返しちゃう日ってあるよね。今はその場面をいったん脇に置けたらいいな。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "あおい",
+          "content": "頭の中で反省会が続いちゃうね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "down",
+      "post": "会議でうまく話せなくて、帰ってからも思い出して落ち込んでる。今日はもう何もしたくない。",
+      "language": "ja",
+      "variant": "characters",
+      "character_ids": [
+        "v1-01",
+        "v1-02",
+        "v1-03",
+        "v1-04",
+        "v1-05"
+      ],
+      "model_returned": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 306,
+        "prompt_tokens": 5261,
+        "total_tokens": 5567,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 5215,
+          "cache_write_tokens": 43
+        }
+      },
+      "cost": {
+        "usd_lower": 0.00021082500000000002,
+        "usd_upper": 0.00021082500000000002,
+        "input_only_no_cache_jpy": 0.10522000000000001
+      },
+      "latency_ms": 2645,
+      "prompt_sha256": "924bd3e0a565b095826b9710305636e8f3471fabf62fc6da3981548e478e5a8b",
+      "replies": [
+        {
+          "author_name": "ゆき",
+          "content": "会議のことが帰ってからも頭に残るの、しんどいですよね。今日は何もしない日でいいと思います。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-01"
+        },
+        {
+          "author_name": "たけし",
+          "content": "今日はもう休も",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-02"
+        },
+        {
+          "author_name": "みく",
+          "content": "会議のあとまで引きずるの、つらいね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-03"
+        },
+        {
+          "author_name": "れん",
+          "content": "うまく話せなかったと思うと、帰ってから何度も思い返しちゃいますよね。今夜はそのままゆっくり過ごせますように。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-04"
+        },
+        {
+          "author_name": "あおい",
+          "content": "何もしたくない日もあるよね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-05"
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "down",
+      "post": "会議でうまく話せなくて、帰ってからも思い出して落ち込んでる。今日はもう何もしたくない。",
+      "language": "ja",
+      "variant": "characters",
+      "character_ids": [
+        "v1-06",
+        "v1-07",
+        "v1-08",
+        "v1-09",
+        "v1-10"
+      ],
+      "model_returned": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 300,
+        "prompt_tokens": 5273,
+        "total_tokens": 5573,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 5227,
+          "cache_write_tokens": 43
+        }
+      },
+      "cost": {
+        "usd_lower": 0.00020794500000000002,
+        "usd_upper": 0.00020794500000000002,
+        "input_only_no_cache_jpy": 0.10546
+      },
+      "latency_ms": 3740,
+      "prompt_sha256": "19d828c33621c215b26acd7e183906b599e25453161ffb59c92101effd94134e",
+      "replies": [
+        {
+          "author_name": "ゆき",
+          "content": "会議のこと、帰ってからも頭に残っちゃうよね。今日は何もしたくない気持ちのままでいいよ。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-06"
+        },
+        {
+          "author_name": "みく",
+          "content": "それはしんどいね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-07"
+        },
+        {
+          "author_name": "れん",
+          "content": "会議の反省会、脳内で延長戦しがちだよね。今日は閉店でいいよ。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-08"
+        },
+        {
+          "author_name": "さき",
+          "content": "うまく話せなかったと思うと、あとから何度も思い返してしまうよね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-09"
+        },
+        {
+          "author_name": "たけし",
+          "content": "今日はもう何もしなくていいよ",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-10"
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "down",
+      "post": "会議でうまく話せなくて、帰ってからも思い出して落ち込んでる。今日はもう何もしたくない。",
+      "language": "ja",
+      "variant": "characters",
+      "character_ids": [
+        "v1-11",
+        "v1-12",
+        "v1-13",
+        "v1-14",
+        "v1-15"
+      ],
+      "model_returned": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 291,
+        "prompt_tokens": 5269,
+        "total_tokens": 5560,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 5223,
+          "cache_write_tokens": 43
+        }
+      },
+      "cost": {
+        "usd_lower": 0.00020340500000000004,
+        "usd_upper": 0.00020340500000000004,
+        "input_only_no_cache_jpy": 0.10538
+      },
+      "latency_ms": 3798,
+      "prompt_sha256": "88a0c1e6fdd3f87c33549a59a63d2549cba8b8889f94536318811402c005d0ef",
+      "replies": [
+        {
+          "author_name": "ゆき",
+          "content": "会議のこと、帰ってからも頭に残っちゃうよね。今日は何もしない日にしていいと思う。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-11"
+        },
+        {
+          "author_name": "たけし",
+          "content": "今日はもう十分だよ",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-12"
+        },
+        {
+          "author_name": "みく",
+          "content": "会議の反省会、脳内で続いちゃうやつだね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-13"
+        },
+        {
+          "author_name": "れん",
+          "content": "うまく話せなかったって感じる日、あるよね。今はその気持ちのままで大丈夫だよ。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-14"
+        },
+        {
+          "author_name": "あおい",
+          "content": "今日は何もしなくていいよ。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-15"
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "down",
+      "post": "会議でうまく話せなくて、帰ってからも思い出して落ち込んでる。今日はもう何もしたくない。",
+      "language": "ja",
+      "variant": "characters",
+      "character_ids": [
+        "v1-16",
+        "v1-17",
+        "v1-18",
+        "v1-19",
+        "v1-20"
+      ],
+      "model_returned": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 305,
+        "prompt_tokens": 5271,
+        "total_tokens": 5576,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 5225,
+          "cache_write_tokens": 43
+        }
+      },
+      "cost": {
+        "usd_lower": 0.000210425,
+        "usd_upper": 0.000210425,
+        "input_only_no_cache_jpy": 0.10541999999999999
+      },
+      "latency_ms": 3256,
+      "prompt_sha256": "49cb9ca34619efb65b2179ce7a0c334b97177b756c3caf30450708aa287cb0c4",
+      "replies": [
+        {
+          "author_name": "ゆい",
+          "content": "会議のこと、帰ってからも頭に残っちゃうのしんどいね。今日は何もしない日にしていいと思うよ。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-16"
+        },
+        {
+          "author_name": "たくみ",
+          "content": "今日はもう休も",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-17"
+        },
+        {
+          "author_name": "みく",
+          "content": "会議ってあとから反省会しがちだよね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-18"
+        },
+        {
+          "author_name": "さくら",
+          "content": "うまく話せなかったと思う日もあるよね。今日は何もしないって決めるのも、自分を大事にする選択だよ。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-19"
+        },
+        {
+          "author_name": "れん",
+          "content": "思い出すたび気持ちが沈むの、つらいね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-20"
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "down",
+      "post": "会議でうまく話せなくて、帰ってからも思い出して落ち込んでる。今日はもう何もしたくない。",
+      "language": "ja",
+      "variant": "characters",
+      "character_ids": [
+        "v1-21",
+        "v1-22",
+        "v1-23",
+        "v1-24",
+        "v1-25"
+      ],
+      "model_returned": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 320,
+        "prompt_tokens": 5290,
+        "total_tokens": 5610,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 5244,
+          "cache_write_tokens": 43
+        }
+      },
+      "cost": {
+        "usd_lower": 0.000218115,
+        "usd_upper": 0.000218115,
+        "input_only_no_cache_jpy": 0.1058
+      },
+      "latency_ms": 4124,
+      "prompt_sha256": "6a2068bec07466d75f049e2508916fb3d1c3f4e741838fbe2f4f914cfd0ed9aa",
+      "replies": [
+        {
+          "author_name": "ゆき",
+          "content": "会議のこと、帰ってからも頭に残っちゃうのしんどいね。今日は何もしない日にしていいと思う。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-21"
+        },
+        {
+          "author_name": "たけし",
+          "content": "今日はもう休も",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-22"
+        },
+        {
+          "author_name": "みく",
+          "content": "うまく話せなかったって、ずっと気になってしまうんですね。今夜は無理に切り替えなくても大丈夫ですよ。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-23"
+        },
+        {
+          "author_name": "れん",
+          "content": "会議の反省会、帰宅後まで延長しなくていいやつだよ。今日は閉店で！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-24"
+        },
+        {
+          "author_name": "あかり",
+          "content": "何もしたくない日、あるよね。今日はその気持ちを優先してね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-25"
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "down",
+      "post": "会議でうまく話せなくて、帰ってからも思い出して落ち込んでる。今日はもう何もしたくない。",
+      "language": "ja",
+      "variant": "characters",
+      "character_ids": [
+        "v1-26",
+        "v1-27",
+        "v1-28",
+        "v1-29",
+        "v1-30"
+      ],
+      "model_returned": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 299,
+        "prompt_tokens": 5277,
+        "total_tokens": 5576,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 5231,
+          "cache_write_tokens": 43
+        }
+      },
+      "cost": {
+        "usd_lower": 0.000207485,
+        "usd_upper": 0.000207485,
+        "input_only_no_cache_jpy": 0.10554
+      },
+      "latency_ms": 3947,
+      "prompt_sha256": "efaf6235ad405766808d2410f4cf500eadd9416f9226f2b6bf91134b7a015934",
+      "replies": [
+        {
+          "author_name": "ゆき",
+          "content": "会議のことが頭から離れないの、しんどいよね。今日は何もしたくない気分のままでいいと思う。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-26"
+        },
+        {
+          "author_name": "たけし",
+          "content": "今日はもう十分だよ",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-27"
+        },
+        {
+          "author_name": "みく",
+          "content": "思い出して落ち込む日、あるよね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-28"
+        },
+        {
+          "author_name": "れん",
+          "content": "会議で言いたいことが出てこないと、あとから悔しさが来るよね。今日は切り替えなくても大丈夫。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-29"
+        },
+        {
+          "author_name": "あおい",
+          "content": "何もしない日があってもいいよ",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-30"
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "flowers",
+      "post": "帰り道で赤い花を見つけた。いつもの道なのに、今日はちょっと得した気分。",
+      "language": "ja",
+      "variant": "baseline",
+      "character_ids": [],
+      "model_returned": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 236,
+        "prompt_tokens": 5281,
+        "total_tokens": 5517,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 5240,
+          "cache_write_tokens": 38
+        }
+      },
+      "cost": {
+        "usd_lower": 0.00017545,
+        "usd_upper": 0.00017545,
+        "input_only_no_cache_jpy": 0.10562
+      },
+      "latency_ms": 2419,
+      "prompt_sha256": "dc494c28fa26d542d11480bb6dab82e84f9496f25f9f12df63079efaa26c344b",
+      "replies": [
+        {
+          "author_name": "みほ",
+          "content": "いつもの道で思いがけず見つけると、帰り道が少し特別になりますね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "れん",
+          "content": "赤い花、目に留まるね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "さくら",
+          "content": "ちょっと得した気分、わかる",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "たくみ",
+          "content": "いつもの景色に小さな発見があるの、いい帰り道だなあ。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        },
+        {
+          "author_name": "ゆい",
+          "content": "どんな花だったんだろう",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "flowers",
+      "post": "帰り道で赤い花を見つけた。いつもの道なのに、今日はちょっと得した気分。",
+      "language": "ja",
+      "variant": "characters",
+      "character_ids": [
+        "v1-01",
+        "v1-02",
+        "v1-03",
+        "v1-04",
+        "v1-05"
+      ],
+      "model_returned": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 289,
+        "prompt_tokens": 5256,
+        "total_tokens": 5545,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 5215,
+          "cache_write_tokens": 38
+        }
+      },
+      "cost": {
+        "usd_lower": 0.0002017,
+        "usd_upper": 0.0002017,
+        "input_only_no_cache_jpy": 0.10512
+      },
+      "latency_ms": 2449,
+      "prompt_sha256": "ce2e9698f981365152f787110542e15b2c1758ad82e9d391e70a0be1d174f407",
+      "replies": [
+        {
+          "author_name": "ゆき",
+          "content": "いつもの道で見つけると、ちょっとした発見がうれしいですね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-01"
+        },
+        {
+          "author_name": "たけし",
+          "content": "帰り道の小さなごほうびだね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-02"
+        },
+        {
+          "author_name": "みく",
+          "content": "赤い花、いいね！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-03"
+        },
+        {
+          "author_name": "れん",
+          "content": "見慣れた道でも、目に入るものひとつで気分が変わるのっていいですね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-04"
+        },
+        {
+          "author_name": "あおい",
+          "content": "帰り道に見つけた花って、どんな花だったんだろう",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-05"
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "flowers",
+      "post": "帰り道で赤い花を見つけた。いつもの道なのに、今日はちょっと得した気分。",
+      "language": "ja",
+      "variant": "characters",
+      "character_ids": [
+        "v1-06",
+        "v1-07",
+        "v1-08",
+        "v1-09",
+        "v1-10"
+      ],
+      "model_returned": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 286,
+        "prompt_tokens": 5268,
+        "total_tokens": 5554,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 5227,
+          "cache_write_tokens": 38
+        }
+      },
+      "cost": {
+        "usd_lower": 0.00020032,
+        "usd_upper": 0.00020032,
+        "input_only_no_cache_jpy": 0.10536000000000001
+      },
+      "latency_ms": 3469,
+      "prompt_sha256": "974836cd8ab82e30a2ab44346b2c034a5302c36a8cad2d7a2bb73fb0a55dee9f",
+      "replies": [
+        {
+          "author_name": "ゆき",
+          "content": "いつもの道でふと見つける花って、帰り道を少し特別にしてくれるね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-06"
+        },
+        {
+          "author_name": "たけし",
+          "content": "赤い花、いいね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-07"
+        },
+        {
+          "author_name": "みく",
+          "content": "帰り道に小さなボーナス発見だね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-08"
+        },
+        {
+          "author_name": "れん",
+          "content": "見慣れた道でも、目に留まるものがあると気分が変わるね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-09"
+        },
+        {
+          "author_name": "あおい",
+          "content": "ちょっと得した気分、わかるなあ",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-10"
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "flowers",
+      "post": "帰り道で赤い花を見つけた。いつもの道なのに、今日はちょっと得した気分。",
+      "language": "ja",
+      "variant": "characters",
+      "character_ids": [
+        "v1-11",
+        "v1-12",
+        "v1-13",
+        "v1-14",
+        "v1-15"
+      ],
+      "model_returned": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 265,
+        "prompt_tokens": 5264,
+        "total_tokens": 5529,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 5223,
+          "cache_write_tokens": 38
+        }
+      },
+      "cost": {
+        "usd_lower": 0.00018978000000000002,
+        "usd_upper": 0.00018978000000000002,
+        "input_only_no_cache_jpy": 0.10527999999999998
+      },
+      "latency_ms": 3500,
+      "prompt_sha256": "388a92e3ad0390b8e310d806436f1301b80b11134e7d7e0e919eacf3463cdd27",
+      "replies": [
+        {
+          "author_name": "ゆき",
+          "content": "いつもの道でそんな発見があると、帰り道もちょっと楽しくなるね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-11"
+        },
+        {
+          "author_name": "たけし",
+          "content": "赤い花、目に留まるね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-12"
+        },
+        {
+          "author_name": "みく",
+          "content": "なんだか得したね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-13"
+        },
+        {
+          "author_name": "れん",
+          "content": "いつもの道に小さな楽しみが増えた感じ、いいね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-14"
+        },
+        {
+          "author_name": "あおい",
+          "content": "帰り道のいい発見だね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-15"
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "flowers",
+      "post": "帰り道で赤い花を見つけた。いつもの道なのに、今日はちょっと得した気分。",
+      "language": "ja",
+      "variant": "characters",
+      "character_ids": [
+        "v1-16",
+        "v1-17",
+        "v1-18",
+        "v1-19",
+        "v1-20"
+      ],
+      "model_returned": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 276,
+        "prompt_tokens": 5266,
+        "total_tokens": 5542,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 5225,
+          "cache_write_tokens": 38
+        }
+      },
+      "cost": {
+        "usd_lower": 0.0001953,
+        "usd_upper": 0.0001953,
+        "input_only_no_cache_jpy": 0.10532
+      },
+      "latency_ms": 2772,
+      "prompt_sha256": "ae014ce1ece0b32947215ac80454c3305db6d2600e30395496065bb220df0e8e",
+      "replies": [
+        {
+          "author_name": "ゆい",
+          "content": "いつもの道でふと赤い花に気づくと、帰り道が少し特別になりますね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-16"
+        },
+        {
+          "author_name": "たけし",
+          "content": "帰り道の小さな発見いいね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-17"
+        },
+        {
+          "author_name": "みく",
+          "content": "赤い花って目に留まるよね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-18"
+        },
+        {
+          "author_name": "れん",
+          "content": "いつもの道でも、その日の気分で景色が変わるのいいですね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-19"
+        },
+        {
+          "author_name": "なお",
+          "content": "ちょっと得した気分、わかる",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-20"
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "flowers",
+      "post": "帰り道で赤い花を見つけた。いつもの道なのに、今日はちょっと得した気分。",
+      "language": "ja",
+      "variant": "characters",
+      "character_ids": [
+        "v1-21",
+        "v1-22",
+        "v1-23",
+        "v1-24",
+        "v1-25"
+      ],
+      "model_returned": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 279,
+        "prompt_tokens": 5285,
+        "total_tokens": 5564,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 5244,
+          "cache_write_tokens": 38
+        }
+      },
+      "cost": {
+        "usd_lower": 0.00019699,
+        "usd_upper": 0.00019699,
+        "input_only_no_cache_jpy": 0.10569999999999999
+      },
+      "latency_ms": 3630,
+      "prompt_sha256": "a0a825650f2a1dbc1ff3d1c33a82a7943872dd4575ab6ce03729a47ba35bc5a6",
+      "replies": [
+        {
+          "author_name": "ゆき",
+          "content": "いつもの帰り道に、思いがけない楽しみがあるとうれしいですね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-21"
+        },
+        {
+          "author_name": "たけし",
+          "content": "赤い花、目に留まるね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-22"
+        },
+        {
+          "author_name": "みく",
+          "content": "帰り道が少し特別になりましたね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-23"
+        },
+        {
+          "author_name": "れん",
+          "content": "いつもの道からの、ちいさなボーナスだね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-24"
+        },
+        {
+          "author_name": "あおい",
+          "content": "赤い花を見つけると、気分まで明るくなりそう。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-25"
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "flowers",
+      "post": "帰り道で赤い花を見つけた。いつもの道なのに、今日はちょっと得した気分。",
+      "language": "ja",
+      "variant": "characters",
+      "character_ids": [
+        "v1-26",
+        "v1-27",
+        "v1-28",
+        "v1-29",
+        "v1-30"
+      ],
+      "model_returned": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 283,
+        "prompt_tokens": 5272,
+        "total_tokens": 5555,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 5231,
+          "cache_write_tokens": 38
+        }
+      },
+      "cost": {
+        "usd_lower": 0.00019886,
+        "usd_upper": 0.00019886,
+        "input_only_no_cache_jpy": 0.10543999999999999
+      },
+      "latency_ms": 2800,
+      "prompt_sha256": "0c5ed5ec7623b643f539913ce4f2bceabfa7de509541b931659933788fdba50f",
+      "replies": [
+        {
+          "author_name": "ゆき",
+          "content": "いつもの道でそういう小さな発見があると、帰り道まで少し明るくなるね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-26"
+        },
+        {
+          "author_name": "たけし",
+          "content": "赤い花、目に留まるね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-27"
+        },
+        {
+          "author_name": "みく",
+          "content": "ちょっと得した気分、いいね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-28"
+        },
+        {
+          "author_name": "れん",
+          "content": "見慣れた道にも、思いがけない楽しみってあるんだね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-29"
+        },
+        {
+          "author_name": "あおい",
+          "content": "帰り道にうれしい発見があってよかったね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-30"
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "english",
+      "post": "Made it through a long day at work. I'm tired, but glad I got things done.",
+      "language": "en",
+      "variant": "characters",
+      "character_ids": [
+        "v1-01",
+        "v1-02",
+        "v1-03",
+        "v1-04",
+        "v1-05"
+      ],
+      "model_returned": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 251,
+        "prompt_tokens": 3258,
+        "total_tokens": 3509,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0,
+          "cache_write_tokens": 3255
+        }
+      },
+      "cost": {
+        "usd_lower": 0.000532675,
+        "usd_upper": 0.000532675,
+        "input_only_no_cache_jpy": 0.06516
+      },
+      "latency_ms": 3136,
+      "prompt_sha256": "f0f299e0f9b5ff019a957a6d71cc1014e30ef90c2a4a5e0409bd2a887e62228e",
+      "replies": [
+        {
+          "author_name": "Maya",
+          "content": "Sounds like a full day; glad you can feel good about what got done.",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-01"
+        },
+        {
+          "author_name": "Ben",
+          "content": "Long workdays really take it out of you.",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-02"
+        },
+        {
+          "author_name": "Lily",
+          "content": "You got through it!",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-03"
+        },
+        {
+          "author_name": "Evan",
+          "content": "Getting things done through a long day takes steady effort. Hope the evening feels lighter.",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-04"
+        },
+        {
+          "author_name": "Nina",
+          "content": "That done-for-the-day feeling must be nice.",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-05"
+        }
+      ],
+      "memory_updates": []
+    },
+    {
+      "case": "regular-1",
+      "post": "練習していた発表、今日終わった。少しほっとした。",
+      "language": "ja",
+      "variant": "characters",
+      "character_ids": [
+        "v1-04",
+        "v1-07",
+        "v1-09",
+        "v1-16",
+        "v1-28"
+      ],
+      "model_returned": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 800,
+        "prompt_tokens": 6138,
+        "total_tokens": 6938,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0,
+          "cache_write_tokens": 6135
+        }
+      },
+      "cost": {
+        "usd_lower": 0.0011671750000000001,
+        "usd_upper": 0.0011671750000000001,
+        "input_only_no_cache_jpy": 0.12276000000000001
+      },
+      "latency_ms": 8255,
+      "prompt_sha256": "652124db887f4107e7805490db192a11649f345ad9db202e5c32ece8a3185d52",
+      "replies": [
+        {
+          "author_name": "ゆき",
+          "content": "練習を重ねてきた発表、無事終わってよかったですね。ほっとする時間ですね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "regular-a",
+          "character_id": "v1-04"
+        },
+        {
+          "author_name": "みく",
+          "content": "おつかれさま！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "regular-b",
+          "character_id": "v1-07"
+        },
+        {
+          "author_name": "れん",
+          "content": "ひと安心だね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "regular-c",
+          "character_id": "v1-09"
+        },
+        {
+          "author_name": "あかり",
+          "content": "発表が終わって、少し肩の力が抜けた感じかな。まずは一区切りですね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-16"
+        },
+        {
+          "author_name": "たけし",
+          "content": "終わったー！",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-28"
+        }
+      ],
+      "memory_updates": [
+        {
+          "follower_id": "regular-a",
+          "new_memories": [
+            "練習していた発表を終え、少しほっとした。"
+          ],
+          "interaction_summary": "練習していた発表が今日終わり、少しほっとしたという投稿に、準備を重ねた発表が無事終わってよかったと返信した。",
+          "impression": "自分の気持ちを率直に表し、節目を迎えたときの安堵もそのまま受け止めている。準備の過程を大切にしながら、自分の実感を無理なく言葉にできる姿勢がうかがえる。",
+          "impression_summary": "自分の気持ちを率直に受け止め、努力の節目に生まれる実感も大切にする人。"
+        },
+        {
+          "follower_id": "regular-b",
+          "new_memories": [
+            "練習していた発表を終え、少しほっとした。"
+          ],
+          "interaction_summary": "練習していた発表が今日終わり、少しほっとしたという投稿に、労いのひと言を返した。",
+          "impression": "自分で選んだ取り組みに向き合い、その区切りに生まれる気持ちを飾らず表している。何を大切にして進めたかを、無理に大きく見せず自然に共有するところに落ち着きがある。",
+          "impression_summary": "自分で選んだことに丁寧に取り組み、区切りの実感を飾らず伝えられる人。"
+        },
+        {
+          "follower_id": "regular-c",
+          "new_memories": [
+            "練習していた発表を終え、少しほっとした。"
+          ],
+          "interaction_summary": "練習していた発表が今日終わり、少しほっとしたという投稿に、ひと安心だねと短く応じた。",
+          "impression": "日々の出来事に伴う小さな気持ちを見過ごさず、率直に受け止めている。大きな成果として誇張するより、一区切りの安堵をそのまま味わう姿勢が感じられる。",
+          "impression_summary": "日常の節目に生まれる小さな安堵を、そのまま大切にできる人。"
+        }
+      ]
+    },
+    {
+      "case": "regular-2",
+      "post": "今日は気分転換に散歩した。夕焼けがきれいだった。",
+      "language": "ja",
+      "variant": "characters",
+      "character_ids": [
+        "v1-04",
+        "v1-07",
+        "v1-09",
+        "v1-06",
+        "v1-22"
+      ],
+      "model_returned": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 850,
+        "prompt_tokens": 6260,
+        "total_tokens": 7110,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0,
+          "cache_write_tokens": 6257
+        }
+      },
+      "cost": {
+        "usd_lower": 0.001207425,
+        "usd_upper": 0.001207425,
+        "input_only_no_cache_jpy": 0.1252
+      },
+      "latency_ms": 8005,
+      "prompt_sha256": "a394f3aff0fb1e9bcfbb7a46ecf5e14de4c9ee1ed795c4426c57d4ba85402531",
+      "replies": [
+        {
+          "author_name": "ゆき",
+          "content": "散歩で気分転換できてよかったですね。夕焼けを眺める時間も、いいひと息になりそうです。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "regular-a",
+          "character_id": "v1-04"
+        },
+        {
+          "author_name": "みく",
+          "content": "夕焼けきれいだったんだね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "regular-b",
+          "character_id": "v1-07"
+        },
+        {
+          "author_name": "れん",
+          "content": "いい気分転換になったね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "regular-c",
+          "character_id": "v1-09"
+        },
+        {
+          "author_name": "さくら",
+          "content": "歩いて気分を切り替えるの、ちょうどよさそう。夕焼けまで見られて得した気分だね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-06"
+        },
+        {
+          "author_name": "直人",
+          "content": "夕焼けに出会えたのいいね",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": null,
+          "character_id": "v1-22"
+        }
+      ],
+      "memory_updates": [
+        {
+          "follower_id": "regular-a",
+          "new_memories": [
+            "気分転換に散歩し、きれいな夕焼けを見た。"
+          ],
+          "interaction_summary": "気分転換に散歩し、きれいな夕焼けを見たという投稿に、散歩で気分転換できたことと夕焼けを眺めるひと息を温かく受け止めた。",
+          "impression": "自分の気持ちの変化を無理に飾らず、穏やかに受け止められる姿勢がうかがえる。日々の感覚を大切にしながら、自分に合う過ごし方を選ぶところに、その人らしい落ち着きがある。",
+          "impression_summary": "自分の気持ちを丁寧に受け止め、日々の中で穏やかな切り替えを大切にする人。"
+        },
+        {
+          "follower_id": "regular-b",
+          "new_memories": [
+            "気分転換に散歩し、きれいな夕焼けを見た。"
+          ],
+          "interaction_summary": "気分転換の散歩で夕焼けを見たという投稿に、夕焼けの美しさへ短く反応した。",
+          "impression": "自分にとって心地よいものを選び、その価値を素直に受け取る姿勢が見える。大きな理由づけをせず、日々の選択に自分なりの感覚を反映させているところが印象的。",
+          "impression_summary": "自分の感覚に沿った選択を重ね、心地よさを素直に受け取る人。"
+        },
+        {
+          "follower_id": "regular-c",
+          "new_memories": [
+            "気分転換に散歩し、きれいな夕焼けを見た。"
+          ],
+          "interaction_summary": "散歩で気分転換をし、夕焼けを眺めたという投稿に、よい切り替えになったことを静かに伝えた。",
+          "impression": "日常の中にある小さな満足を見つけ、力まず味わう姿勢がうかがえる。穏やかな出来事をそのまま受け取ることで、自分の時間を大切にしている様子が伝わる。",
+          "impression_summary": "日々の小さな充実を見つけ、力まず自分の時間を味わえる人。"
+        }
+      ]
+    }
+  ]
+}
