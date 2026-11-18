@@ -80,6 +80,11 @@ struct ContentView: View {
                 
                 if activeTab == .home {
                     HStack(spacing: 12) {
+                        if appState.designTemplate == .lofi {
+                            PixelGlyph(name: "wordmark").fill(Theme.textPrimary, style: FillStyle(antialiased: false))
+                                .frame(width: 110, height: 24).accessibilityLabel("UPME!")
+                            TemplateIcon(systemName: "heart", size: 18).foregroundStyle(Theme.hotPink)
+                        } else {
                         Text("UPME! | AI SNS")
                             .font(.system(size: 20, weight: .black, design: .rounded))
                             .foregroundColor(.clear)
@@ -88,13 +93,13 @@ struct ContentView: View {
                                     .mask(Text("UPME! | AI SNS").font(.system(size: 20, weight: .black, design: .rounded)))
                             )
                             .neonShadow(color: Theme.hotPink, radius: 2)
+                        }
                             
                         Spacer()
 
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 12)
-                    .background(Theme.bgDeepBlack)
                     .zIndex(1)
                 }
                 
@@ -324,12 +329,12 @@ struct UpdateNoticeView: View {
 
                         Text(appState.text("UPME!が\nアップデートされました", "UPME! just\ngot better"))
                             .font(.system(size: 26, weight: .black, design: .rounded))
-                            .foregroundColor(.white)
+                            .foregroundColor(Theme.textPrimary)
                             .lineSpacing(2)
 
                         Text(appState.text("もっと会話が続く、もっと自分らしい場所へ。", "More conversation. More of your own space."))
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.white.opacity(0.62))
+                            .foregroundColor(Theme.textPrimary.opacity(0.62))
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(24)
@@ -351,7 +356,7 @@ struct UpdateNoticeView: View {
                                 VStack(alignment: .leading, spacing: 5) {
                                     Text(appState.text(item.titleJapanese, item.titleEnglish))
                                         .font(.system(size: 14, weight: .bold))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(Theme.textPrimary)
                                     Text(appState.text(item.detailJapanese, item.detailEnglish))
                                         .font(.system(size: 11, weight: .medium))
                                         .foregroundColor(.gray)
@@ -371,7 +376,7 @@ struct UpdateNoticeView: View {
                 Button(action: onClose) {
                     Text(appState.text("アップデートを楽しむ", "Explore the Update"))
                         .font(.system(size: 14, weight: .black))
-                        .foregroundColor(.white)
+                        .foregroundColor(Theme.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 15)
                         .background(Theme.accentGradient)
@@ -414,6 +419,7 @@ struct PulseModifier: ViewModifier {
 }
 
 struct NavBtn: View {
+    @Environment(\.designTemplate) private var template
     let icon: String
     let label: LocalizedStringKey
     let isActive: Bool
@@ -423,14 +429,14 @@ struct NavBtn: View {
     var body: some View {
         Button(action: action) {
             VStack(spacing: 4) {
-                Image(systemName: icon)
+                TemplateIcon(systemName: icon, size: 24)
                     .font(.system(size: 24))
-                    .foregroundColor(isActive ? Theme.hotPink : .gray.opacity(0.5))
+                    .foregroundColor(isActive ? Theme.hotPink : Theme.inactiveTab)
                     .neonShadow(color: isActive ? Theme.hotPink : .clear, radius: isActive ? 8 : 0)
                 
                 Text(label)
-                    .font(.system(size: 9, weight: .black))
-                    .foregroundColor(isActive ? Theme.hotPink : .gray.opacity(0.5))
+                    .font(.system(size: 9, weight: .black, design: template == .lofi ? .monospaced : .default))
+                    .foregroundColor(isActive ? Theme.hotPink : Theme.inactiveTab)
                     .textCase(.uppercase)
             }
             .scaleEffect(isActive ? 1.05 : 1.0)
@@ -485,11 +491,11 @@ struct RankUpView: View {
                 VStack(spacing: 8) {
                     Text("新しいランクに到達しました")
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(Theme.textPrimary)
                     
                     Text("Lv.\(rank)")
                         .font(.system(size: 64, weight: .black, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(Theme.textPrimary)
                         .neonShadow(color: .white, radius: 10)
                     
                     if let info = rankData.first(where: { $0.level == rank }) {
@@ -532,7 +538,7 @@ struct RankUpView: View {
                     Text("OK")
                         .font(.title3)
                         .fontWeight(.bold)
-                        .foregroundColor(.white)
+                        .foregroundColor(Theme.onAccent)
                         .padding(.horizontal, 64)
                         .padding(.vertical, 16)
                         .background(
@@ -544,7 +550,7 @@ struct RankUpView: View {
                 .padding(.top, 24)
             }
             .padding(32)
-            .background(Color(white: 0.1).opacity(0.95).background(Material.ultraThin))
+            .background(Theme.cardBackground.opacity(0.95).background(Material.ultraThin))
             .cornerRadius(32)
             .overlay(
                 RoundedRectangle(cornerRadius: 32)

@@ -165,12 +165,12 @@ private struct HomeGuideCompletion: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text(japanese ? "ガイドの再表示" : "Guide replay")
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Theme.textPrimary)
                 Text(japanese
                      ? "このガイドは、画面下の一番右にある「設定」の「使い方ガイド」からいつでも見直せます。"
                      : "Replay this guide anytime from How to use UPME in the Settings tab at the bottom right.")
                     .font(.system(size: 13))
-                    .foregroundStyle(.white.opacity(0.86))
+                    .foregroundStyle(Theme.textPrimary.opacity(0.86))
                     .lineSpacing(2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -308,16 +308,16 @@ private struct HomeGuideSpotlight: View {
             HStack {
                 Text(step.title(japanese: japanese))
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Theme.textPrimary)
                 Spacer()
                 Text("\(stepIndex + 1) / \(stepCount)")
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.65))
+                    .foregroundStyle(Theme.textPrimary.opacity(0.65))
                     .fixedSize()
             }
             Text(step.detail(japanese: japanese))
                 .font(.system(size: 13))
-                .foregroundStyle(.white.opacity(0.86))
+                .foregroundStyle(Theme.textPrimary.opacity(0.86))
                 .lineSpacing(2)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }

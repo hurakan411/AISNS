@@ -71,7 +71,7 @@ enum HomeGuideStep: String, CaseIterable, Codable, Identifiable {
         case .statsBenefits:
             return japanese ? "ランクごとに、投稿への反応や常連枠が変わります。" : "Your rank affects post reactions and regular follower slots."
         case .statsSummary:
-            return japanese ? "AIフォロワーと投稿数を確認できます。いいね・返信は保存済みの投稿の集計です。" : "See your AI followers and post count. Likes and replies are counted from saved posts."
+            return japanese ? "AIフォロワーと、これまでの投稿・いいね・AIからの返信の累計を確認できます。" : "See your AI followers and lifetime totals for posts, likes and AI replies."
         case .statsRankList:
             return japanese ? "ランク一覧から、各ランクの条件と特典を見られます。" : "Open the rank list to see each rank’s requirements and benefits."
         case .profileAvatar:

@@ -238,6 +238,7 @@ struct FeedCornerAccent: Shape {
 }
 
 struct FeedCardSurface: View {
+    @Environment(\.designTemplate) private var template
     let fill: Color
     let accent: Color
     let border: Color
@@ -245,6 +246,12 @@ struct FeedCardSurface: View {
     var showsAccent = true
 
     var body: some View {
+        Group {
+        if template == .lofi {
+            PixelPanel().fill(fill)
+                .overlay { PixelPanel().stroke(Theme.lavender.opacity(0.5), lineWidth: 1) }
+                .shadow(color: .black.opacity(0.25), radius: 0, x: 3, y: 3)
+        } else {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             .fill(fill)
             .overlay {
@@ -264,12 +271,15 @@ struct FeedCardSurface: View {
                         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
                 }
             }
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
+        }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 
 struct FeedAvatarFrame: ViewModifier {
+    @Environment(\.designTemplate) private var template
     let size: CGFloat
     let stroke: Color
     let accent: Color
@@ -277,6 +287,12 @@ struct FeedAvatarFrame: ViewModifier {
     let enabled: Bool
 
     func body(content: Content) -> some View {
+        if template == .lofi {
+            content.frame(width: size, height: size)
+                .background(Theme.cardBackground)
+                .clipShape(PixelPanel())
+                .overlay { PixelPanel().stroke(Theme.lavender.opacity(0.5), lineWidth: 1) }
+        } else {
         content
             .frame(width: size, height: size)
             .background(Theme.cardBackground, in: Circle())
@@ -299,6 +315,7 @@ struct FeedAvatarFrame: ViewModifier {
                         .accessibilityHidden(true)
                 }
             }
+        }
     }
 }
 
@@ -354,9 +371,7 @@ struct PostCard: View {
                                 .resizable()
                                 .scaledToFill()
                         } else {
-                            Image(Theme.defaultAvatarAsset)
-                                .resizable()
-                                .scaledToFill()
+                            DefaultProfileArtwork()
                         }
                     }
                     .modifier(FeedAvatarFrame(size: 44, stroke: Theme.hotPink.opacity(0.75),
@@ -365,7 +380,7 @@ struct PostCard: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(appState.userName)
                             .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(Theme.textPrimary)
                         Text((post.time == "今" || post.time == "Now") ? appState.text("今", "Now") : post.time)
                             .font(.system(size: 11, weight: .black))
                             .foregroundColor(.gray)
@@ -379,7 +394,7 @@ struct PostCard: View {
                 VStack(alignment: .leading, spacing: 12) {
                 Text(post.content)
                     .font(.system(size: 17, weight: .medium))
-                    .foregroundColor(.white)
+                    .foregroundColor(Theme.textPrimary)
                     .padding(.horizontal, 20)
                     .lineSpacing(6)
                 
@@ -391,21 +406,21 @@ struct PostCard: View {
                 
                 HStack(spacing: 24) {
                     HStack(spacing: 8) {
-                        Image(systemName: "heart.fill").foregroundColor(Theme.hotPink).font(.system(size: 18))
+                        TemplateIcon(systemName: "heart.fill", size: 18).foregroundColor(Theme.hotPink).font(.system(size: 18))
                             .symbolEffect(.bounce, options: .nonRepeating, value: appState.isViralAnimating(post) && !reduceMotion)
                         Text("\(appState.displayedLikes(for: post))").font(.system(size: 15, weight: .black, design: .monospaced)).foregroundColor(Theme.hotPink)
                             .contentTransition(.numericText())
                             .animation(reduceMotion ? nil : .easeOut(duration: 0.08), value: appState.displayedLikes(for: post))
                     }
                     HStack(spacing: 8) {
-                        Image(systemName: "bubble.right.fill").foregroundColor(usesHomeStyling ? Theme.lavender : Theme.cyan).font(.system(size: 16))
+                        TemplateIcon(systemName: "bubble.right.fill", size: 16).foregroundColor(usesHomeStyling ? Theme.lavender : Theme.cyan).font(.system(size: 16))
                         Text("\(post.replies.count)").font(.system(size: 15, weight: .black, design: .monospaced)).foregroundColor(usesHomeStyling ? Theme.lavender : Theme.cyan)
                     }
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 16)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.black.opacity(0.3))
+                .background(Theme.insetBackground.opacity(0.3))
                 .homeGuideTarget(guideSelection.postID == post.id ? .reactions : nil)
 
                 if let reaction = post.reaction, reaction.isViral, reaction.followersAfter != nil {
@@ -424,7 +439,7 @@ struct PostCard: View {
                                 cornerRadius: 22, showsAccent: false)
             }
             .overlay {
-                if usesHomeStyling {
+                if usesHomeStyling && appState.designTemplate != .lofi {
                     FeedCornerAccent(cornerRadius: 22)
                         .fill(LinearGradient(colors: [Theme.hotPink.opacity(0.35), Theme.hotPink],
                                              startPoint: .leading, endPoint: .trailing))
@@ -432,7 +447,7 @@ struct PostCard: View {
                         .accessibilityHidden(true)
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .clipShape(TemplateCardClip(pixel: appState.designTemplate == .lofi, cornerRadius: 22))
             .overlay {
                 if appState.isViralRevealed(post) {
                     ViralPostBorder(startedAt: post.reaction?.startedAt ?? .distantPast,
@@ -655,9 +670,7 @@ struct ReplyRow: View {
                         .resizable()
                         .scaledToFill()
                 } else if reply.isUserReply {
-                    Image(Theme.defaultAvatarAsset)
-                        .resizable()
-                        .scaledToFill()
+                    DefaultProfileArtwork()
                 } else {
                     AIAvatarImage(url: reply.img, isHater: reply.isHater)
                 }
@@ -665,7 +678,7 @@ struct ReplyRow: View {
             .modifier(FeedAvatarFrame(size: 36, stroke: avatarStrokeColor, accent: avatarAccentColor,
                                       lineWidth: avatarStrokeWidth, enabled: usesHomeStyling))
             .overlay {
-                if usesHomeStyling && isRegular {
+                if usesHomeStyling && isRegular && appState.designTemplate != .lofi {
                     Circle().strokeBorder(
                         LinearGradient(colors: [Theme.hotPink, Theme.lavender], startPoint: .topLeading, endPoint: .bottomTrailing),
                         lineWidth: 1.5)
@@ -727,7 +740,7 @@ struct ReplyRow: View {
                     Spacer()
                     if canReply {
                         Button(action: onReplyTap) {
-                            Image(systemName: "arrowshape.turn.up.left.circle")
+                            TemplateIcon(systemName: "arrowshape.turn.up.left.circle", size: 22)
                                 .foregroundColor(usesHomeStyling ? Theme.lavender : Theme.cyan)
                                 .font(.system(size: 18, weight: .bold))
                         }
@@ -749,7 +762,7 @@ struct ReplyRow: View {
                     }
                     if canManageRegulars {
                         Button(action: onRegularTap) {
-                            Image(systemName: isRegular ? "star.circle.fill" : "star.circle")
+                            TemplateIcon(systemName: isRegular ? "star.circle.fill" : "star.circle", size: 22)
                                 .foregroundColor(isRegular ? Theme.hotPink : .gray.opacity(0.8))
                                 .font(.system(size: 18, weight: .bold))
                         }
@@ -763,7 +776,7 @@ struct ReplyRow: View {
                             ZStack {
                                 Image(systemName: "bubble.left")
                                     .font(.system(size: 19, weight: .semibold))
-                                Image(systemName: "heart.fill")
+                                TemplateIcon(systemName: "heart.fill", size: 18)
                                     .font(.system(size: 8, weight: .semibold))
                                     .offset(y: -1)
                             }
@@ -809,7 +822,7 @@ struct ReplyRow: View {
                 }
                 Text(reply.text)
                     .font(.system(size: 14, weight: reply.isHater ? .bold : .medium))
-                    .foregroundColor(reply.isHater ? .white : .white.opacity(0.9))
+                    .foregroundColor(reply.isHater ? Theme.textPrimary : Theme.textPrimary.opacity(0.9))
                     .lineSpacing(4)
             }
             .padding(16)
@@ -818,7 +831,7 @@ struct ReplyRow: View {
             .background {
                 FeedCardSurface(fill: cardBackground, accent: cornerAccentColor,
                                 border: cardStrokeColor, cornerRadius: usesHomeStyling ? 20 : 16,
-                                showsAccent: usesHomeStyling)
+                                showsAccent: usesHomeStyling && (reply.isUserReply || isRegular || reply.isHater || reply.isDefender))
             }
             .homeGuideTarget(guideReplyCard ? .aiReply : nil)
             
@@ -827,10 +840,10 @@ struct ReplyRow: View {
         .padding(.trailing, 16)
         .overlay(alignment: .topLeading) {
             if showsTimelineNode {
-                Circle()
+                RoundedRectangle(cornerRadius: appState.designTemplate == .lofi ? 0 : 4)
                     .fill(Theme.hotPink)
                     .frame(width: ReplyTimelineLayout.nodeDiameter, height: ReplyTimelineLayout.nodeDiameter)
-                    .shadow(color: Theme.hotPink.opacity(0.45), radius: 4)
+                    .shadow(color: Theme.hotPink.opacity(0.45), radius: appState.designTemplate == .lofi ? 0 : 4)
                     .offset(x: ReplyTimelineLayout.centerX - ReplyTimelineLayout.contentInset - ReplyTimelineLayout.nodeDiameter / 2,
                             y: 30)
                     .allowsHitTesting(false)
@@ -931,7 +944,7 @@ struct ReplyThreadView: View {
         .padding(.leading, 18)
         .padding(.trailing, 4)
         .padding(.bottom, 8)
-        .background(Color.black.opacity(0.18))
+        .background(Theme.insetBackground.opacity(0.18))
         .overlay(alignment: .leading) {
             Rectangle()
                 .fill(Theme.cyan.opacity(0.7))
@@ -963,20 +976,20 @@ struct ReplyComposerView: View {
                         .foregroundColor(Theme.cyan)
                     Text(target.text)
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(Theme.textPrimary.opacity(0.8))
                         .lineSpacing(4)
                         .padding(14)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.white.opacity(0.06))
+                        .background(Theme.surfaceHighlight.opacity(0.06))
                         .cornerRadius(14)
                 }
 
                 TextEditor(text: $text)
                     .scrollContentBackground(.hidden)
-                    .foregroundColor(.white)
+                    .foregroundColor(Theme.textPrimary)
                     .padding(12)
                     .frame(minHeight: 130)
-                    .background(Color.white.opacity(0.08))
+                    .background(Theme.surfaceHighlight.opacity(0.08))
                     .cornerRadius(16)
                     .overlay(alignment: .topLeading) {
                         if text.isEmpty {

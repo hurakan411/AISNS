@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ParticleNetworkBackground: View {
+    @Environment(\.designTemplate) private var template
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
 
@@ -32,9 +33,27 @@ struct ParticleNetworkBackground: View {
     ]
 
     var body: some View {
+        Group {
+        if template == .lofi {
+            ZStack {
+                Theme.bgDeepBlack
+                Canvas { context, size in
+                    for y in stride(from: CGFloat(0), to: size.height, by: 18) {
+                        for x in stride(from: CGFloat(0), to: size.width, by: 18) {
+                            context.fill(Path(CGRect(x: x, y: y, width: 1, height: 1)), with: .color(Theme.lavender.opacity(0.035)))
+                        }
+                    }
+                    for i in 0..<18 {
+                        let x = CGFloat((i * 137 + 31) % 997) / 997 * size.width
+                        let y = CGFloat((i * 239 + 71) % 991) / 991 * size.height
+                        context.fill(Path(CGRect(x: x, y: y, width: 2, height: 2)), with: .color(Theme.lavender.opacity(0.35)))
+                    }
+                }
+            }
+        } else {
         GeometryReader { proxy in
             ZStack {
-                Color(red: 0.008, green: 0.006, blue: 0.018)
+                Theme.bgDeepBlack
 
                 RadialGradient(
                     colors: [
@@ -69,6 +88,8 @@ struct ParticleNetworkBackground: View {
                     }
                 }
             }
+        }
+        }
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)

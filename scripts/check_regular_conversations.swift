@@ -29,6 +29,16 @@ for empty in [nil, "", " \n "] as [String?] {
 }
 let savedProfile = try JSONDecoder().decode(RegularFollower.self, from: JSONEncoder().encode(follower))
 precondition(savedProfile.impressionUpdatedAt == profileDate)
+precondition(savedProfile.displayedImpression == "Detailed profile")
+var singleFace = savedProfile
+singleFace.impression = "  一文目です。二文目も切らずに表示します。  "
+singleFace.impressionSummary = "短い要約。"
+precondition(singleFace.displayedImpression == "一文目です。二文目も切らずに表示します。")
+singleFace.impression = " \n "
+precondition(singleFace.displayedImpression == "短い要約。")
+singleFace.impression = nil
+singleFace.impressionSummary = nil
+precondition(singleFace.displayedImpression == nil)
 let legacyConversation = """
 {"userText":"original","replyText":"reply","isUserReply":false}
 """.data(using: .utf8)!

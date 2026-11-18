@@ -107,6 +107,7 @@ import SwiftUI
 import UIKit
 
 struct AIAvatarImage: View {
+    @Environment(\.designTemplate) private var template
     let url: String
     var isHater = false
     @Environment(\.scenePhase) private var scenePhase
@@ -121,8 +122,13 @@ struct AIAvatarImage: View {
             if let image, loadedURL == url {
                 Image(uiImage: image).resizable().scaledToFill()
             } else if failed {
+                if template == .lofi {
+                    PixelGlyph(name: "person.fill").fill(isHater ? Color.gray : Theme.lavender,
+                                                         style: FillStyle(antialiased: false)).padding(6)
+                } else {
                 Image(systemName: "person.circle.fill").resizable()
                     .foregroundStyle(isHater ? Color.gray : Theme.hotPink)
+                }
             } else {
                 Circle().fill(isHater ? Color.gray : Theme.deepPurple)
             }

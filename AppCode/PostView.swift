@@ -21,7 +21,7 @@ struct PostView: View {
             HStack {
                 if !isOnboarding {
                     Button(action: onCancel) {
-                        Text("閉じる").font(.system(size: 15, weight: .bold)).foregroundColor(.white.opacity(0.75))
+                        Text("閉じる").font(.system(size: 15, weight: .bold)).foregroundColor(Theme.textPrimary.opacity(0.75))
                     }
                 }
                 Spacer()
@@ -37,7 +37,7 @@ struct PostView: View {
                 }) {
                     Text("投稿")
                         .font(.system(size: 14, weight: .black))
-                        .foregroundColor(.white)
+                        .foregroundColor(Theme.onAccent)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 10)
                         .background(Theme.hotPink.opacity(canSubmit ? 1 : 0.35))
@@ -63,7 +63,7 @@ struct PostView: View {
                             if let data = appState.userAvatarData, let uiImage = UIImage(data: data) {
                                 Image(uiImage: uiImage).resizable().scaledToFill()
                             } else {
-                                Image(Theme.defaultAvatarAsset).resizable().scaledToFill()
+                                DefaultProfileArtwork()
                             }
                         }
                         .modifier(FeedAvatarFrame(size: 46, stroke: Theme.hotPink.opacity(0.75),
@@ -73,7 +73,7 @@ struct PostView: View {
                             .focused($isFocused)
                             .scrollContentBackground(.hidden)
                             .background(Color.clear)
-                            .foregroundColor(.white)
+                            .foregroundColor(Theme.textPrimary)
                             .tint(Theme.hotPink)
                             .font(.system(size: 20, weight: .medium))
                             .accessibilityLabel(appState.text("投稿内容", "Post content"))
@@ -99,7 +99,7 @@ struct PostView: View {
                             }) {
                                 Image(systemName: "xmark.circle.fill")
                                     .font(.title)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(Theme.onAccent)
                                     .background(Circle().fill(Color.black.opacity(0.6)))
                             }
                             .padding(8)
@@ -155,7 +155,7 @@ struct PostView: View {
                     .foregroundColor(.orange.opacity(0.7))
                 Text("個人情報（本名・住所・電話番号など）は入力しないでください")
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.white.opacity(0.65))
+                    .foregroundColor(Theme.textPrimary.opacity(0.65))
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 12)

@@ -39,7 +39,7 @@ struct StatsView: View {
                         }
                     }
             }
-            .preferredColorScheme(.dark)
+            .preferredColorScheme(appState.designTemplate.colorScheme)
         }
         .homeGuideViewport()
         .preference(key: HomeGuideModalPreference.self, value: showsRankGuide)
@@ -67,7 +67,7 @@ struct StatsView: View {
                 .padding(.top, compact ? 12 : 18)
 
             HStack(spacing: 10) {
-                Label(appState.text("いいね・返信は保存済み投稿の集計", "Likes and replies: saved posts only"), systemImage: "info.circle")
+                Label(appState.text("投稿・いいね・返信はこれまでの累計", "Lifetime totals for posts, likes and replies"), systemImage: "info.circle")
                     .font(.system(size: 9))
                     .foregroundStyle(StatsTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -78,7 +78,7 @@ struct StatsView: View {
                         Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold))
                     }
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Theme.textPrimary)
                     .padding(.vertical, 8)
                     .overlay(alignment: .bottom) {
                         Capsule().fill(Theme.lavender).frame(height: 1.5)
@@ -109,7 +109,7 @@ struct StatsView: View {
     private func rankName(compact: Bool) -> some View {
         Text(LocalizedStringKey(currentInfo.name))
             .font(.system(size: compact ? 16 : 18, weight: .bold))
-            .foregroundStyle(.white)
+            .foregroundStyle(Theme.textPrimary)
             .multilineTextAlignment(.center)
             .lineLimit(compact ? 1 : 2).minimumScaleFactor(0.65)
     }
@@ -122,7 +122,7 @@ struct StatsView: View {
                     .foregroundStyle(Theme.lavender)
                 Text(appState.text("あなたの記録", "Your activity"))
                     .font(.system(size: compact ? 15 : 18, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Theme.textPrimary)
             }
             .accessibilityAddTraits(.isHeader)
 
@@ -136,7 +136,7 @@ struct StatsView: View {
                         if let next = appState.nextRankFollowers {
                             let remaining = max(0, next - appState.followers).formatted(.number.locale(appState.locale))
                             (Text(appState.text("次のランクまで ", "Next rank: ")).foregroundColor(StatsTheme.hotPink)
-                             + Text(appState.text("あと\(remaining)人", "\(remaining) to go")).foregroundColor(.white.opacity(0.85)))
+                             + Text(appState.text("あと\(remaining)人", "\(remaining) to go")).foregroundColor(Theme.textPrimary.opacity(0.85)))
                                 .font(.system(size: 10, weight: .medium))
                                 .lineLimit(1).minimumScaleFactor(0.75)
                         } else {
@@ -158,10 +158,10 @@ struct StatsView: View {
             HStack(alignment: .top, spacing: compact ? 8 : 10) {
                 summaryMetric(appState.text("投稿数", "Posts"), value: appState.totalPosts,
                               icon: "pencil", color: StatsTheme.lavender, compact: compact)
-                summaryMetric(appState.text("もらったいいね", "Likes received"), value: appState.posts.reduce(0) { $0 + $1.likes },
+                summaryMetric(appState.text("もらったいいね", "Likes received"), value: appState.totalLikes,
                               icon: "heart", color: StatsTheme.hotPink, compact: compact)
                 summaryMetric(appState.text("AIからの返信", "AI replies"),
-                              value: appState.posts.reduce(0) { $0 + $1.replies.filter { !$0.isUserReply }.count + $1.replyThreads.reduce(0) { $0 + $1.replies.filter { !$0.isUserReply }.count } },
+                              value: appState.totalAIReplies,
                               icon: "bubble.left", color: StatsTheme.lavender, compact: compact)
             }
         }
@@ -170,7 +170,7 @@ struct StatsView: View {
     private func summaryMetric(_ title: String, value: Int, icon: String, color: Color, compact: Bool) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 4) {
-                Image(systemName: icon)
+                TemplateIcon(systemName: icon, size: 20)
                     .font(.system(size: compact ? 13 : 16, weight: .medium))
                     .foregroundStyle(color.opacity(0.9))
                     .accessibilityHidden(true)
@@ -195,7 +195,7 @@ struct StatsView: View {
         HStack(alignment: .firstTextBaseline, spacing: 4) {
             Text(value, format: .number.grouping(.automatic).locale(appState.locale))
                 .font(.system(size: size, weight: .semibold, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.textPrimary)
                 .lineLimit(1).minimumScaleFactor(0.55)
                 .contentTransition(.numericText())
             if !unit.isEmpty {
@@ -245,12 +245,12 @@ struct RankBenefits: View {
 
     private func benefit(_ icon: String, title: String, value: String) -> some View {
         VStack(spacing: compact ? 3 : 5) {
-            Image(systemName: icon).font(.system(size: compact ? 15 : 18, weight: .regular))
+            TemplateIcon(systemName: icon, size: 20).font(.system(size: compact ? 15 : 18, weight: .regular))
                 .foregroundStyle(icon == "heart" ? StatsTheme.hotPink : StatsTheme.lavender)
             Text(title).font(.system(size: 9)).foregroundStyle(StatsTheme.secondaryText)
                 .lineLimit(1).minimumScaleFactor(0.75)
             Text(value).font(.system(size: compact ? 12 : 14, weight: .semibold))
-                .foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.65)
+                .foregroundStyle(Theme.textPrimary).lineLimit(1).minimumScaleFactor(0.65)
         }
         .frame(maxWidth: .infinity)
     }
@@ -316,12 +316,12 @@ struct RankGuideSection: View {
                             .foregroundColor(isCurrent ? StatsTheme.hotPink : (isNext ? StatsTheme.cyan : (isPast ? StatsTheme.cyan : .gray.opacity(0.3))))
                         Text(isHidden ? LocalizedStringKey("？？？") : LocalizedStringKey(info.name))
                             .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(isCurrent ? .white : (isNext ? .white.opacity(0.8) : (isPast ? .white.opacity(0.8) : .gray.opacity(0.3))))
+                            .foregroundColor(isCurrent ? Theme.textPrimary : (isNext ? Theme.textPrimary.opacity(0.8) : (isPast ? Theme.textPrimary.opacity(0.8) : .gray.opacity(0.3))))
                         Spacer()
                         if isCurrent {
                             Text("NOW")
                                 .font(.system(size: 10, weight: .black))
-                                .foregroundColor(.white)
+                                .foregroundColor(Theme.onAccent)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
                                 .background(StatsTheme.hotPink)
@@ -365,7 +365,7 @@ struct RankGuideSection: View {
                 .background(
                     isCurrent
                         ? StatsTheme.hotPink.opacity(0.08)
-                        : (isNext ? StatsTheme.cyan.opacity(0.04) : Color.white.opacity(isHidden ? 0.008 : 0.03))
+                        : (isNext ? StatsTheme.cyan.opacity(0.04) : Theme.surfaceHighlight.opacity(isHidden ? 0.008 : 0.03))
                 )
                 .cornerRadius(22)
                 .overlay(
@@ -386,12 +386,12 @@ struct RankDetailLabel: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: icon)
+            TemplateIcon(systemName: icon, size: 20)
                 .font(.system(size: 10))
                 .foregroundColor(dimmed ? .gray.opacity(0.3) : StatsTheme.cyan.opacity(0.7))
             Text(text)
                 .font(.system(size: 11, weight: .medium))
-                .foregroundColor(dimmed ? .gray.opacity(0.3) : .white.opacity(0.6))
+                .foregroundColor(dimmed ? .gray.opacity(0.3) : Theme.textPrimary.opacity(0.6))
         }
     }
 }
@@ -420,7 +420,22 @@ struct StatCard: View {
         .frame(maxWidth: .infinity, minHeight: 120)
         .background(color.opacity(0.1))
         .cornerRadius(24)
-        .overlay(RoundedRectangle(cornerRadius: 24).stroke(Color.white.opacity(0.05), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 24).stroke(Theme.surfaceHighlight.opacity(0.05), lineWidth: 1))
+    }
+}
+
+enum RegularImpressionSheetLayout {
+    static func height(for contentHeight: CGFloat) -> CGFloat {
+        guard contentHeight.isFinite, contentHeight > 0 else { return 520 }
+        // Long profiles and accessibility text stay scrollable rather than filling the screen.
+        return min(600, max(240, ceil(contentHeight)))
+    }
+}
+
+private struct RegularImpressionHeightPreference: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
 
@@ -428,21 +443,22 @@ struct RegularImpressionView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var isBack = false
     @State private var selectedConversation: Int?
     @Namespace private var conversationTransition
-    @State private var sheetDetent: PresentationDetent = .fraction(0.85)
+    @State private var contentHeight: CGFloat = 520
+    @State private var sheetDetent: PresentationDetent = .height(520)
     let followerID: String
 
     var body: some View {
         ScrollView {
+            Group {
             if let follower = appState.regularFollowers.first(where: { $0.id == followerID }) {
                 VStack(alignment: .leading, spacing: 24) {
                     HStack(spacing: 14) {
                         AIAvatarImage(url: follower.avatarURL)
                             .frame(width: 48, height: 48)
-                            .clipShape(Circle())
-                            .overlay(Circle().stroke(Theme.lavender.opacity(0.45), lineWidth: 1))
+                            .clipShape(TemplateAvatarShape(pixel: appState.designTemplate == .lofi))
+                            .overlay(TemplateAvatarShape(pixel: appState.designTemplate == .lofi).stroke(Theme.lavender.opacity(0.45), lineWidth: 1))
                         VStack(alignment: .leading, spacing: 5) {
                             HStack(spacing: 8) {
                                 Text(follower.authorName).font(.system(size: 19, weight: .semibold))
@@ -455,30 +471,38 @@ struct RegularImpressionView: View {
                         Spacer(minLength: 0)
                         Button { dismiss() } label: {
                             Image(systemName: "xmark").font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(.white.opacity(0.75))
+                                .foregroundStyle(Theme.textPrimary.opacity(0.75))
                                 .frame(width: 30, height: 30)
-                                .background(.white.opacity(0.07), in: Circle())
+                                .background(Theme.surfaceHighlight.opacity(0.07), in: Circle())
                                 .frame(width: 44, height: 44)
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel(appState.text("閉じる", "Close"))
                     }
-                    ZStack {
-                        card(follower, back: false)
-                            .modifier(ImpressionCardFace(angle: isBack ? 180 : 0))
-                            .allowsHitTesting(!isBack).accessibilityHidden(isBack)
-                        card(follower, back: true)
-                            .modifier(ImpressionCardFace(angle: isBack ? 0 : -180))
-                            .allowsHitTesting(isBack).accessibilityHidden(!isBack)
-                    }
+                    card(follower)
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.textPrimary)
                 .padding(.horizontal, 26).padding(.top, 20).padding(.bottom, 24)
             } else {
                 Text(appState.text("この常連は解除されています", "This regular has been removed"))
                     .foregroundStyle(.secondary).padding(32)
             }
+            }
+            .background {
+                GeometryReader { geometry in
+                    Color.clear.preference(key: RegularImpressionHeightPreference.self,
+                                           value: geometry.size.height)
+                }
+            }
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .onPreferenceChange(RegularImpressionHeightPreference.self) { measured in
+            let height = RegularImpressionSheetLayout.height(for: measured)
+            guard abs(contentHeight - height) >= 1 else { return }
+            let wasCompact = sheetDetent != .large
+            contentHeight = height
+            if wasCompact { sheetDetent = .height(height) }
         }
         .accessibilityHidden(selectedConversation != nil)
         .scrollDisabled(selectedConversation != nil)
@@ -495,7 +519,7 @@ struct RegularImpressionView: View {
                             .accessibilityHidden(true)
                             .transition(.opacity)
                         rememberedConversation(follower, index: index)
-                            .background(Color(red: 0.13, green: 0.09, blue: 0.18), in: RoundedRectangle(cornerRadius: 25))
+                            .background(Theme.conversationBackground, in: RoundedRectangle(cornerRadius: 25))
                             .clipShape(RoundedRectangle(cornerRadius: 25))
                             .matchedGeometryEffect(id: slot, in: conversationTransition, properties: reduceMotion ? [] : .frame)
                             .shadow(color: .black.opacity(0.4), radius: 24, y: 8)
@@ -507,11 +531,14 @@ struct RegularImpressionView: View {
             }
         }
         .interactiveDismissDisabled(selectedConversation != nil)
-        .presentationDetents([.fraction(0.85), .large], selection: $sheetDetent)
+        .presentationDetents([.height(contentHeight), .large], selection: $sheetDetent)
         .presentationDragIndicator(.visible)
-        .presentationCornerRadius(34)
+        .presentationCornerRadius(appState.designTemplate == .lofi ? 12 : 34)
         .presentationBackground {
-            Color.black
+            if appState.designTemplate == .lofi {
+                Theme.modalBackground.overlay { PixelPanel().stroke(Theme.lavender.opacity(0.5), lineWidth: 1) }
+            } else {
+            Theme.modalBackground
                 .overlay {
                     FeedCornerAccent(cornerRadius: 34)
                         .fill(LinearGradient(colors: [Theme.lavender.opacity(0.35), Theme.lavender],
@@ -520,37 +547,28 @@ struct RegularImpressionView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
+            }
         }
     }
 
-    private func card(_ follower: RegularFollower, back: Bool) -> some View {
+    private func card(_ follower: RegularFollower) -> some View {
         VStack(alignment: .leading, spacing: 20) {
-            if back {
+            VStack(alignment: .leading, spacing: 18) {
                 impressionSectionHeading(appState.text("\(follower.authorName)から見たあなた", "How \(follower.authorName) sees you"), icon: "heart.text.square")
-                Text(!follower.canShowImpression ? waitingForPosts : (nonempty(follower.impression) ?? appState.text(
-                    "会話を重ねると、ここに人柄や大切にしていることの総評が表示されます。",
-                    "A profile of their qualities and values will appear as conversations build up.")))
-                    .font(.system(size: 17)).lineSpacing(9)
+                Text(profileText(follower))
+                    .font(.system(size: 17, weight: .medium)).lineSpacing(7)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                VStack(alignment: .leading, spacing: 18) {
-                    impressionSectionHeading(appState.text("\(follower.authorName)から見たあなた", "How \(follower.authorName) sees you"), icon: "heart.text.square")
-                    Text(headline(follower))
-                        .font(.system(size: 20, weight: .semibold)).lineSpacing(5)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                VStack(alignment: .leading, spacing: 14) {
-                    impressionSectionHeading(appState.text("覚えている会話", "Remembered conversations"),
-                                             icon: "bubble.left.and.bubble.right",
-                                             count: "\(min(follower.recentInteractions.count, 10)) / 10")
-                    mosaic(follower)
-                    Text(appState.text("光るマスひとつが、ひとつの会話。タップして読み返せます。", "Each lit tile is a conversation. Tap to read it again."))
-                        .font(.caption).foregroundStyle(.white.opacity(0.6))
-                }
-                .padding(.top, 10)
             }
+            VStack(alignment: .leading, spacing: 14) {
+                impressionSectionHeading(appState.text("覚えている会話", "Remembered conversations"),
+                                         icon: "bubble.left.and.bubble.right",
+                                         count: "\(min(follower.recentInteractions.count, 10)) / 10")
+                mosaic(follower)
+                Text(appState.text("光るマスひとつが、ひとつの会話。タップして読み返せます。", "Each lit tile is a conversation. Tap to read it again."))
+                    .font(.caption).foregroundStyle(Theme.textPrimary.opacity(0.6))
+            }
+            .padding(.top, 10)
             if follower.canShowImpression {
                 HStack(spacing: 5) {
                     Image(systemName: "clock")
@@ -561,29 +579,15 @@ struct RegularImpressionView: View {
                         Text(appState.text("評価の更新日時は未記録", "Profile update time not recorded"))
                     }
                 }
-                .font(.caption2).foregroundStyle(.white.opacity(0.5))
+                .font(.caption2).foregroundStyle(Theme.textPrimary.opacity(0.5))
             }
-            Spacer(minLength: 0)
-            Button {
-                selectedConversation = nil
-                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.4)) { isBack.toggle() }
-            } label: {
-                Label(back ? appState.text("戻る", "Back") : appState.text("詳しく", "Details"),
-                      systemImage: "arrow.triangle.2.circlepath")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Theme.lavender)
-                    .frame(maxWidth: .infinity, minHeight: 48)
-                    .background(Theme.lavender.opacity(0.08), in: Capsule())
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 
     private func impressionSectionHeading(_ title: String, icon: String, count: String? = nil) -> some View {
         HStack(spacing: 9) {
-            Image(systemName: icon)
+            TemplateIcon(systemName: icon, size: 20)
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(Theme.lavender)
                 .frame(width: 28, height: 28)
@@ -591,7 +595,7 @@ struct RegularImpressionView: View {
                 .accessibilityHidden(true)
             Text(title)
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.9))
+                .foregroundStyle(Theme.textPrimary.opacity(0.9))
                 .fixedSize(horizontal: false, vertical: true)
                 .layoutPriority(1)
             Rectangle()
@@ -630,7 +634,7 @@ struct RegularImpressionView: View {
                             startPoint: .topLeading, endPoint: .bottomTrailing))
                         .overlay {
                             RoundedRectangle(cornerRadius: 10)
-                                .strokeBorder(selectedConversation == slot ? Color.white : (isLit ? Color.white.opacity(0.18) : Theme.lavender.opacity(0.4)),
+                                .strokeBorder(selectedConversation == slot ? Theme.textPrimary : (isLit ? Theme.surfaceHighlight.opacity(0.18) : Theme.lavender.opacity(0.4)),
                                               lineWidth: selectedConversation == slot ? 2 : 1)
                         }
                         .overlay(alignment: .bottomTrailing) {
@@ -669,19 +673,19 @@ struct RegularImpressionView: View {
                         .font(.system(size: 14, weight: .semibold))
                     if let date = original?.occurredAt {
                         Text(date, format: .dateTime.year().month().day().locale(appState.locale))
-                            .font(.system(size: 11, weight: .medium)).foregroundStyle(.white.opacity(0.55))
+                            .font(.system(size: 11, weight: .medium)).foregroundStyle(Theme.textPrimary.opacity(0.55))
                     } else {
                         Text(appState.text("日付は未保存", "Date not saved"))
-                            .font(.system(size: 11)).foregroundStyle(.white.opacity(0.45))
+                            .font(.system(size: 11)).foregroundStyle(Theme.textPrimary.opacity(0.45))
                     }
                 }
                 Spacer(minLength: 0)
                 Button { selectConversation(nil) } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(Theme.textPrimary.opacity(0.7))
                         .frame(width: 28, height: 28)
-                        .background(.white.opacity(0.07), in: Circle())
+                        .background(Theme.surfaceHighlight.opacity(0.07), in: Circle())
                         .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
                 }
@@ -703,11 +707,11 @@ struct RegularImpressionView: View {
                 .fixedSize(horizontal: false, vertical: true)
             } else {
                 Text(appState.text("この会話の原文は保存されていません。これからのやり取りは、投稿と返信をそのまま表示します。", "The original text of this conversation wasn’t saved. Future conversations will show your words and their reply."))
-                    .font(.subheadline).foregroundStyle(.white.opacity(0.65))
+                    .font(.subheadline).foregroundStyle(Theme.textPrimary.opacity(0.65))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(Theme.textPrimary)
         .padding(14)
         .frame(idealWidth: 290, maxWidth: 310)
         .background {
@@ -725,8 +729,8 @@ struct RegularImpressionView: View {
                         VStack(alignment: .leading, spacing: 9) {
                             HStack(spacing: 8) {
                                 AIAvatarImage(url: follower.avatarURL)
-                                    .frame(width: 24, height: 24).clipShape(Circle())
-                                    .overlay(Circle().stroke(Theme.lavender.opacity(0.4), lineWidth: 0.5))
+                                    .frame(width: 24, height: 24).clipShape(TemplateAvatarShape(pixel: appState.designTemplate == .lofi))
+                                    .overlay(TemplateAvatarShape(pixel: appState.designTemplate == .lofi).stroke(Theme.lavender.opacity(0.4), lineWidth: 0.5))
                                 Text(follower.authorName)
                                     .font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.lavender)
                             }
@@ -757,42 +761,15 @@ struct RegularImpressionView: View {
                 }
     }
 
-    private func nonempty(_ value: String?) -> String? {
-        guard let value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
-        return value
-    }
-
-    private func headline(_ follower: RegularFollower) -> String {
+    private func profileText(_ follower: RegularFollower) -> String {
         guard follower.canShowImpression else { return waitingForPosts }
-        if let summary = nonempty(follower.impressionSummary) { return summary }
-        // Older responses only have the detailed impression. Show a complete first sentence,
-        // rather than inventing a new personality assessment or making an API call on opening.
-        if let impression = nonempty(follower.impression) {
-            if let end = impression.firstIndex(where: { "。.!！?？".contains($0) }) {
-                return String(impression[...end])
-            }
-            return impression
-        }
+        if let impression = follower.displayedImpression { return impression }
         return appState.text("あなたらしさを、これから少しずつ。", "Getting to know what makes you, you.")
     }
 
     private var waitingForPosts: String {
         appState.text("まだわかりません。\n3件の投稿で会話を重ねると、総評が表示されます。",
                       "Not enough to tell yet.\nA profile appears after conversations on three posts.")
-    }
-}
-
-/// Opacity follows the animated angle, so mirrored lettering never shows during a flip.
-private struct ImpressionCardFace: AnimatableModifier {
-    var angle: Double
-    var animatableData: Double {
-        get { angle }
-        set { angle = newValue }
-    }
-    func body(content: Content) -> some View {
-        content
-            .opacity(cos(angle * .pi / 180) > 0 ? 1 : 0)
-            .rotation3DEffect(.degrees(angle), axis: (x: 0, y: 1, z: 0), perspective: 0.25)
     }
 }
 
@@ -815,10 +792,10 @@ struct ProfileView: View {
                 ZStack(alignment: .bottomLeading) {
                     ZStack(alignment: .bottom) {
                         Rectangle()
-                            .fill(LinearGradient(gradient: Gradient(colors: [Theme.deepPurple, Theme.purpleAccent.opacity(0.55), .black]), startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .fill(LinearGradient(gradient: Gradient(colors: [Theme.deepPurple, Theme.purpleAccent.opacity(0.55), Theme.bgDeepBlack]), startPoint: .topLeading, endPoint: .bottomTrailing))
                         LottieAnimationUIView(name: "Technology isometric ai robot brain (1)")
-                            .frame(height: 120)
-                            .opacity(0.24)
+                            .frame(height: 150)
+                            .opacity(0.70)
                             .padding(.bottom, 5)
                     }
                     .frame(height: 180)
@@ -831,18 +808,16 @@ struct ProfileView: View {
                                     .resizable()
                                     .scaledToFill()
                             } else {
-                                Image(Theme.defaultAvatarAsset)
-                                    .resizable()
-                                    .scaledToFill()
+                                DefaultProfileArtwork()
                             }
                         }
                         .frame(width: 90, height: 90)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.black, lineWidth: 6))
+                        .clipShape(TemplateAvatarShape(pixel: appState.designTemplate == .lofi))
+                        .overlay(TemplateAvatarShape(pixel: appState.designTemplate == .lofi).stroke(Theme.modalBackground, lineWidth: 6))
                         .overlay(
                             Image(systemName: "camera.circle.fill")
                                 .font(.title2)
-                                .foregroundColor(.white)
+                                .foregroundColor(Theme.onAccent)
                                 .background(Circle().fill(Theme.hotPink))
                                 .offset(x: 30, y: 30)
                         )
@@ -867,9 +842,9 @@ struct ProfileView: View {
                         if isEditingName {
                             TextField(appState.text("ユーザー名", "Your name"), text: $editedName)
                                 .font(.system(size: 28, weight: .black))
-                                .foregroundColor(.white)
+                                .foregroundColor(Theme.textPrimary)
                                 .padding(8)
-                                .background(Color.white.opacity(0.1))
+                                .background(Theme.surfaceHighlight.opacity(0.1))
                                 .cornerRadius(8)
                                 .focused($isNameFocused)
                                 .submitLabel(.done)
@@ -877,7 +852,7 @@ struct ProfileView: View {
                         } else {
                             Text(appState.userName)
                                 .font(.system(size: 28, weight: .black))
-                                .foregroundColor(.white)
+                                .foregroundColor(Theme.textPrimary)
                         }
                         Spacer()
                         Button(action: {
@@ -906,9 +881,9 @@ struct ProfileView: View {
                         if isEditingBio {
                             TextEditor(text: $appState.userBio)
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.white)
+                                .foregroundColor(Theme.textPrimary)
                                 .padding(8)
-                                .background(Color.white.opacity(0.1))
+                                .background(Theme.surfaceHighlight.opacity(0.1))
                                 .cornerRadius(8)
                                 .frame(minHeight: 80)
                         } else {
@@ -936,7 +911,7 @@ struct ProfileView: View {
                 .padding(.top, 16)
 
                 Divider()
-                    .background(Color.white.opacity(0.1))
+                    .background(Theme.surfaceHighlight.opacity(0.1))
                     .padding(.vertical, 24)
 
                 VStack(alignment: .leading, spacing: 16) {
@@ -944,7 +919,7 @@ struct ProfileView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("常連AIフォロワー")
                                 .font(.system(size: 18, weight: .black))
-                                .foregroundColor(.white)
+                                .foregroundColor(Theme.textPrimary)
                         }
                         Spacer()
                         Text("\(appState.regularFollowers.count) / \(appState.maxRegularFollowers)")
@@ -978,12 +953,12 @@ struct ProfileView: View {
                                     HStack(spacing: 12) {
                                         AIAvatarImage(url: follower.avatarURL)
                                             .frame(width: 48, height: 48)
-                                            .clipShape(Circle())
-                                            .overlay(Circle().stroke(Theme.lavender.opacity(0.75), lineWidth: 2))
+                                            .clipShape(TemplateAvatarShape(pixel: appState.designTemplate == .lofi))
+                                            .overlay(TemplateAvatarShape(pixel: appState.designTemplate == .lofi).stroke(Theme.lavender.opacity(0.75), lineWidth: 2))
                                         VStack(alignment: .leading, spacing: 5) {
                                         Text("@\(follower.authorName)")
                                             .font(.system(size: 15, weight: .black))
-                                            .foregroundColor(.white)
+                                            .foregroundColor(Theme.textPrimary)
                                             Text(appState.text("あなたへの印象を見る", "See how they see you"))
                                                 .font(.system(size: 11, weight: .medium))
                                                 .foregroundColor(.gray)
@@ -1085,9 +1060,22 @@ struct SettingsView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                settingsSection(appState.text("表示・AIの反応", "Language & AI replies")) {
+                settingsSection(appState.text("デザイン", "Design")) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 12)], spacing: 12) {
+                        ForEach(AppDesignTemplate.allCases) { template in
+                            templateOption(template)
+                        }
+                    }
+                    .padding(16)
+                    Text(appState.text("色を切り替えても、投稿や常連の設定はそのままです。", "Changing the design keeps your posts and regulars unchanged."))
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.textPrimary.opacity(0.6))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16).padding(.bottom, 16)
+                }
+                settingsSection(appState.text("言語", "Language")) {
                     VStack(spacing: 12) {
-                        settingsRow(icon: "globe", title: appState.text("言語", "Language"),
+                        settingsRow(icon: "globe", title: appState.text("アプリの表示言語", "App language"),
                                     detail: appState.text("画面表示と、今後のAI返信に使用", "Used for the interface and future AI replies"))
                         Picker(appState.text("言語", "Language"), selection: $appState.appLanguage) {
                             ForEach(AppLanguage.allCases) { language in
@@ -1098,14 +1086,17 @@ struct SettingsView: View {
                         .padding(.horizontal, 16)
                         .padding(.bottom, 16)
                     }
-                    settingsDivider
+                }
+
+                settingsSection(appState.text("AIの反応", "AI replies")) {
                     Toggle(isOn: $appState.isHaterEnabled) {
                         settingsRow(icon: "bubble.left.and.bubble.right",
                                     title: appState.text("アンチの登場", "Hater replies"),
                                     detail: appState.text("高ランクで批判的なAIも登場します", "Allow critical AI replies at higher ranks"))
                     }
                     .tint(Theme.hotPink)
-                    .padding(.trailing, 16)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
                 }
 
                 settingsSection(appState.text("広告・購入", "Ads & purchases")) {
@@ -1199,6 +1190,68 @@ struct SettingsView: View {
         }
     }
 
+    private func templateOption(_ template: AppDesignTemplate) -> some View {
+        let selected = appState.designTemplate == template
+        let dark = template != .white
+        let title = template == .lofi ? appState.text("ドット", "Dot") : (dark ? appState.text("ブラック", "Black") : appState.text("ホワイト", "White"))
+        return Button {
+            appState.designTemplate = template
+        } label: {
+            VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 9) {
+                    HStack {
+                        Text("UPME!").font(.system(size: 12, weight: .heavy))
+                            .foregroundStyle(Color(red: 0.925, green: 0.282, blue: 0.6))
+                        Spacer()
+                        Circle().fill(Color.purple.opacity(0.55)).frame(width: 5, height: 5)
+                    }
+                    VStack(alignment: .leading, spacing: 7) {
+                        if template == .lofi {
+                            HStack {
+                                PixelGlyph(name: "heart").fill(Color(red: 0.91, green: 0.61, blue: 0.71))
+                                    .frame(width: 18, height: 18)
+                                PixelGlyph(name: "wordmark").fill(.white.opacity(0.7)).frame(width: 60, height: 16)
+                            }
+                            PixelPanel().stroke(Color.purple.opacity(0.7), lineWidth: 1).frame(height: 13)
+                        } else {
+                        HStack(spacing: 6) {
+                            Circle().fill(Color.pink.opacity(0.7)).frame(width: 13, height: 13)
+                            Capsule().fill((dark ? Color.white : Color.black).opacity(0.65)).frame(width: 40, height: 4)
+                        }
+                        Capsule().fill((dark ? Color.white : Color.black).opacity(0.25)).frame(height: 4)
+                        Capsule().fill(Color.purple.opacity(0.35)).frame(width: 60, height: 4)
+                        }
+                    }
+                    .padding(10)
+                    .background(dark ? Color(red: 0.075, green: 0.052, blue: 0.12) : .white,
+                                in: RoundedRectangle(cornerRadius: 9))
+                    .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.purple.opacity(0.22)))
+                }
+                .padding(12)
+                .background(dark ? Color(red: 0.008, green: 0.006, blue: 0.018) : Color(red: 0.97, green: 0.95, blue: 0.99),
+                            in: RoundedRectangle(cornerRadius: 12))
+                .accessibilityHidden(true)
+                HStack {
+                    Text(title).font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Theme.textPrimary)
+                    Spacer(minLength: 4)
+                    Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(selected ? Theme.hotPink : Theme.textPrimary.opacity(0.3))
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity)
+            .background(Theme.cardBackground, in: RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(selected ? Theme.hotPink : Theme.subtleBorder, lineWidth: selected ? 2 : 1))
+            .contentShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityValue(selected ? appState.text("選択中", "Selected") : appState.text("未選択", "Not selected"))
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityIdentifier("settings.design.\(template.rawValue)")
+    }
+
     private var settingsDivider: some View {
         Rectangle().fill(Theme.subtleBorder).frame(height: 1).padding(.leading, 62)
     }
@@ -1219,7 +1272,7 @@ struct SettingsView: View {
     private func settingsRow(icon: String, title: String, detail: String? = nil,
                              value: String? = nil, arrow: String? = nil) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: icon)
+            TemplateIcon(systemName: icon, size: 20)
                 .font(.system(size: 17, weight: .medium))
                 .foregroundStyle(Theme.lavender)
                 .frame(width: 34, height: 34)
@@ -1228,12 +1281,12 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Theme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                 if let detail {
                     Text(detail)
                         .font(.system(size: 12))
-                        .foregroundStyle(.white.opacity(0.55))
+                        .foregroundStyle(Theme.textPrimary.opacity(0.55))
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -1242,7 +1295,7 @@ struct SettingsView: View {
                 Text(value).font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.lavender)
             }
             if let arrow {
-                Image(systemName: arrow).font(.system(size: 11, weight: .semibold)).foregroundStyle(.white.opacity(0.35))
+                Image(systemName: arrow).font(.system(size: 11, weight: .semibold)).foregroundStyle(Theme.textPrimary.opacity(0.35))
                     .accessibilityHidden(true)
             }
         }
@@ -1262,7 +1315,7 @@ struct LegalTextView: View {
             ScrollView {
                 Text(text)
                     .font(.system(size: 14, weight: .regular))
-                    .foregroundColor(.white.opacity(0.85))
+                    .foregroundColor(Theme.textPrimary.opacity(0.85))
                     .lineSpacing(6)
                     .padding(24)
             }

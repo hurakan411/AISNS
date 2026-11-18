@@ -124,7 +124,7 @@ struct OnboardingView: View {
                 }) {
                     Text("投稿する")
                         .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Theme.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(
@@ -241,19 +241,19 @@ struct OnboardingView: View {
             if ritualLine >= 1 {
                 Text("ここでは、")
                     .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(Theme.textPrimary.opacity(0.8))
                     .transition(.opacity)
             }
             if ritualLine >= 2 {
                 Text("あなたの声は否定されない。")
                     .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(Theme.textPrimary.opacity(0.8))
                     .transition(.opacity)
             }
             if ritualLine >= 3 {
                 Text("小さなひとことが、")
                     .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(Theme.textPrimary.opacity(0.8))
                     .transition(.opacity)
             }
             if ritualLine >= 4 {
@@ -334,12 +334,12 @@ struct OnboardingView: View {
                 VStack(spacing: 14) {
                     Text(error)
                         .font(.system(size: 14))
-                        .foregroundColor(.white.opacity(0.85))
+                        .foregroundColor(Theme.textPrimary.opacity(0.85))
                         .multilineTextAlignment(.center)
                     Button(action: appState.retryOnboardingReplies) {
                         Text(appState.text("もう一度試す", "Try again"))
                             .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(Theme.onAccent)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
                             .background(Theme.hotPink)
@@ -350,7 +350,7 @@ struct OnboardingView: View {
                     } label: {
                         Text(appState.text("あとで試して、UPMEを始める", "Continue to UPME"))
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.white.opacity(0.75))
+                            .foregroundColor(Theme.textPrimary.opacity(0.75))
                     }
                 }
                 .padding(20)
@@ -362,7 +362,7 @@ struct OnboardingView: View {
                     ProgressView().tint(Theme.hotPink)
                     Text(appState.text("AIが返信を準備しています…", "Your AI followers are getting ready…"))
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white.opacity(0.85))
+                        .foregroundColor(Theme.textPrimary.opacity(0.85))
                 }
                 .padding(20)
                 .background(Theme.cardBackground, in: RoundedRectangle(cornerRadius: 20))
@@ -376,7 +376,7 @@ struct OnboardingView: View {
                 }) {
                     Text("UPME! | AI SNSを始める")
                         .font(.system(size: 16, weight: .black))
-                        .foregroundColor(.white)
+                        .foregroundColor(Theme.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 18)
                         .background(
@@ -431,13 +431,14 @@ struct DebugOnboardingReplayView: View {
         }
             .environmentObject(replay)
             .environment(\.locale, replay.locale)
-            .preferredColorScheme(.dark)
+            .environment(\.designTemplate, replay.designTemplate)
+            .preferredColorScheme(replay.designTemplate.colorScheme)
             .overlay(alignment: .topTrailing) {
                 if showsReplayClose {
                     Button { dismiss() } label: {
                         Label(replay.text("閉じる", "Close"), systemImage: "xmark")
                             .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Theme.onAccent)
                             .padding(.horizontal, 12).padding(.vertical, 10)
                             .background(.black.opacity(0.7), in: Capsule())
                     }
@@ -472,7 +473,7 @@ struct FakeComposeTypingView: View {
                 Spacer()
                 Text("投稿")
                     .font(.system(size: 14, weight: .black))
-                    .foregroundColor(.white)
+                    .foregroundColor(Theme.onAccent)
                     .padding(.horizontal, 24)
                     .padding(.vertical, 10)
                     .background(typedText.isEmpty ? Color.gray.opacity(0.2) : Theme.hotPink)
@@ -503,7 +504,7 @@ struct FakeComposeTypingView: View {
                         }
                         
                         Text(typedText + (typingDone ? "" : "|"))
-                            .foregroundColor(.white)
+                            .foregroundColor(Theme.textPrimary)
                             .font(.system(size: 22, weight: .bold))
                             .frame(minHeight: 180, alignment: .topLeading)
                             .frame(maxWidth: .infinity, alignment: .leading)

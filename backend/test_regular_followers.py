@@ -43,6 +43,33 @@ class PromptCaptureClient:
 
 
 class RegularFollowerApiTests(unittest.TestCase):
+    def setUp(self):
+        # These tests inspect regular replies, independently of the attendance draw.
+        participation = patch.object(backend_main, "REGULAR_REPLY_PARTICIPATION_PROBABILITY", 1.0)
+        participation.start()
+        self.addCleanup(participation.stop)
+
+    def test_single_face_profile_length_and_legacy_summary_contract(self):
+        japanese = backend_main.build_regular_impression_instruction("ja")
+        english = backend_main.build_regular_impression_instruction("en")
+        self.assertIn("2〜3文・80〜120字", japanese)
+        self.assertIn("返信していない常連の所感は更新しない", japanese)
+        self.assertNotIn("3〜4文", japanese)
+        self.assertIn("2–3 connected sentences", english)
+        self.assertIn("45–70 words", english)
+        self.assertNotIn("3–4 connected sentences", english)
+        for prompt in (japanese, english):
+            self.assertIn("impression_summary", prompt)
+            self.assertIn("impression", prompt)
+
+    def test_profile_paragraph_requires_semantic_cohesion_not_just_connectors(self):
+        japanese = backend_main.build_regular_impression_instruction("ja")
+        english = backend_main.build_regular_impression_instruction("en")
+        for text in ("中心となる所感を一つ", "後の文は前の文の意味を受け", "毎文に接続詞", "因果関係・対比・動機を捏造しない"):
+            self.assertIn(text, japanese)
+        for text in ("one central observation", "meaningfully refer back", "force a connector into every sentence", "invent causation"):
+            self.assertIn(text, english)
+
     def test_character_and_current_reaction_coexist_in_post_and_thread(self):
         regular = backend_main.RegularFollowerContext(follower_id="yuki", author_name="ゆき",
             avatar_url="https://example.test/avatar", character_id="v1-03")

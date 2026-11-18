@@ -1,5 +1,53 @@
 import SwiftUI
 import Combine
+import UIKit
+
+/// A finite execution lease, not a background transfer or an automatic retry.
+/// UIKit state is touched only on the main queue. Each request owns its lease.
+private final class AIReplyBackgroundLease {
+    private var identifier: UIBackgroundTaskIdentifier = .invalid
+    private weak var task: URLSessionDataTask?
+
+    func start(task: URLSessionDataTask) {
+        let begin = {
+            self.task = task
+            self.identifier = UIApplication.shared.beginBackgroundTask(withName: "AI reply request") { [weak self] in
+                guard let self else { return }
+                self.task?.cancel()
+                self.finishOnMain()
+            }
+        }
+        if Thread.isMainThread { begin() }
+        else { DispatchQueue.main.sync(execute: begin) }
+    }
+
+    func finish() {
+        // Callbacks enqueue model updates first; release the lease after those updates.
+        DispatchQueue.main.async { self.finishOnMain() }
+    }
+
+    private func finishOnMain() {
+        guard identifier != .invalid else { return }
+        let finished = identifier
+        identifier = .invalid
+        task = nil
+        UIApplication.shared.endBackgroundTask(finished)
+    }
+}
+
+private func aiReplyDataTask(
+    with request: URLRequest,
+    completion: @escaping (Data?, URLResponse?, Error?) -> Void
+) -> URLSessionDataTask {
+    let lease = AIReplyBackgroundLease()
+    let task = URLSession.shared.dataTask(with: request) { data, response, error in
+        completion(data, response, error)
+        lease.finish()
+    }
+    // Acquire while foregrounded, before starting network work or allowing a lock.
+    lease.start(task: task)
+    return task
+}
 
 enum AppLanguage: String, CaseIterable, Identifiable {
     case japanese = "ja"
@@ -135,6 +183,16 @@ struct RegularFollower: Identifiable, Equatable, Codable {
     }
 
     var canShowImpression: Bool { (impressionPostIDs?.count ?? 0) >= 3 }
+
+    /// The single-face card shows the full profile, including existing saved details.
+    var displayedImpression: String? {
+        for value in [impression, impressionSummary] {
+            if let text = value?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty {
+                return text
+            }
+        }
+        return nil
+    }
 
     mutating func storeImpression(_ detail: String?, summary: String?, language: String?, receivedAt: Date) {
         let text = String((detail ?? "").prefix(600)).trimmingCharacters(in: .whitespacesAndNewlines)
@@ -350,6 +408,28 @@ private enum OnboardingReplyFetchError: String, Error {
     case emptyReplies = "empty_replies"
 }
 
+/// Retains reaction counts even after the corresponding post leaves the feed cache.
+struct LifetimeReactionStatistics: Codable {
+    struct Counts: Codable {
+        var likes: Int
+        var aiReplies: Int
+    }
+    private(set) var posts: [String: Counts] = [:]
+
+    var totalLikes: Int { posts.values.reduce(0) { $0 + $1.likes } }
+    var totalAIReplies: Int { posts.values.reduce(0) { $0 + $1.aiReplies } }
+
+    @discardableResult
+    mutating func record(id: String, likes: Int, aiReplies: Int) -> Bool {
+        let previous = posts[id] ?? Counts(likes: 0, aiReplies: 0)
+        let next = Counts(likes: max(previous.likes, likes, 0),
+                          aiReplies: max(previous.aiReplies, aiReplies, 0))
+        guard next.likes != previous.likes || next.aiReplies != previous.aiReplies else { return false }
+        posts[id] = next
+        return true
+    }
+}
+
 class AppState: ObservableObject {
     #if DEBUG
     private(set) var isDebugOnboardingReplay = false
@@ -373,6 +453,7 @@ class AppState: ObservableObject {
         let replay = AppState(restorePersistedState: false)
         replay.isDebugOnboardingReplay = true
         replay.appLanguage = source.appLanguage
+        replay.designTemplate = source.designTemplate
         replay.userName = source.userName
         replay.userBio = source.userBio
         replay.userAvatarData = source.userAvatarData
@@ -390,6 +471,14 @@ class AppState: ObservableObject {
         reactionTimer = nil
     }
     #endif
+
+    @Published var designTemplate = AppDesignTemplate.load() {
+        didSet {
+            Theme.activeTemplate = designTemplate
+            guard canPersistUserState else { return }
+            designTemplate.save()
+        }
+    }
 
     @Published var appLanguage: AppLanguage = {
         guard let saved = UserDefaults.standard.string(forKey: "appLanguage"),
@@ -424,6 +513,18 @@ class AppState: ObservableObject {
     }
     @Published var totalPosts: Int = 0 {
         didSet { cacheUserProgress() }
+    }
+    @Published private var reactionStatistics = LifetimeReactionStatistics()
+    var totalLikes: Int {
+        canPersistUserState ? reactionStatistics.totalLikes : posts.reduce(0) { $0 + $1.likes }
+    }
+    var totalAIReplies: Int {
+        canPersistUserState ? reactionStatistics.totalAIReplies : posts.reduce(0) { $0 + aiReplyCount(in: $1) }
+    }
+
+    private func aiReplyCount(in post: PostModel) -> Int {
+        post.replies.filter { !$0.isUserReply }.count
+            + post.replyThreads.reduce(0) { $0 + $1.replies.filter { !$0.isUserReply }.count }
     }
     @Published var posts: [PostModel] = [] {
         didSet { if !isInOnboarding { savePosts() } }
@@ -495,6 +596,10 @@ class AppState: ObservableObject {
     private var postsURL: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("posts_v1.json")
     }
+
+    private var reactionStatisticsURL: URL {
+        postsURL.deletingLastPathComponent().appendingPathComponent("lifetime_reaction_statistics_v1.json")
+    }
     
     private var avatarURL: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("user_avatar.dat")
@@ -505,9 +610,11 @@ class AppState: ObservableObject {
     }
 
     init(restorePersistedState: Bool = true) {
+        Theme.activeTemplate = designTemplate
         guard restorePersistedState else { return }
         #if DEBUG && targetEnvironment(simulator)
         if DesignPreview.isActive {
+            designTemplate = AppDesignTemplate(rawValue: DesignPreview.argument("--ui-theme") ?? "black") ?? .black
             appLanguage = DesignPreview.argument("--ui-language") == "en" ? .english : .japanese
             hasCompletedOnboarding = true
             userName = text("おんざべ", "Onzabe")
@@ -560,6 +667,10 @@ class AppState: ObservableObject {
         }
         
         loadAvatar()
+        if let data = try? Data(contentsOf: reactionStatisticsURL),
+           let saved = try? JSONDecoder().decode(LifetimeReactionStatistics.self, from: data) {
+            reactionStatistics = saved
+        }
         loadPosts()
         loadRegularFollowers()
         if let baseURL = URL(string: Self.baseUrl) {
@@ -611,6 +722,23 @@ class AppState: ObservableObject {
     
     private func savePosts() {
         guard canPersistUserState else { return }
+        // Record before trimming. Re-reading a saved post must never count it twice.
+        var statistics = reactionStatistics
+        var statisticsChanged = false
+        for post in posts {
+            if statistics.record(id: post.id.uuidString, likes: post.likes, aiReplies: aiReplyCount(in: post)) {
+                statisticsChanged = true
+            }
+        }
+        if statisticsChanged {
+            // Keep the original posts if statistics cannot be saved, so a later save can retry.
+            guard let data = try? JSONEncoder().encode(statistics),
+                  (try? data.write(to: reactionStatisticsURL, options: .atomic)) != nil else { return }
+            reactionStatistics = statistics
+        } else if !FileManager.default.fileExists(atPath: reactionStatisticsURL.path) {
+            guard let data = try? JSONEncoder().encode(statistics),
+                  (try? data.write(to: reactionStatisticsURL, options: .atomic)) != nil else { return }
+        }
         // Keep unfinished posts until their generated replies and reward are delivered.
         let trimmed = posts.enumerated().filter { index, post in
             index < 5 || requestingPostIDs.contains(post.id)
@@ -1024,7 +1152,9 @@ class AppState: ObservableObject {
                     updatedFollowers[index].rememberConversation(summary: trimmed, original: original)
                 }
             }
-            updatedFollowers[index].lastInteractionAt = Date()
+            if replies.contains(where: { $0.regularFollowerId == followerID }) {
+                updatedFollowers[index].lastInteractionAt = Date()
+            }
         }
 
         regularFollowers = updatedFollowers
@@ -1220,7 +1350,7 @@ class AppState: ObservableObject {
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         let replyRequestStartedAt = Date()
 
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+        aiReplyDataTask(with: request) { [weak self] data, response, error in
             guard let self = self else { return }
 
             if error != nil {
@@ -1381,7 +1511,7 @@ class AppState: ObservableObject {
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         
         DispatchQueue.main.async { self.debugText = "REQ→\(url)" }
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+        aiReplyDataTask(with: request) { [weak self] data, response, error in
             if let error = error {
                 DispatchQueue.main.async {
                     self?.debugText = "ERR:\(error.localizedDescription)"
@@ -1658,13 +1788,13 @@ class AppState: ObservableObject {
         ]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         
-        let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+        let task = aiReplyDataTask(with: request) { [weak self] data, response, error in
             guard let self = self, !self.onboardingReplayCancelled else { return }
             
             if let error = error {
                 print("fetchAiRepliesBackground error: \(error.localizedDescription)")
                 // ネットワーク切断などは2回までリトライ
-                if retryCount < 2 {
+                if retryCount < 2 && (error as NSError).code != NSURLErrorCancelled {
                     DispatchQueue.global().asyncAfter(deadline: .now() + 3.0) {
                         self.fetchAiRepliesBackground(content: content, followers: followers, postFlowID: postFlowID, retryCount: retryCount + 1, requestStartedAt: requestStartedAt, completion: completion)
                     }

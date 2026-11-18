@@ -37,7 +37,7 @@ struct PrivacyConsentView: View {
 
                     Text("データ取扱と\nプライバシーポリシーについて")
                         .font(.system(size: 26, weight: .black, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(Theme.textPrimary)
                         .multilineTextAlignment(.center)
                 }
                 .padding(.bottom, 32)
@@ -50,21 +50,21 @@ struct PrivacyConsentView: View {
                         title: "送信されるデータ",
                         description: "投稿・返信テキスト、添付画像（任意）、常連AIの会話記憶（設定時）"
                     )
-                    Divider().background(Color.white.opacity(0.08))
+                    Divider().background(Theme.surfaceHighlight.opacity(0.08))
                     DataRow(
                         icon: "server.rack",
                         iconColor: .purple,
                         title: "送信先",
                         description: "OpenAI（ChatGPT API）— AIリプライ生成のみに使用"
                     )
-                    Divider().background(Color.white.opacity(0.08))
+                    Divider().background(Theme.surfaceHighlight.opacity(0.08))
                     DataRow(
                         icon: "person.badge.shield.checkmark.fill",
                         iconColor: .green,
                         title: "保存・販売はしません",
                         description: "送信データはAI処理後に保持されず、第三者への販売は行いません"
                     )
-                    Divider().background(Color.white.opacity(0.08))
+                    Divider().background(Theme.surfaceHighlight.opacity(0.08))
                     DataRow(
                         icon: "chart.bar.xaxis",
                         iconColor: .orange,
@@ -73,11 +73,11 @@ struct PrivacyConsentView: View {
                     )
                 }
                 .padding(24)
-                .background(Color.white.opacity(0.05))
+                .background(Theme.surfaceHighlight.opacity(0.05))
                 .cornerRadius(20)
                 .overlay(
                     RoundedRectangle(cornerRadius: 20)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                        .stroke(Theme.surfaceHighlight.opacity(0.08), lineWidth: 1)
                 )
                 .padding(.horizontal, 24)
 
@@ -110,7 +110,7 @@ struct PrivacyConsentView: View {
                     }) {
                         Text("同意してはじめる")
                             .font(.system(size: 17, weight: .black))
-                            .foregroundColor(.white)
+                            .foregroundColor(Theme.onAccent)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 18)
                             .background(
@@ -160,11 +160,11 @@ private struct DataRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.system(size: 13, weight: .black))
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(Theme.textPrimary.opacity(0.55))
                     .tracking(1)
                 Text(description)
                     .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(Theme.textPrimary)
                     .lineSpacing(4)
                     .fixedSize(horizontal: false, vertical: true)
             }
