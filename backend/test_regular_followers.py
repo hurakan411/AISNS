@@ -43,6 +43,47 @@ class PromptCaptureClient:
 
 
 class RegularFollowerApiTests(unittest.TestCase):
+    def test_character_and_current_reaction_coexist_in_post_and_thread(self):
+        regular = backend_main.RegularFollowerContext(follower_id="yuki", author_name="ゆき",
+            avatar_url="https://example.test/avatar", character_id="v1-03")
+        for language in ("ja", "en"):
+            for thread in (False, True):
+                with self.subTest(language=language, thread=thread):
+                    response_type = GenerateReplyThreadResponse if thread else GenerateRepliesResponse
+                    parsed = response_type(replies=[ReplySchema(author_name="ゆき", content="nice",
+                        is_hater=False, is_defender=False, regular_follower_id="yuki", character_id="v1-22")], memory_updates=[])
+                    capture = PromptCaptureClient(parsed)
+                    with patch.object(backend_main, "openai_client", capture):
+                        if thread:
+                            result = asyncio.run(backend_main.generate_ai_reply_to_user(ReplyToAiRequest(
+                                user_id="synthetic", post_content="work", ai_author_name="ゆき",
+                                ai_reply_content="nice", user_reply="thanks", target_regular_follower=regular,
+                                regular_followers=[regular], language=language)))
+                        else:
+                            result = asyncio.run(backend_main.generate_ai_replies("work", 200000, False,
+                                regular_followers=[regular], language=language))
+                    self.assertEqual(len(capture.calls), 1)
+                    self.assertEqual(result[0][0]["character_id"], "v1-03")
+                    prompt = capture.calls[0]["messages"][0]["content"]
+                    self.assertIn(backend_main.BY_ID["v1-03"].voice_en if language == "en" else backend_main.BY_ID["v1-03"].voice_ja, prompt)
+                    self.assertIn("REACTION ASSIGNMENTS" if language == "en" else "リアクションの分担", prompt)
+                    self.assertNotIn(" / plain, lightly polite wording", prompt)
+
+    def test_thread_preserves_target_and_other_general_character_ids(self):
+        parsed = GenerateReplyThreadResponse(replies=[
+            ReplySchema(author_name="あおい", content="one", is_hater=False, is_defender=False,
+                        regular_follower_id=None, character_id="v1-01"),
+            ReplySchema(author_name="みく", content="two", is_hater=False, is_defender=False,
+                        regular_follower_id=None, character_id="v1-01")], memory_updates=[])
+        capture = PromptCaptureClient(parsed)
+        request = ReplyToAiRequest(user_id="synthetic", post_content="walk", ai_author_name="あおい",
+            ai_reply_content="nice", ai_character_id="v1-02", user_reply="thanks",
+            other_ai_replies=[backend_main.ThreadReplyContext(author_name="みく", content="initial", character_id="v1-13")])
+        with patch.object(backend_main, "openai_client", capture):
+            result, _ = asyncio.run(backend_main.generate_ai_reply_to_user(request))
+        self.assertEqual([r["character_id"] for r in result], ["v1-02", "v1-13"])
+        self.assertEqual(len(capture.calls), 1)
+
     def test_profile_viewpoints_are_distinct_order_independent_and_do_not_include_memories(self):
         followers = [backend_main.RegularFollowerContext(follower_id=id, author_name=id,
             avatar_url="https://example.test/avatar", memories=["PRIVATE-CONTEXT"])
@@ -241,7 +282,7 @@ class RegularFollowerApiTests(unittest.TestCase):
         self.assertEqual(len(capture.calls), 1)
         self.assertIn(result["replies"][0]["author_img"], backend_main.AVATARS)
         self.assertEqual(set(result["replies"][0]), {
-            "author_name", "author_img", "content", "is_hater", "is_defender", "regular_follower_id",
+            "author_name", "author_img", "content", "is_hater", "is_defender", "regular_follower_id", "character_id",
         })
 
     def test_viral_followers_are_three_times_and_likes_five_times_rank_maximum(self):

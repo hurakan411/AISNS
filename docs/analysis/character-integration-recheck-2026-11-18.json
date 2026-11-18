@@ -1,0 +1,336 @@
+{
+  "created_at_utc": "2026-11-18T01:51:33.542731+00:00",
+  "model": "gpt-6-luna",
+  "synthetic_fixtures_only": true,
+  "database_access": false,
+  "samples": [
+    {
+      "case": "ja_sad",
+      "route": "/api/posts",
+      "http_status": 200,
+      "model": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 179,
+        "prompt_tokens": 5714,
+        "total_tokens": 5893,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0,
+          "cache_write_tokens": 5711
+        }
+      },
+      "raw_character_ids": [
+        "v1-15",
+        "v1-25",
+        "v1-06"
+      ],
+      "response": {
+        "status": "success",
+        "replies": [
+          {
+            "author_name": "みく",
+            "author_img": "https://woxotmmgvabizjgizwow.supabase.co/storage/v1/object/public/images/avatar-184.jpg",
+            "content": "今日は何もしなくていいよ",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null,
+            "character_id": "v1-25"
+          },
+          {
+            "author_name": "ゆき",
+            "author_img": "https://woxotmmgvabizjgizwow.supabase.co/storage/v1/object/public/images/avatar-159.jpg",
+            "content": "会議のこと、頭から離れないよね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null,
+            "character_id": "v1-15"
+          },
+          {
+            "author_name": "れん",
+            "author_img": "https://woxotmmgvabizjgizwow.supabase.co/storage/v1/object/public/images/avatar-199.jpg",
+            "content": "帰ってからも反省が続くの、しんどいね。今日は何もしたくない気持ちのままで大丈夫。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null,
+            "character_id": "v1-06"
+          }
+        ],
+        "memory_updates": []
+      },
+      "validated": true
+    },
+    {
+      "case": "ja_character_post1",
+      "route": "/api/posts",
+      "http_status": 200,
+      "model": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 1173,
+        "prompt_tokens": 7871,
+        "total_tokens": 9044,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0,
+          "cache_write_tokens": 7868
+        }
+      },
+      "raw_character_ids": [
+        "v1-08",
+        "v1-03",
+        "v1-21",
+        "v1-13",
+        "v1-09",
+        "v1-15",
+        "v1-18",
+        "v1-02",
+        "v1-25",
+        "v1-20",
+        "v1-30"
+      ],
+      "response": {
+        "status": "success",
+        "replies": [
+          {
+            "author_name": "れん",
+            "author_img": "https://example.invalid/avatar/2",
+            "content": "おつかれさま",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "smoke-2",
+            "character_id": "v1-09"
+          },
+          {
+            "author_name": "りお",
+            "author_img": "https://woxotmmgvabizjgizwow.supabase.co/storage/v1/object/public/images/avatar-39.jpg",
+            "content": "終わったあとのほっと感、今は何したくなる？",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null,
+            "character_id": "v1-25"
+          },
+          {
+            "author_name": "たけし",
+            "author_img": "https://woxotmmgvabizjgizwow.supabase.co/storage/v1/object/public/images/avatar-80.jpg",
+            "content": "練習してきたプレゼン、無事終わったんだね。ほっとできたのが何より。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null,
+            "character_id": "v1-08"
+          },
+          {
+            "author_name": "みく",
+            "author_img": "https://example.invalid/avatar/1",
+            "content": "声に出して練習していた分、終わった安心感もひときわだね。今日はそのほっとした気持ちを味わえますように。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "smoke-1",
+            "character_id": "v1-13"
+          },
+          {
+            "author_name": "まこと",
+            "author_img": "https://woxotmmgvabizjgizwow.supabase.co/storage/v1/object/public/images/avatar-87.jpg",
+            "content": "練習を重ねて終えたの、ちゃんと一区切りだね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null,
+            "character_id": "v1-18"
+          },
+          {
+            "author_name": "しょう",
+            "author_img": "https://woxotmmgvabizjgizwow.supabase.co/storage/v1/object/public/images/avatar-97.jpg",
+            "content": "練習してきたことを終わりまでやり切れて、気持ちも落ち着いたね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null,
+            "character_id": "v1-30"
+          },
+          {
+            "author_name": "あおい",
+            "author_img": "https://woxotmmgvabizjgizwow.supabase.co/storage/v1/object/public/images/avatar-18.jpg",
+            "content": "プレゼン後の解放感、いいね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null,
+            "character_id": "v1-15"
+          },
+          {
+            "author_name": "さくら",
+            "author_img": "https://woxotmmgvabizjgizwow.supabase.co/storage/v1/object/public/images/avatar-16.jpg",
+            "content": "終わった瞬間、肩の力抜けそう。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null,
+            "character_id": "v1-21"
+          },
+          {
+            "author_name": "なお",
+            "author_img": "https://woxotmmgvabizjgizwow.supabase.co/storage/v1/object/public/images/avatar-141.jpg",
+            "content": "本番が終わると、頭の中のリハーサルもやっと閉店する感じある。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null,
+            "character_id": "v1-02"
+          },
+          {
+            "author_name": "かな",
+            "author_img": "https://woxotmmgvabizjgizwow.supabase.co/storage/v1/object/public/images/avatar-141.jpg",
+            "content": "その安心感、じわっと来そう。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": null,
+            "character_id": "v1-20"
+          },
+          {
+            "author_name": "ゆき",
+            "author_img": "https://example.invalid/avatar/0",
+            "content": "練習の成果を出せたね、ほんとおつかれさま🙌",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "smoke-0",
+            "character_id": "v1-03"
+          }
+        ],
+        "memory_updates": [
+          {
+            "follower_id": "smoke-0",
+            "new_memories": [
+              "練習していたプレゼンが終わり、ほっとしたと投稿した。"
+            ],
+            "interaction_summary": "練習を重ねていたプレゼンが終わり、ほっとしたという投稿に、練習の成果を出せたことをねぎらった。",
+            "impression": "目標に向けて準備を重ね、一区切りを迎えたときの達成感を素直に受け止められる姿勢がうかがえる。努力の過程と、その後に訪れる安堵の両方を大切にしている。",
+            "impression_language": "ja",
+            "impression_summary": "目標に向けた努力を重ね、その達成と安堵を素直に味わえる人。"
+          },
+          {
+            "follower_id": "smoke-1",
+            "new_memories": [
+              "練習していたプレゼンが終わり、ほっとしたと投稿した。"
+            ],
+            "interaction_summary": "プレゼンの練習を重ねて本番を終え、ほっとしたという投稿に、準備していた分だけ安心感も大きそうだと伝えた。",
+            "impression": "物事の節目で生まれる気持ちの変化を、飾らずに受け止める姿勢が感じられる。結果だけでなく、一区切りを迎えたときの実感にも目を向けている。",
+            "impression_language": "ja",
+            "impression_summary": "節目に訪れる気持ちの変化を大切にし、一区切りの実感を率直に受け止める人。"
+          },
+          {
+            "follower_id": "smoke-2",
+            "new_memories": [
+              "練習していたプレゼンが終わり、ほっとしたと投稿した。"
+            ],
+            "interaction_summary": "練習していたプレゼンが終わり、ほっとしたという投稿に、短くおつかれさまと声をかけた。",
+            "impression": "自身の負担や安心を率直に認め、気持ちに区切りをつけていく姿勢がうかがえる。頑張った事実を過度に飾らず、その時々の実感として大切にしている。",
+            "impression_language": "ja",
+            "impression_summary": "自分の努力と安心を率直に認め、その時々の実感を大切にする人。"
+          }
+        ]
+      },
+      "validated": true
+    },
+    {
+      "case": "ja_character_thread",
+      "route": "/api/replies",
+      "http_status": 200,
+      "model": "gpt-6-luna",
+      "usage": {
+        "completion_tokens": 625,
+        "prompt_tokens": 5397,
+        "total_tokens": 6022,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0,
+          "cache_write_tokens": 5394
+        }
+      },
+      "raw_character_ids": [
+        "v1-03",
+        "v1-13",
+        "v1-09"
+      ],
+      "response": {
+        "status": "success",
+        "replies": [
+          {
+            "author_name": "ゆき",
+            "author_img": "https://example.invalid/avatar/0",
+            "content": "ほんとだね。前に声に出して練習してたもんね。終わってひと安心だね。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "smoke-0",
+            "character_id": "v1-03"
+          },
+          {
+            "author_name": "みく",
+            "author_img": "https://woxotmmgvabizjgizwow.supabase.co/storage/v1/object/public/images/avatar-111.jpg",
+            "content": "練習しておいてよかったって思えるの、うれしいね(^^)",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "smoke-1",
+            "character_id": "v1-13"
+          },
+          {
+            "author_name": "れん",
+            "author_img": "https://woxotmmgvabizjgizwow.supabase.co/storage/v1/object/public/images/avatar-33.jpg",
+            "content": "準備してきたことが本番につながったんだね。おつかれさま。",
+            "is_hater": false,
+            "is_defender": false,
+            "regular_follower_id": "smoke-2",
+            "character_id": "v1-09"
+          }
+        ],
+        "reply": {
+          "author_name": "ゆき",
+          "author_img": "https://example.invalid/avatar/0",
+          "content": "ほんとだね。前に声に出して練習してたもんね。終わってひと安心だね。",
+          "is_hater": false,
+          "is_defender": false,
+          "regular_follower_id": "smoke-0",
+          "character_id": "v1-03"
+        },
+        "memory_updates": [
+          {
+            "follower_id": "smoke-0",
+            "new_memories": [],
+            "interaction_summary": "プレゼンが終わり、声に出して練習しておいてよかったと話した。",
+            "impression": "自分なりに準備を重ね、その手応えを率直に受け止める姿勢がうかがえる。努力を結果と結びつけて振り返るところに、着実さが感じられる。",
+            "impression_language": "ja",
+            "impression_summary": "準備を重ねた手応えを素直に受け止め、着実に次へつなげていく姿勢がある。"
+          },
+          {
+            "follower_id": "smoke-1",
+            "new_memories": [],
+            "interaction_summary": "プレゼンが終わり、練習しておいてよかったと振り返った。",
+            "impression": "日々の工夫が役立ったことに気づき、その実感を自然に喜べる人。小さな変化や積み重ねを、自分の確かな手応えとして受け取る柔らかさがある。",
+            "impression_language": "ja",
+            "impression_summary": "身近な工夫の価値に気づき、その手応えを自分の喜びとして受け取れる人。"
+          },
+          {
+            "follower_id": "smoke-2",
+            "new_memories": [],
+            "interaction_summary": "プレゼンが終わったことと、練習しておいてよかったという実感を共有した。",
+            "impression": "緊張や安堵を取り繕わず、その時々の実感を言葉にできる人。自分の気持ちを確かめながら、一区切りを穏やかに受け止める姿勢が感じられる。",
+            "impression_language": "ja",
+            "impression_summary": "その時々の実感を大切にし、気持ちの変化を率直に受け止められる人。"
+          }
+        ]
+      },
+      "validated": true
+    }
+  ]
+}

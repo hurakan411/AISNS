@@ -33,6 +33,7 @@ struct Reply: Identifiable, Equatable, Codable {
     let replyToId: UUID?
     let isUserReply: Bool
     var hasUserReply: Bool
+    let characterId: String?
 
     init(
         id: UUID = UUID(),
@@ -44,7 +45,8 @@ struct Reply: Identifiable, Equatable, Codable {
         regularFollowerId: String? = nil,
         replyToId: UUID? = nil,
         isUserReply: Bool = false,
-        hasUserReply: Bool = false
+        hasUserReply: Bool = false,
+        characterId: String? = nil
     ) {
         self.id = id
         self.authorName = authorName
@@ -56,11 +58,12 @@ struct Reply: Identifiable, Equatable, Codable {
         self.replyToId = replyToId
         self.isUserReply = isUserReply
         self.hasUserReply = hasUserReply
+        self.characterId = characterId
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, authorName, text, img, isHater, isDefender, regularFollowerId
-        case replyToId, isUserReply, hasUserReply
+        case replyToId, isUserReply, hasUserReply, characterId
     }
 
     init(from decoder: Decoder) throws {
@@ -75,6 +78,7 @@ struct Reply: Identifiable, Equatable, Codable {
         replyToId = try container.decodeIfPresent(UUID.self, forKey: .replyToId)
         isUserReply = try container.decodeIfPresent(Bool.self, forKey: .isUserReply) ?? false
         hasUserReply = try container.decodeIfPresent(Bool.self, forKey: .hasUserReply) ?? false
+        characterId = try container.decodeIfPresent(String.self, forKey: .characterId)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -89,6 +93,7 @@ struct Reply: Identifiable, Equatable, Codable {
         try container.encodeIfPresent(replyToId, forKey: .replyToId)
         try container.encode(isUserReply, forKey: .isUserReply)
         try container.encode(hasUserReply, forKey: .hasUserReply)
+        try container.encodeIfPresent(characterId, forKey: .characterId)
     }
 
     var canReceiveUserReply: Bool {
@@ -121,6 +126,13 @@ struct RegularFollower: Identifiable, Equatable, Codable {
     var conversationTexts: [RegularConversation?]? = nil
     // Keep the first three distinct post IDs so replies and retries cannot unlock this early.
     var impressionPostIDs: [UUID]? = nil
+    var characterId: String? = nil
+
+    mutating func rememberCharacter(_ id: String?) {
+        guard characterId == nil, let id,
+              (1...30).contains(where: { id == String(format: "v1-%02d", $0) }) else { return }
+        characterId = id
+    }
 
     var canShowImpression: Bool { (impressionPostIDs?.count ?? 0) >= 3 }
 
@@ -723,7 +735,8 @@ class AppState: ObservableObject {
             createdAt: Date(),
             lastInteractionAt: Date(),
             conversationTexts: [RegularConversation(userText: postContent, replyText: reply.text, isUserReply: false,
-                                                     occurredAt: originatingPost?.createdAt)]
+                                                     occurredAt: originatingPost?.createdAt)],
+            characterId: reply.characterId
         )
         if let post = originatingPost {
             follower.recordImpressionPost(post.id)
@@ -967,6 +980,7 @@ class AppState: ObservableObject {
                 "follower_id": follower.id,
                 "author_name": follower.authorName,
                 "avatar_url": follower.avatarURL,
+                "character_id": follower.characterId ?? "",
                 "memories": Array(follower.memories.suffix(RegularFollower.memoryLimit)),
                 "recent_interactions": Array(follower.recentInteractions.suffix(RegularFollower.interactionLimit))
             ]
@@ -975,16 +989,19 @@ class AppState: ObservableObject {
 
     private func applyRegularFollowerMemoryUpdates(_ updates: [[String: Any]], userText: String,
                                                   replies: [Reply], postID: UUID, occurredAt: Date, isUserReply: Bool = false) {
-        guard !updates.isEmpty else { return }
         var updatedFollowers = regularFollowers
+        // Persist identity even if this response omitted its optional memory update.
+        for reply in replies {
+            if let id = reply.regularFollowerId,
+               let index = updatedFollowers.firstIndex(where: { $0.id == id }) {
+                updatedFollowers[index].rememberCharacter(reply.characterId)
+                if !isUserReply { updatedFollowers[index].recordImpressionPost(postID) }
+            }
+        }
 
         for update in updates {
             guard let followerID = update["follower_id"] as? String,
                   let index = updatedFollowers.firstIndex(where: { $0.id == followerID }) else { continue }
-            if !isUserReply, replies.contains(where: { $0.regularFollowerId == followerID }) {
-                updatedFollowers[index].recordImpressionPost(postID)
-            }
-
             let incomingMemories = (update["new_memories"] as? [String] ?? [])
                 .map { String($0.prefix(160)) }
                 .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
@@ -1129,8 +1146,15 @@ class AppState: ObservableObject {
                     "is_hater": otherReply.isHater,
                     "is_defender": otherReply.isDefender
                 ]
-                if let regularID = otherReply.regularFollowerId {
+                let otherRegular = regularFollowers.first { follower in
+                    follower.id == otherReply.regularFollowerId ||
+                    (follower.authorName == otherReply.authorName && follower.avatarURL == otherReply.img)
+                }
+                if let regularID = otherRegular?.id ?? otherReply.regularFollowerId {
                     payload["regular_follower_id"] = regularID
+                }
+                if let characterID = otherRegular?.characterId ?? otherReply.characterId {
+                    payload["character_id"] = characterID
                 }
                 return payload
             }
@@ -1182,11 +1206,13 @@ class AppState: ObservableObject {
             if let regularID = reply.regularFollowerId { return follower.id == regularID }
             return follower.authorName == reply.authorName && follower.avatarURL == reply.img
         }
+        if let characterID = reply.characterId { body["ai_character_id"] = characterID }
         if let targetRegular {
             body["target_regular_follower"] = [
                 "follower_id": targetRegular.id,
                 "author_name": targetRegular.authorName,
                 "avatar_url": targetRegular.avatarURL,
+                "character_id": targetRegular.characterId ?? "",
                 "memories": Array(targetRegular.memories.suffix(RegularFollower.memoryLimit)),
                 "recent_interactions": Array(targetRegular.recentInteractions.suffix(RegularFollower.interactionLimit))
             ]
@@ -1263,7 +1289,8 @@ class AppState: ObservableObject {
                     isHater: isHater,
                     isDefender: isDefender,
                     regularFollowerId: regularFollowerID,
-                    replyToId: userReplyID
+                    replyToId: userReplyID,
+                    characterId: replyJSON["character_id"] as? String
                 )
             }
 
@@ -1401,7 +1428,7 @@ class AppState: ObservableObject {
                         let isDefender = jsonReplyBool(r, snake: "is_defender", camel: "isDefender")
                         let img = r["author_img"] as? String ?? self.avatars[0]
                         let regularFollowerID = r["regular_follower_id"] as? String
-                        pending.append(Reply(authorName: author, text: content, img: img, isHater: isHater, isDefender: isDefender, regularFollowerId: regularFollowerID))
+                        pending.append(Reply(authorName: author, text: content, img: img, isHater: isHater, isDefender: isDefender, regularFollowerId: regularFollowerID, characterId: r["character_id"] as? String))
                     }
                     self.applyRegularFollowerMemoryUpdates(memoryUpdates, userText: content, replies: pending, postID: postFlowID,
                                                            occurredAt: requestStartedAt)
@@ -1664,7 +1691,7 @@ class AppState: ObservableObject {
                 let isDefender = jsonReplyBool(r, snake: "is_defender", camel: "isDefender")
                 let img = r["author_img"] as? String ?? self.avatars[0]
                 let regularFollowerID = r["regular_follower_id"] as? String
-                replies.append(Reply(authorName: author, text: content, img: img, isHater: isHater, isDefender: isDefender, regularFollowerId: regularFollowerID))
+                replies.append(Reply(authorName: author, text: content, img: img, isHater: isHater, isDefender: isDefender, regularFollowerId: regularFollowerID, characterId: r["character_id"] as? String))
             }
             guard !replies.isEmpty else {
                 fail(.emptyReplies)

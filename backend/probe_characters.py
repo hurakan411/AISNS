@@ -67,7 +67,8 @@ async def run(args):
         regular_ids = [r.follower_id for r in regulars] + [None] * (5 - len(regulars))
         replacements = {"openai_client": proxy}
         if selected:
-            replacements["build_reply_diversity_instruction"] = lambda count, lang: build_character_prompt(selected, lang, regular_ids)
+            replacements["build_reply_diversity_instruction"] = lambda count, lang, **_: build_character_prompt(selected, lang, regular_ids)
+        replacements["build_persistent_character_prompt"] = lambda *args: ""  # Isolate the original catalog experiment.
         random.seed(42)
         with patch.multiple(main, **replacements), patch.object(main.random, "randint", return_value=5):
             try:

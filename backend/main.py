@@ -1,4 +1,3 @@
-import hashlib
 import json
 import logging
 import os
@@ -15,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, create_model
 from openai import AsyncOpenAI
 from supabase import create_client, Client
+from character_catalog import resolve_character_id, make_character_plan, build_persistent_character_prompt, reply_character_id, BY_ID
 
 # -------- 1. 設定・初期化 --------
 load_dotenv()
@@ -119,6 +119,7 @@ class RegularFollowerContext(BaseModel):
     avatar_url: str
     memories: List[str] = Field(default_factory=list)
     recent_interactions: List[str] = Field(default_factory=list)
+    character_id: Optional[str] = None
 
 class PostRequest(BaseModel):
     user_id: str
@@ -140,6 +141,7 @@ class ReplySchema(BaseModel):
     is_hater: bool
     is_defender: bool
     regular_follower_id: Optional[str]
+    character_id: Optional[str] = None
 
 class RegularFollowerMemoryUpdateSchema(BaseModel):
     follower_id: str
@@ -188,6 +190,7 @@ class ThreadReplyContext(BaseModel):
     is_hater: bool = False
     is_defender: bool = False
     regular_follower_id: Optional[str] = None
+    character_id: Optional[str] = None
 
 
 class ReplyToAiRequest(BaseModel):
@@ -196,6 +199,7 @@ class ReplyToAiRequest(BaseModel):
     post_content: str
     ai_author_name: str
     ai_author_img: Optional[str] = None
+    ai_character_id: Optional[str] = None
     ai_reply_content: str
     user_reply: str
     ai_is_hater: bool = False
@@ -484,7 +488,7 @@ LENGTH_BAND_EN = {
 }
 
 
-def build_reply_diversity_instruction(count: int, language: str, *, thread: bool = False) -> str:
+def build_reply_diversity_instruction(count: int, language: str, *, thread: bool = False, preserve_character: bool = False) -> str:
     """Assign different conversational jobs before generation, without adding API calls."""
     if count <= 0:
         return ""
@@ -542,7 +546,11 @@ JSONを返す前に全返信を比較し、同じことを言っている人が�
     if count >= 4 and random.random() < 0.5:
         index = random.randrange(count)
         plan[index] = (question, plan[index][1])
-    rows = "\n".join(f"- {label} {index}: {angle} / {voice}" for index, (angle, voice) in enumerate(plan, 1))
+    if preserve_character:
+        rules += ("\nOnly the reaction job changes; keep the assigned character's vocabulary, politeness and symbol policy."
+                  if language == "en" else "\n変えるのは今回の反応の役割だけ。割当キャラの語彙・丁寧さ・記号の方針は維持する。")
+    rows = "\n".join(f"- {label} {index}: {angle}" + ("" if preserve_character else f" / {voice}")
+                     for index, (angle, voice) in enumerate(plan, 1))
     return f"\n{heading}\n{rules}\n{rows}\n"
 
 
@@ -560,25 +568,14 @@ def build_recent_reply_context(replies: Optional[List[str]], language: str) -> s
 
 
 def build_regular_impression_viewpoints(followers: List[RegularFollowerContext], language: str) -> str:
-    """Separate editorial lenses, deterministic for a roster; never user personality facts."""
+    """A regular's profile lens follows their saved character, not the current reaction job."""
     if not followers:
         return ""
-    lenses = (
-        ["what they value in their choices", "how they engage with things that interest them",
-         "how they express and respect their feelings", "their approach to effort and challenges",
-         "how they make room for everyday fulfillment", "their personal pace and priorities"]
-        if language == "en" else
-        ["選択に表れる大切にしていること", "興味を持った物事への向き合い方",
-         "気持ちの表し方と自分の気持ちを大切にする姿勢", "努力や挑戦への向き合い方",
-         "日常の充実を見つける姿勢", "自分のペースや優先順位への向き合い方"]
-    )
     assigned = []
-    used = set()
-    for follower_id in sorted({f.follower_id for f in followers}):
-        ranked = sorted(range(len(lenses)), key=lambda i: hashlib.sha256(f"{follower_id}:{i}".encode()).digest())
-        lens = next((i for i in ranked if i not in used), ranked[0])
-        used.add(lens)
-        assigned.append({"follower_id": follower_id, "editorial_lens": lenses[lens]})
+    for follower in sorted({f.follower_id: f for f in followers}.values(), key=lambda f: f.follower_id):
+        character = BY_ID[resolve_character_id(follower.character_id, "regular:" + follower.follower_id)]
+        assigned.append({"follower_id": follower.follower_id,
+                         "editorial_lens": character.focus_en if language == "en" else character.focus_ja})
     rule = (
         "[INDIVIDUAL PROFILE VIEWPOINTS]\nThese are editorial lenses, NOT facts about the user or follower personalities. "
         "For each follower, base both profile fields only on that follower's own history and current exchange; never borrow another follower's memories. "
@@ -778,6 +775,8 @@ async def generate_ai_replies(
     minimum, maximum, haters = POST_REPLY_RANGES[rank - 1]
     params = {"haters": haters}
     total_replies = maximum * 2 if is_viral else random.randint(minimum, maximum)
+    character_plan = make_character_plan(total_replies,
+        regulars=[(f.follower_id, f.character_id) for f in active_regular_followers])
     
     # アンチ数を確率で決定（上限はrank_paramsの定義通り）
     if is_onboarding and is_hater_enabled:
@@ -1124,7 +1123,8 @@ One critic must later reconsider after seeing the other followers' reactions and
     """
 
     system_prompt += build_reply_style_instruction(language, bool(image_base64))
-    system_prompt += build_reply_diversity_instruction(total_replies - hater_count - defender_count, language)
+    system_prompt += build_persistent_character_prompt(character_plan, language)
+    system_prompt += build_reply_diversity_instruction(total_replies - hater_count - defender_count, language, preserve_character=True)
     if is_onboarding and is_viral and hater_count:
         system_prompt += (
             "\nFINAL ROLE CHECK: replies[0] is the critic (is_hater=true, is_defender=false); "
@@ -1204,6 +1204,7 @@ One critic must later reconsider after seeing the other followers' reactions and
         author_avatar_map: dict[str, str] = {}
         regular_by_id = {follower.follower_id: follower for follower in active_regular_followers}
         used_regular_ids: set[str] = set()
+        assigned_characters: dict[str, str] = {}
         for index, rep in enumerate(ordered_replies):
             regular_id = rep.regular_follower_id
             if regular_id not in regular_by_id or regular_id in used_regular_ids:
@@ -1229,6 +1230,7 @@ One critic must later reconsider after seeing the other followers' reactions and
                 "is_hater": False if regular_id else rep.is_hater,
                 "is_defender": False if regular_id else rep.is_defender,
                 "regular_follower_id": regular_id,
+                "character_id": reply_character_id(character_plan, rep.character_id, regular_id, author_name, assigned_characters),
             })
 
         memory_updates = []
@@ -1274,13 +1276,28 @@ async def generate_ai_reply_to_user(request: ReplyToAiRequest) -> Tuple[List[dic
     target_id = target.follower_id if target else None
     other_contexts = [
         context
-        for context in request.other_ai_replies[:8]
+        for context in request.other_ai_replies[:4]
         if context.author_name.strip() != request.ai_author_name.strip()
     ]
     regular_context_by_id = {
         follower.follower_id: follower
         for follower in request.regular_followers
     }
+    if target:
+        regular_context_by_id[target.follower_id] = target
+    participating_regulars = {context.regular_follower_id for context in other_contexts
+                             if context.regular_follower_id in regular_context_by_id}
+    if target_id:
+        participating_regulars.add(target_id)
+    fixed_people = [(context.author_name, context.character_id,
+                     "reply:" + context.author_name + ":" + (context.avatar_url or "") + ":" + context.content)
+                    for context in other_contexts if context.regular_follower_id not in participating_regulars]
+    if not target:
+        fixed_people.append((request.ai_author_name.strip(), request.ai_character_id,
+                             "reply:" + request.ai_author_name + ":" + (request.ai_author_img or "") + ":" + request.ai_reply_content))
+    character_plan = make_character_plan(5,
+        regulars=[(id, regular_context_by_id[id].character_id) for id in sorted(participating_regulars)],
+        people=fixed_people)
 
     if target:
         memories = " / ".join(str(item)[:160] for item in target.memories[-REGULAR_MEMORY_LIMIT:]) or (
@@ -1428,7 +1445,8 @@ User's reply:
 """
 
     system_prompt += build_reply_style_instruction(language)
-    system_prompt += build_reply_diversity_instruction(4, language, thread=True)
+    system_prompt += build_persistent_character_prompt(character_plan, language)
+    system_prompt += build_reply_diversity_instruction(4, language, thread=True, preserve_character=True)
     system_prompt += build_regular_impression_instruction(language)
     impression_followers = list(regular_context_by_id.values())
     if target:
@@ -1487,6 +1505,7 @@ User's reply:
         return "Anonymous" if language == "en" else "名もなき人"
 
     result: List[dict] = []
+    assigned_characters: dict[str, str] = {}
     for index, generated in enumerate(generated_replies):
         if index == 0:
             author_name = request.ai_author_name.strip()
@@ -1537,6 +1556,7 @@ User's reply:
             "is_hater": is_hater,
             "is_defender": is_defender,
             "regular_follower_id": regular_id,
+            "character_id": reply_character_id(character_plan, generated.character_id, regular_id, author_name, assigned_characters),
         })
 
     memory_updates = []

@@ -54,7 +54,8 @@ async def run(output, case_ids=None):
         completion = await client.beta.chat.completions.parse(**kwargs)
         assert completion.choices[0].finish_reason == "stop"
         assert completion.choices[0].message.parsed is not None
-        api_calls.append({"model": completion.model, "usage": completion.usage.model_dump()})
+        api_calls.append({"model": completion.model, "usage": completion.usage.model_dump(),
+                          "raw_character_ids": [r.character_id for r in completion.choices[0].message.parsed.replies]})
         return completion
 
     proxy = SimpleNamespace(beta=SimpleNamespace(chat=SimpleNamespace(
@@ -116,6 +117,19 @@ async def run(output, case_ids=None):
         "ai_is_hater": True, "is_hater_enabled": False,
         "user_reply": "そういう言い方は傷つく。私の感想として受け止めてほしい。",
     }))
+    characters = ("v1-03", "v1-13", "v1-09")
+    fixed_regulars = [{**r, "character_id": c} for r, c in zip(regulars, characters)]
+    for i, text in enumerate(("練習していたプレゼンが終わった。ほっとした！", "今日は帰り道で夕焼けを眺めた。いい気分転換になった。")):
+        cases.append((f"ja_character_post{i+1}", "/api/posts", {
+            **base, "followers": 200000, "content": text, "regular_followers": fixed_regulars}))
+    cases.append(("ja_character_thread", "/api/replies", {
+        "user_id": base["user_id"], "post_content": "プレゼンが終わった！",
+        "ai_author_name": "ゆき", "ai_reply_content": "おつかれさま！🙌", "ai_character_id": "v1-03",
+        "user_reply": "ありがとう！練習しておいてよかった。", "target_regular_follower": fixed_regulars[0],
+        "regular_followers": fixed_regulars,
+        "other_ai_replies": [
+            {"author_name": "みく", "content": "ひと安心だね(^^)", "regular_follower_id": "smoke-1", "character_id": "v1-13"},
+            {"author_name": "れん", "content": "終わってよかったね。", "regular_follower_id": "smoke-2", "character_id": "v1-09"}]}))
 
     if case_ids:
         selected = set(case_ids)
@@ -156,6 +170,12 @@ async def run(output, case_ids=None):
                     for item in data["replies"]:
                         main.ReplySchema.model_validate(item)
                         assert item["content"].strip() and item["author_img"]
+                        assert item["character_id"] in main.BY_ID
+                    if case_id.startswith("ja_character_"):
+                        for item in data["replies"]:
+                            if item["regular_follower_id"]:
+                                expected = next(r["character_id"] for r in fixed_regulars if r["follower_id"] == item["regular_follower_id"])
+                                assert item["character_id"] == expected
                     if not payload.get("is_hater_enabled", False):
                         assert not any(item["is_hater"] or item["is_defender"] for item in data["replies"])
                     if route == "/api/replies":
@@ -170,7 +190,7 @@ async def run(output, case_ids=None):
                         assert replies[i]["author_name"] == replies[i+2]["author_name"]
                     else:
                         assert not any(item["is_hater"] or item["is_defender"] for item in data["replies"])
-                    if payload.get("regular_followers"):
+                    if payload.get("regular_followers") and route == "/api/posts":
                         ids = [item["regular_follower_id"] for item in data["replies"] if item["regular_follower_id"]]
                         assert sorted(ids) == sorted(item["follower_id"] for item in regulars)
                         assert {item["follower_id"] for item in data["memory_updates"]} == set(ids)
