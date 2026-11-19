@@ -348,6 +348,15 @@ struct PostCard: View {
     var usesHomeStyling = false
     @State private var regularFollowerAlert: RegularFollowerAlert?
     @State private var replyTarget: Reply?
+
+    private var followerGain: Int? {
+        guard let reaction = post.reaction else {
+            // Older saved posts have no per-post reward record.
+            return post.replies.isEmpty ? 0 : nil
+        }
+        guard reaction.followersAfter == nil else { return reaction.followerGain }
+        return Int(Double(reaction.followerGain) * reaction.progress(at: appState.reactionNow))
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -404,7 +413,7 @@ struct PostCard: View {
                 }
                 }
                 
-                HStack(spacing: 24) {
+                HStack(spacing: 16) {
                     HStack(spacing: 8) {
                         TemplateIcon(systemName: "heart.fill", size: 18).foregroundColor(Theme.hotPink).font(.system(size: 18))
                             .symbolEffect(.bounce, options: .nonRepeating, value: appState.isViralAnimating(post) && !reduceMotion)
@@ -416,22 +425,28 @@ struct PostCard: View {
                         TemplateIcon(systemName: "bubble.right.fill", size: 16).foregroundColor(usesHomeStyling ? Theme.lavender : Theme.cyan).font(.system(size: 16))
                         Text("\(post.replies.count)").font(.system(size: 15, weight: .black, design: .monospaced)).foregroundColor(usesHomeStyling ? Theme.lavender : Theme.cyan)
                     }
+                    HStack(spacing: 8) {
+                        TemplateIcon(systemName: "person.badge.plus", size: 18)
+                            .font(.system(size: 18))
+                        Text(followerGain.map { "+\($0)" } ?? "—")
+                            .font(.system(size: 15, weight: .black, design: .monospaced))
+                            .contentTransition(.numericText())
+                            .animation(reduceMotion ? nil : .easeOut(duration: 0.08), value: followerGain)
+                    }
+                    .foregroundStyle(Theme.lavender)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(appState.text("増えたフォロワー", "Followers gained"))
+                    .accessibilityValue(followerGain.map { appState.text("\($0)人", "\($0)") }
+                                        ?? appState.text("記録なし", "Not recorded"))
                 }
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
                 .padding(.horizontal, 20)
                 .padding(.vertical, 16)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Theme.insetBackground.opacity(0.3))
                 .homeGuideTarget(guideSelection.postID == post.id ? .reactions : nil)
 
-                if let reaction = post.reaction, reaction.isViral, reaction.followersAfter != nil {
-                    Label(appState.text("フォロワー ＋\(reaction.followerGain)", "+\(reaction.followerGain) followers"), systemImage: "person.badge.plus")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Theme.lavender)
-                        .padding(.horizontal, 12).padding(.vertical, 8)
-                        .background(Theme.purpleAccent.opacity(0.14), in: Capsule())
-                        .padding(.horizontal, 20).padding(.bottom, 16)
-                        .transition(.opacity)
-                }
             }
             .background {
                 FeedCardSurface(fill: Theme.cardBackground, accent: Theme.hotPink,

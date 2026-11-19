@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		DA11A0000000000000000001 /* DailyReminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA11A0000000000000000002 /* DailyReminder.swift */; };
+		DA11A0000000000000000003 /* DailyReminderCopy.json in Resources */ = {isa = PBXBuildFile; fileRef = DA11A0000000000000000004 /* DailyReminderCopy.json */; };
 		143B2E14DCAA4229B3348DBE /* SecondaryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C51046D075014E4CBF8EACBA /* SecondaryViews.swift */; };
 		1C771121EAF546A88F19E9DE /* PostView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DA65D7295CA448E93A20D5C /* PostView.swift */; };
 		3B02D31439904229838973F9 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9DB664272BB4D1E8098979F /* ContentView.swift */; };
@@ -37,6 +39,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		DA11A0000000000000000002 /* DailyReminder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyReminder.swift; sourceTree = "<group>"; };
+		DA11A0000000000000000004 /* DailyReminderCopy.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = DailyReminderCopy.json; sourceTree = "<group>"; };
 		0202BF252F7946E700A66DAF /* UPME-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "UPME-Info.plist"; sourceTree = "<group>"; };
 		02A60ABAA9C5AA232E45C78B /* BannerAdView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BannerAdView.swift; sourceTree = "<group>"; };
 		02B87FF62FACBAD200EE22FD /* Configuration.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Configuration.storekit; sourceTree = "<group>"; };
@@ -108,6 +112,8 @@
 				9DA65D7295CA448E93A20D5C /* PostView.swift */,
 				C51046D075014E4CBF8EACBA /* SecondaryViews.swift */,
 				A9327DAFDB9248029C821B10 /* Theme.swift */,
+				DA11A0000000000000000002 /* DailyReminder.swift */,
+				DA11A0000000000000000004 /* DailyReminderCopy.json */,
 				A11CE0000000000000000032 /* AvatarImageLoader.swift */,
 				A11CE0000000000000000002 /* RankProgress.swift */,
 				C3F84DB1E7274C0E9A5B3F17 /* OnboardingView.swift */,
@@ -209,6 +215,7 @@
 				B3B3B3B3B3B3B3B3B3B3B3B3 /* Technology isometric ai robot brain (1).json in Resources */,
 				C5C5C5C5C5C5C5C5C5C5C5C5 /* Assets.xcassets in Resources */,
 				C0DEC0DEC0DEC0DEC0DEC001 /* Localizable.xcstrings in Resources */,
+				DA11A0000000000000000003 /* DailyReminderCopy.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -220,6 +227,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7618EAD436074A9F957EE328 /* UPMEApp.swift in Sources */,
+				DA11A0000000000000000001 /* DailyReminder.swift in Sources */,
 				B9B9B9B9B9B9B9B9B9B9B9B9 /* Analytics.swift in Sources */,
 				B8B8B8B8B8B8B8B8B8B8B8B8 /* (null) in Sources */,
 				5ABC075934814A25B8723777 /* AppState.swift in Sources */,
@@ -369,7 +377,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9927M765H2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -383,7 +391,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.2;
+				MARKETING_VERSION = 1.1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.UPME;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -399,7 +407,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9927M765H2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -413,7 +421,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.2;
+				MARKETING_VERSION = 1.1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.UPME;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

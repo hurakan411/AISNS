@@ -1,0 +1,782 @@
+{
+  "v1-01": {
+    "ja": [
+      "今日もおつかれさまです。よければ、今日のお話を聞かせてください。",
+      "今、どんな気分ですか。短いひとことでも聞けたらうれしいです。",
+      "今日のこと、少しお話ししませんか。まとまっていなくても。",
+      "心に浮かんでいることがあれば、ゆっくり聞かせてくださいね。",
+      "今日の中で、誰かに話しておきたいことはありますか。",
+      "うれしいお話も、ため息まじりのお話も。よければ聞かせてください。",
+      "何もなかった、のひとことでも。今日はどんな日でしたか。",
+      "今日の終わりに、少しだけお話しできたらうれしいです。",
+      "言葉にしてみたいことがあれば、ここで聞かせてくださいね。",
+      "今いちばん話したいことから、聞かせてもらえますか。"
+    ],
+    "en": [
+      "How was your day? I'd be glad to hear a little about it.",
+      "How are you feeling right now? A few words are welcome.",
+      "Would you like to talk about today? It doesn't have to come out neatly.",
+      "If something is on your mind, feel free to share it.",
+      "Is there anything from today you'd like someone to hear?",
+      "A happy moment or a sigh. Either is welcome here.",
+      "Even if nothing much happened, how was today for you?",
+      "Would you like a little chat as the day winds down?",
+      "If there's something you'd like to put into words, I'd like to hear it.",
+      "What would you most like to talk about right now?"
+    ]
+  },
+  "v1-02": {
+    "ja": [
+      "おつかれ。今日なんかあった？ちょっと聞かせて。",
+      "今どんな感じ？ひとことだけでも話していかない？",
+      "今日の話、なんでも聞くよ。まとまってなくてもさ。",
+      "そういえば、って話ない？ほんとに小さいことでも。",
+      "今日いちばん話したいやつ、ここで聞かせて。",
+      "よかったことあったら教えて。小さいやつも歓迎(^^)",
+      "なんもなかった日？それならそれで、ちょっと話そ。",
+      "今日の自分にひとこと言うなら、なんて言う？",
+      "ぼやきたくなったら聞くよ。今日はどんな日だった？",
+      "今ハマってるものの話でもしよ。何かある？"
+    ],
+    "en": [
+      "Hey, how was today? Anything you feel like sharing?",
+      "How's it going? Want to stop by for a quick chat?",
+      "Tell me about your day. No need to put it all in order.",
+      "Got a little \"oh, by the way\" story? Tiny ones count.",
+      "What's the first thing you feel like talking about today?",
+      "Anything good happen? I'd love to hear the little things too :)",
+      "Nothing much happen today? We can still have a chat.",
+      "What would you say to yourself about today?",
+      "Feel like having a little grumble? I'm up for listening.",
+      "What are you into lately? Tell me a bit about it."
+    ]
+  },
+  "v1-03": {
+    "ja": [
+      "今日もおつかれさま！今日のこと、ひとつ聞かせて。",
+      "今日できたこと、小さくても教えてね🙌",
+      "うれしかったことがあれば、一緒に喜びたいな。",
+      "今日やってみたこと、何かある？結果は気にせず聞かせて。",
+      "今の気分、ひとことでどうぞ！長くなってもいいよ。",
+      "今日は何を話そう？好きなものの話も聞きたいな。",
+      "自分ではちょっと頑張ったな、ってことがあれば教えて。",
+      "今日の小さな「よかった」、あったら聞かせて✨",
+      "何もない日もあるよね。そんな日のひとことも聞かせて。",
+      "楽しい話でも、ぼやきでも。今日の話、聞くよ！"
+    ],
+    "en": [
+      "How was your day? Tell me one little thing about it!",
+      "Did you get something done today? Little things count 🙌",
+      "If something made you happy, I'd love to celebrate it with you.",
+      "Try anything today? I'd like to hear about it, whatever the result.",
+      "Your mood in a word? Or a whole story, if you like!",
+      "What shall we talk about? Something you love, maybe?",
+      "Anything you put effort into today? Tell me about it.",
+      "Any small bright spots today? I'd love to hear ✨",
+      "Quiet day with not much to report? That's welcome too.",
+      "A fun story or a little vent. What would you like to share?"
+    ]
+  },
+  "v1-04": {
+    "ja": [
+      "今日もおつかれさまでした。どんな一日だったか聞かせてください。",
+      "今日、取り組んだことはありますか。途中のお話でもぜひ。",
+      "結果が出ていないことも、よかったら話してくださいね。",
+      "今日の中で、少し手をかけたことはありましたか。",
+      "今の気持ちをひとことで表すなら、どんな言葉になりそうですか。",
+      "誰かに話しておきたいことがあれば、聞かせてもらえますか。",
+      "今日、ご自分なりにやってみたことを聞いてみたいです。",
+      "今日のこと、落ち着いて話しませんか。短くても構いません。",
+      "うまく言葉にならない話でも、よければそのまま聞かせてください。",
+      "今日の終わりに、何かひとつお話ししませんか。"
+    ],
+    "en": [
+      "How was your day? I'd be glad to hear about it.",
+      "What did you work on today? It needn't be finished.",
+      "Feel free to talk about something that hasn't worked out yet.",
+      "Was there something you took a little time with today?",
+      "What words would you use for how you feel right now?",
+      "Is there something you'd like to tell someone about today?",
+      "Did you try doing something your own way today?",
+      "Would you like a quiet chat about today? A few words are fine.",
+      "You don't need to have the words sorted out to share them.",
+      "Anything you'd like to talk about as the day comes to a close?"
+    ]
+  },
+  "v1-05": {
+    "ja": [
+      "今日、ちょっと気になったものってあった？",
+      "今、つい話したくなることは何？聞いてみたいな。",
+      "今日の「これ気になる」、何かあったら教えて。",
+      "いま好きなもの、ひとつだけ紹介してくれない？",
+      "今日、ふと目が留まったものの話を聞かせて。",
+      "最近おもしろそうだなって思ったこと、何かある？",
+      "今日はどんなことを考えてた？思いついたところからでいいよ。",
+      "ちょっと試してみたいこと、あったら聞いてみたい。",
+      "今日の寄り道みたいな話も聞きたいな。何かあった？",
+      "今ぱっと浮かんだ話、ここで聞かせてくれない？"
+    ],
+    "en": [
+      "Did anything catch your interest today?",
+      "What do you feel like talking about right now? I'd like to hear.",
+      "Any little \"what's that?\" moments today?",
+      "What's one thing you're enjoying lately?",
+      "Tell me about something that caught your eye today.",
+      "Come across anything interesting lately?",
+      "What have you been thinking about today? Start anywhere.",
+      "Anything you'd like to try? I'd like to hear about it.",
+      "Any little detours in your day worth sharing?",
+      "What's the first story that comes to mind right now?"
+    ]
+  },
+  "v1-06": {
+    "ja": [
+      "今日、自分なりにやってみたことがあれば聞かせて。",
+      "いつもと少し変えてみたこと、今日はあった？",
+      "今日のこと、ひとつ話していかない？小さなことでも。",
+      "ちょっとやりやすくなったことがあれば、教えてほしいな。",
+      "自分にはこのやり方が合うな、と思ったことはある？",
+      "今日、手を動かしたことの話を聞いてみたい。",
+      "まだ途中のことでもいいよ。今、何かやってる？",
+      "今日の「こうしてみた」、あったら聞かせて。",
+      "うまくいった話も、そうでもなかった話も聞くよ。",
+      "ちょっとした選び方の話でも。今日のことを聞かせて。"
+    ],
+    "en": [
+      "Find your own way of doing something today? Tell me about it.",
+      "Change anything up a little today?",
+      "Want to share one thing from today? Something small is fine.",
+      "Did anything become a little easier today? Tell me about it.",
+      "Found a way of doing something that suits you?",
+      "What did you spend time making or doing today?",
+      "Working on anything? It doesn't have to be finished to share.",
+      "Any little \"I tried this\" stories from today?",
+      "Something that worked, or something that didn't. Either is welcome.",
+      "Even a small everyday choice makes a story. Anything to share?"
+    ]
+  },
+  "v1-07": {
+    "ja": [
+      "今日、なんとなくいいなと思った色や景色はあった？",
+      "今の気分、どんな感じ？そのままの言葉で聞かせて。",
+      "今日ふと耳に残った音、何かあったら教えて。",
+      "おいしかったものの話、何かある？聞いてみたいな。",
+      "今日見かけたもの、ひとつだけ話していかない？",
+      "今、目の前にあるもので気に入ってるものって何？",
+      "今日はどんな空だった？覚えていたら聞かせて。",
+      "なんだか好きだな、と思った瞬間があれば教えて。",
+      "手触りとか香りとか、そんな小さな話も聞きたい。",
+      "今日の中で、もう少し味わいたかったことはある？"
+    ],
+    "en": [
+      "See a color or a view you liked today?",
+      "How does today feel? Tell me in whatever words come to mind.",
+      "Did any sounds stay with you today?",
+      "Have anything tasty? I'd like to hear about it.",
+      "What's one thing you noticed around you today?",
+      "Anything near you right now that you're fond of?",
+      "What was the sky like today, if you happened to notice?",
+      "Any moments that made you think, \"I like this\"?",
+      "A texture, a scent, a tiny detail. Anything you'd like to share?",
+      "Was there something today you wished you could enjoy a little longer?"
+    ]
+  },
+  "v1-08": {
+    "ja": [
+      "今日の話、何かある？オチはなくて大丈夫。",
+      "今日の「わざわざ人に言うほどでもない話」、聞かせて。",
+      "ちょっと笑ったことがあれば教えて。小ネタくらいのやつも。",
+      "今日の報告、ひとつどうぞ。大事件じゃなくても聞きたい。",
+      "なんとなく話したいこと、ある？話題のサイズは問わないよ。",
+      "今日を一言でいうなら？タイトルだけでも聞いてみたい。",
+      "地味だけどよかったこと、あった？そういう話も聞きたいな。",
+      "今日の話、気軽に置いていかない？うまくまとめなくてもさ。",
+      "「これ誰かに言いたい」って話があれば、ここでどうぞ。",
+      "好きなものの話でもしよ。説明が長くなるやつも歓迎。"
+    ],
+    "en": [
+      "Got a story from today? No punchline needed.",
+      "Tell me something too small to make an announcement about.",
+      "Anything give you a little laugh today? Tiny stories welcome.",
+      "Any news from today? It doesn't have to make the headlines.",
+      "Feel like chatting? There's no minimum story size.",
+      "If today had a title, what would it be?",
+      "Anything quietly good happen? I'd like to hear that too.",
+      "Want to drop off a story from today? No tidy ending required.",
+      "Got an \"I need to tell someone this\" moment? Let's hear it.",
+      "Want to talk about something you love? Long explanations welcome."
+    ]
+  },
+  "v1-09": {
+    "ja": [
+      "今日のこと、少し聞かせて。",
+      "今の気分を、そのまま話していかない。",
+      "ひとことだけでも。今日はどんな日だった。",
+      "言葉にしたいことがあれば、聞くよ。",
+      "まとまってなくてもいい。今、何を話したい。",
+      "よかったことも、そうでないことも聞かせて。",
+      "話せそうなことから、少しだけ。",
+      "今日、心に残ったことはある。",
+      "特別な話じゃなくても。今日の話を聞きたい。",
+      "今のひとこと、ここに置いていかない。"
+    ],
+    "en": [
+      "Tell me a little about today, if you'd like.",
+      "Want to share how you feel right now?",
+      "A few words are enough. How was today?",
+      "If there's something you want to put into words, I'll listen.",
+      "It doesn't have to sound neat. What's on your mind?",
+      "Something good, or something difficult. You can share either.",
+      "Start with whatever feels easy to say.",
+      "Did anything stay with you today?",
+      "It needn't be a special story. I'd like to hear about your day.",
+      "Want to leave a few words here about how things are?"
+    ]
+  },
+  "v1-10": {
+    "ja": [
+      "今日もおつかれさま。うれしいことがあったら聞かせてね。",
+      "ちょっとよかったこと、何かあった？一緒に喜びたいな。",
+      "今日の「これ好き」、ひとつ教えて😊",
+      "楽しみにしてることの話、聞かせてもらえる？",
+      "思わず誰かに言いたくなったこと、今日はあった？",
+      "今日をどう過ごしたか、よかったら話していって。",
+      "小さないいことの報告も、聞けたらうれしいな✨",
+      "気に入ったものの話、何かある？どんなところが好き？",
+      "今日はどんな気分？楽しい話じゃなくても聞くよ。",
+      "自分だけのちょっとした満足、あったら教えてね。"
+    ],
+    "en": [
+      "How was your day? I'd love to hear about any happy moments.",
+      "Anything go a little nicely today? I'd like to enjoy it with you.",
+      "What's one thing you liked today? Tell me 😊",
+      "Looking forward to anything? I'd love to hear about it.",
+      "Anything make you want to tell someone today?",
+      "Tell me a little about how you spent your day.",
+      "Little bits of good news are welcome too ✨",
+      "Found something you like? What's your favorite part?",
+      "How are you feeling? It doesn't have to be a happy story.",
+      "Any small personal pleasures today? I'd like to hear."
+    ]
+  },
+  "v1-11": {
+    "ja": [
+      "今日、やってみたことはある？結果より、その話を聞きたいな。",
+      "まだ途中の挑戦があれば、今のところを聞かせて。",
+      "今日の一歩、何かあった？小さいことでも聞いてみたい。",
+      "ちょっと勇気がいったこと、話したくなったら教えてね。",
+      "これからやってみたいことの話も、よかったら聞かせて。",
+      "今日、初めてやったことはある？どんな感じだった？",
+      "うまくいったかどうかは置いておいて、今日のことを話さない？",
+      "気になっていること、まだ迷っていることも聞くよ。",
+      "今、取り組んでいることがあれば少し聞かせて。",
+      "挑戦の話じゃなくてもいいよ。今日はどんな一日だった？"
+    ],
+    "en": [
+      "Try anything today? I'd like to hear about it, whatever happened.",
+      "In the middle of trying something? Tell me how it's going.",
+      "Take a little step today? It doesn't have to be a big one.",
+      "Did something take a bit of courage? Share it if you'd like.",
+      "Anything you'd like to try next? I'd like to hear about it.",
+      "Do something for the first time today? How did it feel?",
+      "Whether it worked out or not, want to talk about today?",
+      "Something you're curious or unsure about? You can share that too.",
+      "Working on something right now? Tell me a little about it.",
+      "It doesn't have to be about a challenge. How was your day?"
+    ]
+  },
+  "v1-12": {
+    "ja": [
+      "話したい気分だったら、今日のことを少し聞かせて。",
+      "ひとことでも、長くなっても。今、何を話したい？",
+      "今日をどう過ごしたか、よかったら教えてね。",
+      "今なら話せそうなことから、ゆっくりどうぞ。",
+      "特別なことがない日の話も、聞いてみたいな。",
+      "途中で話が変わってもいいよ。今日の話、しない？",
+      "今日、自分で選んだ過ごし方があれば聞かせて。",
+      "ちゃんと説明しようとしなくても。今の気分を聞かせて。",
+      "気が向いたら、今日のひとことを置いていってね。",
+      "話す長さはおまかせ。今日はどんな感じだった？"
+    ],
+    "en": [
+      "If you feel like talking, I'd like to hear about today.",
+      "A few words or a long chat. What's on your mind?",
+      "How did you spend today? Share a little if you like.",
+      "Start wherever feels comfortable. There's no rush.",
+      "Ordinary days are worth talking about too. How was yours?",
+      "It's fine if the topic changes. Want to have a little chat?",
+      "Choose how to spend some time today? I'd like to hear about it.",
+      "No need to explain it perfectly. How are you feeling?",
+      "If the mood takes you, leave a little note about today.",
+      "As much or as little as you like. How was today for you?"
+    ]
+  },
+  "v1-13": {
+    "ja": [
+      "今日、ちょっとした発見はあった？小さい話ほど聞いてみたい。",
+      "いつもと違うなって思ったこと、何かあった？",
+      "今日見つけたお気に入り、あれば教えて(´▽`)",
+      "そういえば、で思い出すくらいの話も聞かせてね。",
+      "ふと気づいたこと、今日は何かある？",
+      "なんとなくいいなと思ったもの、ひとつ教えて。",
+      "日常の中の小さな変化、気づいたものがあれば聞きたいな。",
+      "今日はどんな日だった？ささいなことからでいいよ。",
+      "ちょっと得した気分になったこと、あれば聞かせてね。",
+      "今日の「こんなのあったよ」、気軽に教えて。"
+    ],
+    "en": [
+      "Discover anything little today? I'd like to hear about it.",
+      "Notice anything a bit different from usual?",
+      "Find a new little favorite today? Tell me (´▽`)",
+      "Even a tiny \"oh, that reminds me\" story is welcome.",
+      "Anything you happened to notice today?",
+      "What's one thing that made you think, \"that's nice\"?",
+      "Any little changes in your everyday surroundings?",
+      "How was today? Start with something small if you like.",
+      "Anything feel like a nice little bonus today?",
+      "Any \"look what I found\" stories to share?"
+    ]
+  },
+  "v1-14": {
+    "ja": [
+      "今、好きなものの話をしない？理由はなくてもいいよ。",
+      "今日、これいいなって思ったものはある？",
+      "好きなところをひとつだけ教えるなら、何の話になる？",
+      "最近気に入っているもの、よかったら聞かせて。",
+      "あまり人に話していない好きなもの、何かある？",
+      "今日は何を楽しんだ？小さなことでも聞いてみたい。",
+      "世間でどうかより、今好きなものを聞いてみたいな。",
+      "つい見ちゃうもの、聴いちゃうものの話をしない？",
+      "うまく説明できないけど好き、ってものも教えて。",
+      "好きな話でも、今日あった話でも。今、何を話そう？"
+    ],
+    "en": [
+      "Want to talk about something you like? No reason needed.",
+      "Anything make you think, \"I like that\" today?",
+      "What would you choose to tell me about one of your favorites?",
+      "What's something you've been enjoying lately?",
+      "Got a favorite thing you don't often talk about?",
+      "What did you enjoy today? Small things count too.",
+      "I'd like to hear what you like, whatever anyone else thinks.",
+      "Anything you keep watching or listening to? Tell me about it.",
+      "Something you like but can't quite explain? I'd like to hear.",
+      "A favorite thing or a story from today. What shall we talk about?"
+    ]
+  },
+  "v1-15": {
+    "ja": [
+      "今日の話、ひとつ聞かせて。",
+      "おつかれさま。今、どんな気分？",
+      "短くてもいいよ。今日はどうだった？",
+      "話したいことからでいい。聞くよ。",
+      "今日よかったこと、あれば教えて。",
+      "ぼやきでもいい。ここで話していかない？",
+      "今好きなもの、ひとつ教えて。",
+      "途中の話でも聞くよ。何かある？",
+      "今日の自分にひとこと。何て言いたい？",
+      "特別な話じゃなくていい。今日のことを聞きたい。"
+    ],
+    "en": [
+      "Tell me one thing about today.",
+      "How are you feeling right now?",
+      "A few words will do. How was today?",
+      "Start with what you want to say. I'll listen.",
+      "Anything good today? Tell me if you'd like.",
+      "A little vent is welcome too. Want to talk?",
+      "What's one thing you like right now?",
+      "An unfinished story is fine. Got one to share?",
+      "What would you like to say to yourself today?",
+      "No special story needed. I'd like to hear about your day."
+    ]
+  },
+  "v1-16": {
+    "ja": [
+      "今日、目に留まったことはありましたか。よければ聞かせてください。",
+      "今の気分を、どんな言葉で表したいですか。",
+      "今日の出来事を、ひとつだけお話ししませんか。",
+      "ふと思い出したことがあれば、ここで聞かせてくださいね。",
+      "今日、手に取ったものや選んだものの話も聞いてみたいです。",
+      "言葉に残しておきたい瞬間はありましたか。",
+      "印象に残った場面があれば、少し教えてもらえますか。",
+      "今日を振り返って、最初に浮かぶことは何でしょう。",
+      "何気ないお話でも。今日はどんなふうに過ごしましたか。",
+      "いま話してみたいことを、そのまま聞かせてください。"
+    ],
+    "en": [
+      "Did anything catch your eye today? I'd like to hear about it.",
+      "What words would you choose for your mood right now?",
+      "Would you like to share one moment from today?",
+      "If something comes to mind, feel free to tell me about it.",
+      "Picked something out today? I'd like to hear what you chose.",
+      "Was there a moment you'd like to put into words?",
+      "Any scene from today that stayed with you?",
+      "What's the first thing that comes to mind when you think of today?",
+      "Everyday stories are welcome. How did you spend your day?",
+      "Tell me what you'd like to talk about, just as it comes."
+    ]
+  },
+  "v1-17": {
+    "ja": [
+      "今日、ひとつ終えたことはある？よかったら聞かせて。",
+      "やっとできた、ってことがあれば教えてね🎉",
+      "自分なりに手応えがあったこと、今日は何かある？",
+      "小さな完了の報告も聞きたいな。何か片づいた？",
+      "今日できたこと、ひとつだけ話していかない？",
+      "ここまでは進んだ、って話も聞かせてね。",
+      "うれしい報告があれば、一緒に喜ばせて。",
+      "今日はどんな日だった？成果の話じゃなくても聞くよ。",
+      "自分でよかったと思えたこと、何かあった？",
+      "終わった話も、途中の話も。今のところを聞かせて。"
+    ],
+    "en": [
+      "Finish something today? I'd like to hear about it.",
+      "Finally got something done? Tell me about it 🎉",
+      "Anything give you a sense of progress today?",
+      "Little things finished count too. Get anything wrapped up?",
+      "Want to share one thing you did today?",
+      "Made it partway through something? I'd like to hear that too.",
+      "Any good news you'd like to share? I'd love to celebrate with you.",
+      "How was today? It doesn't have to be about getting things done.",
+      "Anything you felt good about today?",
+      "Finished or still going. Tell me where things are now."
+    ]
+  },
+  "v1-18": {
+    "ja": [
+      "おつかれ。今日どうだった？そのままの感じで聞かせて。",
+      "今、正直どんな気分？うまく言わなくてもいいよ。",
+      "今日あったこと、ひとつ話していかない？",
+      "なんか言いたいことがあれば聞くよ。ほんとに何でも。",
+      "よかったこと、あれば教えて。小さい話でいいから。",
+      "好きだなって思ったもの、今日はあった？",
+      "ぼやきたいなら、ぼやきのままで。ちょっと聞かせて。",
+      "今日は何をしてた？気軽に話してよ。",
+      "とくに何もない、でもいいよ。ひとこと話さない？",
+      "誰かに言っときたい話、ここで聞かせて。"
+    ],
+    "en": [
+      "Hey, how was today? Tell me how it really went.",
+      "How are you feeling, honestly? No need to dress it up.",
+      "Want to tell me one thing that happened today?",
+      "Got something to say? Doesn't have to be anything big.",
+      "Anything good happen? Small stuff is welcome.",
+      "Anything you found yourself liking today?",
+      "Feel like grumbling? You can leave it as a grumble.",
+      "What were you up to today? Tell me a bit.",
+      "Nothing much to report is fine too. Want a quick chat?",
+      "Got a story you want to tell someone? Let's hear it."
+    ]
+  },
+  "v1-19": {
+    "ja": [
+      "今日、自分で選んだことの話を聞かせてくれない？",
+      "今話したいことを、好きなところからどうぞ。",
+      "今日はどんなふうに過ごした？よかったら教えて。",
+      "こっちがいいな、と思ったことはあった？",
+      "まだ決めていないことも、話したくなったら聞くよ。",
+      "自分にはこれが合うな、って思った話はある？",
+      "何を話すかはおまかせ。今日の話、少ししない？",
+      "今日気に入ったもの、理由も含めて聞いてみたいな。",
+      "大きな決断じゃなくても。ちょっと選んだことはある？",
+      "今の気持ちで話してみたいこと、聞かせてね。"
+    ],
+    "en": [
+      "Make a choice today you'd like to talk about?",
+      "Start with whatever you feel like sharing.",
+      "How did you spend today? Tell me if you'd like.",
+      "Anything make you think, \"this one's for me\"?",
+      "Still deciding about something? You can talk about that too.",
+      "Find something that feels like a good fit for you?",
+      "You choose the topic. Want to talk about today?",
+      "Like anything today? I'd like to hear what you liked about it.",
+      "It needn't be a big decision. Pick anything out today?",
+      "What's something you feel like sharing right now?"
+    ]
+  },
+  "v1-20": {
+    "ja": [
+      "今日、もう少し味わっていたかった時間はある？",
+      "なんだかよかったな、と思うことがあれば聞かせて。",
+      "今思い返すと浮かんでくること、ひとつ話していかない？",
+      "今日の終わりに、残しておきたいひとことはある？",
+      "気に入った時間の過ごし方、あれば教えて。",
+      "もう一度思い出したい場面があったら、聞いてみたいな。",
+      "おいしかったとか、心地よかったとか。そんな話はある？",
+      "今日はどんな一日だった？今の気分で聞かせて。",
+      "小さな満足があれば、その話を少し聞かせてね。",
+      "ふと頭に浮かんだ今日のこと、話してみない？"
+    ],
+    "en": [
+      "Any part of today you wanted to linger in a little longer?",
+      "Anything leave you thinking, \"that was nice\"?",
+      "What's one thing that comes back to you from today?",
+      "Any words you'd like to keep from today?",
+      "Spend some time in a way you liked? Tell me about it.",
+      "Is there a moment from today you'd enjoy revisiting?",
+      "Something tasty or something comfortable. Any stories to share?",
+      "How was your day? Tell me how it feels now.",
+      "Any quiet little satisfactions today?",
+      "Something from today just come to mind? Want to share it?"
+    ]
+  },
+  "v1-21": {
+    "ja": [
+      "おつかれ！今日どうだった？",
+      "今日のひとこと、聞かせて。",
+      "何かあった？小さい話でも。",
+      "今、何の話したい？",
+      "今日よかったこと、ある？",
+      "ふと思ったこと、そのままどうぞ。",
+      "好きなものの話、しよ。",
+      "ちょっとぼやく？聞くよ。",
+      "今日の報告、ひとつだけでも。",
+      "今の気分、ひとことで教えて。"
+    ],
+    "en": [
+      "Hey! How was today?",
+      "A few words about today? I'd like to hear.",
+      "Anything happen? Small stuff counts.",
+      "What do you feel like talking about?",
+      "Anything good today?",
+      "Got a passing thought? Share it as it is.",
+      "Want to talk about something you like?",
+      "Feel like a little vent? I'll listen.",
+      "Got one thing to report from today?",
+      "Your mood in a word?"
+    ]
+  },
+  "v1-22": {
+    "ja": [
+      "今日の中で、小さく印象に残ったことはある？",
+      "あの部分よかったな、と思った話があれば教えて。",
+      "今日、ふと目に入ったものの話を聞かせて。",
+      "誰かに話すほどでもない細かい話、あれば聞きたいな。",
+      "気に入ったものの、特に好きなところをひとつ教えて。",
+      "今日の出来事を一場面だけ切り取るなら、どこになる？",
+      "何となく覚えている言葉や音はある？",
+      "今日の「ちょっとだけ違ったこと」、何かあった？",
+      "些細だけど話したいことがあれば、聞かせてね。",
+      "今日は何があった？思い出した細かいところからでも。"
+    ],
+    "en": [
+      "Any small detail from today stay with you?",
+      "Anything make you think, \"I liked that bit\"?",
+      "Tell me about something you happened to see today.",
+      "Got a detail too small to mention elsewhere? I'd like to hear.",
+      "What's one little thing you like about a favorite of yours?",
+      "If you picked one scene from today, which would it be?",
+      "Remember any particular words or sounds from today?",
+      "Anything just a little different today?",
+      "A tiny thing you want to mention? Tell me about it.",
+      "How was today? Start with whichever detail comes to mind."
+    ]
+  },
+  "v1-23": {
+    "ja": [
+      "今日のこと、よかったら聞かせてください。上手に話そうとしなくても。",
+      "今の気持ちのまま、ひとこと置いていきませんか。",
+      "明るい話でなくても構いません。今日はどんな日でしたか。",
+      "話せる範囲で、今のことを少し聞かせてもらえますか。",
+      "言葉がまとまっていなくても、そのまま聞かせてくださいね。",
+      "大きな出来事がない日も。今日のお話を聞いてみたいです。",
+      "誰かに聞いてほしいことがあれば、ここでお話ししませんか。",
+      "うれしかったことも、言いにくかったことも。話したい分だけどうぞ。",
+      "今、どんな言葉が浮かびますか。短くても聞けたらうれしいです。",
+      "きれいに締めくくらなくても。今日のことをお話ししませんか。"
+    ],
+    "en": [
+      "Would you like to talk about today? There's no need to say it perfectly.",
+      "Want to leave a few words here about how you feel?",
+      "It needn't be a cheerful story. How was your day?",
+      "Would you like to share a little, just as much as feels comfortable?",
+      "Your words don't have to be in order. You can share them as they are.",
+      "Even if nothing big happened, I'd like to hear about your day.",
+      "Is there something you'd like someone to hear?",
+      "Something happy or something hard to say. Share only what you'd like.",
+      "What words come to mind right now? A few are enough.",
+      "No neat ending needed. Would you like to talk about today?"
+    ]
+  },
+  "v1-24": {
+    "ja": [
+      "今日にタイトルをつけるなら何にする？本文つきでも聞きたいな。",
+      "今日の小ネタ、ひとつどうぞ。オチなしもありで。",
+      "今の気分をひとことで。長編になってもいいよ。",
+      "好きなものをひとつ紹介するなら？気軽に聞かせて。",
+      "今日の「そういえば」、何かある？寄り道みたいな話もぜひ。",
+      "今日の自分から一言コメント、もらってもいい？",
+      "ちょっと楽しかった話、あれば一緒に広げたいな。",
+      "今日の出来事を一枚の写真みたいに選ぶなら、どの場面？",
+      "いつもの話を、いつものままで。今日は何を話そう？",
+      "今ふと浮かんだこと、置いていかない？話題は自由で。"
+    ],
+    "en": [
+      "What title would you give today? I'd like the story too, if you fancy.",
+      "Got a little story from today? A punchline is optional.",
+      "Your mood in a word? A whole chapter is fine too.",
+      "Pick one favorite thing to introduce me to. What would it be?",
+      "Got an \"oh, by the way\" story? Little detours welcome.",
+      "If today's you had one comment to make, what would it be?",
+      "Anything a bit fun today? I'd love to hear more.",
+      "If today were a photo, which moment would you choose?",
+      "Everyday stories welcome. What shall we talk about?",
+      "Got a passing thought to drop off? Any topic goes."
+    ]
+  },
+  "v1-25": {
+    "ja": [
+      "今日、自分の好みで選んだものはある？聞かせてほしいな。",
+      "これのここが好き、って話をしない？小さなところでも。",
+      "今、大切にしているものの話があれば聞いてみたい。",
+      "今日ちょっとこだわったこと、何かある？",
+      "人にはあまり話していないお気に入り、あれば教えて。",
+      "自分にはこっちがしっくりくる、と思ったことはある？",
+      "今日のこと、少し話そう。特に気に入った場面はあった？",
+      "好きになった理由があるもの、よかったら聞かせて。",
+      "何気ない選び方にも興味があるな。今日は何を選んだ？",
+      "こだわりの話じゃなくても。今、聞いてほしいことはある？"
+    ],
+    "en": [
+      "Choose something just because you liked it today?",
+      "Want to tell me what you like about something? Little details count.",
+      "Anything that matters to you right now you'd like to talk about?",
+      "Put a little extra care into anything today?",
+      "Got a favorite you don't often mention? Tell me about it.",
+      "Anything feel particularly right for you today?",
+      "Let's talk about today. Was there a part you especially liked?",
+      "Is there a story behind something you like? I'd love to hear it.",
+      "Everyday choices interest me too. What did you pick today?",
+      "It doesn't have to be about a favorite. What's on your mind?"
+    ]
+  },
+  "v1-26": {
+    "ja": [
+      "おつかれ。今日はどんな感じだった？",
+      "ちょっと聞いて、って話ない？小さいことでもさ。",
+      "今の気分、そのまま話していかない？",
+      "今日あったこと、思い出した順で聞かせて。",
+      "何もなかったなら、それも今日の話だよね。少し話す？",
+      "ちょっとよかったことがあれば教えてほしいな。",
+      "ぼやきたいことがあるなら、聞くよ。",
+      "今、好きなものの話でもしない？",
+      "今日の報告、ひとことだけでも聞かせて。",
+      "うまくまとめなくていいよ。今、何を話したい？"
+    ],
+    "en": [
+      "Hey, how's today been?",
+      "Got a little \"listen to this\" story? Small things are fine.",
+      "Want to share how you're feeling, just as it is?",
+      "Tell me about today in whatever order it comes back to you.",
+      "Nothing much happen? That's a day too. Want to chat?",
+      "If something went a little nicely, I'd like to hear.",
+      "Got something to grumble about? I'll listen.",
+      "Want to talk about something you're into?",
+      "A quick update about your day? Even a few words.",
+      "No need to wrap it up neatly. What do you feel like saying?"
+    ]
+  },
+  "v1-27": {
+    "ja": [
+      "今日、手をつけたことはある？少しのことでも聞かせて。",
+      "今取り組んでいること、どんな感じか話してみない？",
+      "今日の分の話を、ひとこと聞かせてもらえる？",
+      "ここまでできた、ということがあれば教えてね。",
+      "進んだ日も、進まなかった日も。今の気持ちを聞きたいな。",
+      "今日はいつものことをした？違うことをした？よかったら聞かせて。",
+      "続けていることの話、今どんな感じか聞いてみたい。",
+      "今日やらないと決めたことも、話したければ聞くよ。",
+      "結果が見える前の話も聞きたいな。今、何か取り組んでる？",
+      "頑張った話じゃなくても。今日はどんな一日だった？"
+    ],
+    "en": [
+      "Get started on anything today? I'd like to hear, however small.",
+      "Working on something at the moment? Want to talk about how it's going?",
+      "Would you like to share a little about today?",
+      "Made it a bit further with something? Tell me if you'd like.",
+      "Progress or no progress. How do things feel right now?",
+      "Was today familiar or a little different? I'd like to hear.",
+      "Keeping at something lately? How's it feeling?",
+      "Decide not to do something today? You can share that too.",
+      "Stories before the results are welcome. Working on anything?",
+      "It doesn't have to be about effort. How was your day?"
+    ]
+  },
+  "v1-28": {
+    "ja": [
+      "今日もおつかれさま。今、どんな気分でいる？",
+      "ちょっと楽しかったこと、あれば聞かせて☺️",
+      "今日はどんな感じだった？言葉にできる分だけ教えて。",
+      "ほっとしたことがあったら、その話を聞いてみたいな。",
+      "今の気分に近い言葉、ひとつ選ぶなら何だろう？",
+      "うれしい話でも、疲れた話でも。少し話していかない？",
+      "今日、ふと気持ちが動いたことはある？",
+      "好きなものの話をしたい気分なら、聞かせてね。",
+      "よかったなって思えた瞬間、あったら一緒に味わいたいな。",
+      "気持ちがまとまっていなくてもいいよ。今日の話、しない？"
+    ],
+    "en": [
+      "How has today left you feeling?",
+      "Anything a little enjoyable today? I'd love to hear ☺️",
+      "What was today like? Share whatever you can put into words.",
+      "Have a moment of relief today? I'd like to hear about it.",
+      "What's one word close to how you feel right now?",
+      "Something happy or something tiring. Want to talk a little?",
+      "Did anything stir a feeling today?",
+      "If you're in the mood to talk about something you love, I'd like to hear.",
+      "Any moments that felt good? I'd like to enjoy hearing about them.",
+      "Mixed or unfinished feelings are welcome. Want to talk about today?"
+    ]
+  },
+  "v1-29": {
+    "ja": [
+      "今日を振り返って、意外とよかったことはある？",
+      "今日はどんな日だった？最初に思い出したことを聞かせて。",
+      "いつもとは少し違った話、何かあった？",
+      "最近、前より好きになったものがあれば教えて。",
+      "今日のこと、ひとつ話してみない？小さな場面からでも。",
+      "思っていたのと違って面白かったこと、何かある？",
+      "ふと気がついたことがあれば、聞いてみたいな。",
+      "自分では気に入ってる小さなこと、ひとつ教えて。",
+      "何でもない一日の中で、覚えていることはある？",
+      "今まであまり話していない話題、今日はどう？"
+    ],
+    "en": [
+      "Anything turn out unexpectedly nice today?",
+      "How was your day? Tell me the first thing that comes to mind.",
+      "Anything a little out of the ordinary today?",
+      "Started liking something more lately? Tell me about it.",
+      "Want to share one thing from today? A little scene is fine.",
+      "Anything turn out differently, in an interesting way?",
+      "Notice something new? I'd like to hear about it.",
+      "What's one little thing you personally enjoy?",
+      "An ordinary day? Is there a bit of it you remember?",
+      "Feel like talking about something you don't usually mention?"
+    ]
+  },
+  "v1-30": {
+    "ja": [
+      "今日もおつかれさま。よければ、今日の話を聞かせてね。",
+      "今、誰かに話したいことはある？少しだけでも聞くよ。",
+      "どんな一日だったか、今の気持ちで話してみない？",
+      "うまくいったかどうかより、今日をどう感じたか聞きたいな。",
+      "話したいことが浮かんだら、ここに置いていってね。",
+      "うれしいことがあったら教えて。そうでない日の話も聞かせて。",
+      "今日の自分にかけたい言葉、何かある？",
+      "途中の気持ちでもいいよ。今、どんなことを思ってる？",
+      "特別な出来事がなくても。今日のひとことを聞かせてね。",
+      "今日の終わりに、少しお話ししない？話したいところからで。"
+    ],
+    "en": [
+      "How was your day? I'd like to hear a little, if you'd like to share.",
+      "Anything you'd like someone to hear right now? A few words are welcome.",
+      "Want to talk about today, just as it feels now?",
+      "Whatever the outcome, I'd like to hear how today felt for you.",
+      "If there's something you feel like sharing, you're welcome to leave it here.",
+      "Good news or a less happy day. You can tell me about either.",
+      "What would you like to say to yourself about today?",
+      "You don't have to have it figured out. What's on your mind?",
+      "No special occasion needed. I'd like to hear a little about your day.",
+      "Want a small chat as the day winds down? Start wherever you like."
+    ]
+  }
+}

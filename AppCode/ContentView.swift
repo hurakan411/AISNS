@@ -8,8 +8,10 @@ enum Tab: String {
 }
 
 struct ContentView: View {
+    var updateNoticeEligible = false
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var storeManager: StoreManager
+    @EnvironmentObject private var reminders: DailyReminderManager
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var homeGuide = HomeGuideCoordinator(
         store: HomeGuideProgressStore(persists: !DesignPreview.isActive),
@@ -18,6 +20,7 @@ struct ContentView: View {
     )
     @State private var hasCheckedStartupNotice = false
     @State private var homeContentModalPresented = false
+    @State private var hasCheckedReminderPermission = false
     @State private var activeTab: Tab = {
         switch DesignPreview.argument("--ui-tab") {
         case "stats": return .stats
@@ -38,6 +41,13 @@ struct ContentView: View {
         activeTab.guideScreen != nil && scenePhase == .active && hasCheckedStartupNotice
             && !showUpdateNotice && !showRankUpPopup && !homeContentModalPresented
             && appState.replyErrorMessage == nil
+            && !reminders.busy
+    }
+
+    private var canRequestReminderPermission: Bool {
+        !DesignPreview.isActive && activeTab == .home && guideAllowed && !homeGuide.isPresenting
+            && appState.totalPosts > 0 && !hasCheckedReminderPermission
+            && reminders.enabled && !reminders.pendingPostOpen
     }
 
     private var shouldShowBannerAds: Bool {
@@ -137,7 +147,8 @@ struct ContentView: View {
                     Color.clear.frame(height: 50)
                 }
             }
-            .accessibilityHidden(guideAllowed && homeGuide.isPresenting)
+            .accessibilityHidden(showUpdateNotice || (guideAllowed && homeGuide.isPresenting))
+            .allowsHitTesting(!showUpdateNotice)
             
             if showRankUpPopup {
                 RankUpView(rank: newlyAchievedRank) {
@@ -175,7 +186,8 @@ struct ContentView: View {
             .padding(.bottom, 8)
             .background(Theme.bgDeepBlack.opacity(0.94).background(Material.ultraThin).ignoresSafeArea(edges: .bottom))
             .overlay(Rectangle().frame(height: 1).foregroundColor(Theme.subtleBorder), alignment: .top)
-            .accessibilityHidden(guideAllowed && homeGuide.isPresenting)
+            .accessibilityHidden(showUpdateNotice || (guideAllowed && homeGuide.isPresenting))
+            .allowsHitTesting(!showUpdateNotice)
         }
         .overlayPreferenceValue(HomeGuideAnchorPreference.self) { anchors in
             if let screen = activeTab.guideScreen {
@@ -198,15 +210,32 @@ struct ContentView: View {
         }
         .onPreferenceChange(HomeGuideModalPreference.self) { homeContentModalPresented = $0 }
         .task {
-            if !DesignPreview.isActive, lastSeenUpdateNoticeVersion != AppUpdateNotice.current.version {
+            var shouldPresent = updateNoticeEligible
+                && lastSeenUpdateNoticeVersion != AppUpdateNotice.current.version
+            #if DEBUG
+            // Allow one test launch to preview a notice that was already seen.
+            shouldPresent = shouldPresent || ProcessInfo.processInfo.arguments.contains("--preview-update-notice")
+            #endif
+            if !hasCheckedStartupNotice, shouldPresent {
                 do { try await Task.sleep(for: .milliseconds(450)) } catch { return }
                 guard !Task.isCancelled else { return }
+                lastSeenUpdateNoticeVersion = AppUpdateNotice.current.version
                 UPMEAnalytics.capture("update_notice_viewed", properties: ["version": AppUpdateNotice.current.version])
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) {
                     showUpdateNotice = true
                 }
             }
             hasCheckedStartupNotice = true
+            openPostFromReminderIfNeeded()
+        }
+        .onChange(of: reminders.pendingPostOpen) { _, _ in openPostFromReminderIfNeeded() }
+        .task(id: canRequestReminderPermission) {
+            guard canRequestReminderPermission else { return }
+            do { try await Task.sleep(for: .seconds(1)) } catch { return }
+            guard canRequestReminderPermission else { return }
+            hasCheckedReminderPermission = true
+            // Keep the OS permission request alive when changing UI state cancels this task.
+            Task { await reminders.requestAuthorizationIfNeeded() }
         }
         .onChange(of: appState.currentRank) { _, newRank in
             if newRank > lastSeenRank {
@@ -242,14 +271,32 @@ struct ContentView: View {
             UPMEAnalytics.capture("tab_viewed", properties: ["tab": tabName])
         }
     }
+
+    private func openPostFromReminderIfNeeded() {
+        guard reminders.pendingPostOpen else { return }
+        activeTab = .post
+        reminders.pendingPostOpen = false
+    }
+}
+
+enum UpdateNoticeEligibility {
+    /// Save the decision so a fresh install does not become an update on its next launch.
+    static func prepare(version: String, installedVersion: String, defaults: UserDefaults = .standard) -> Bool {
+        guard installedVersion == version else { return false }
+        let key = "updateNoticeEligible.\(version)"
+        if defaults.object(forKey: key) != nil { return defaults.bool(forKey: key) }
+        let existingInstallation = defaults.string(forKey: "userId")?.isEmpty == false
+            || defaults.bool(forKey: "hasCompletedOnboarding")
+            || defaults.bool(forKey: "hasAcceptedPrivacyPolicy")
+        defaults.set(existingInstallation, forKey: key)
+        return existingInstallation
+    }
 }
 
 struct AppUpdateNotice {
     struct Item: Identifiable {
         let id: String
-        let icon: String
-        let titleJapanese: String
-        let titleEnglish: String
+        let highlighted: Bool
         let detailJapanese: String
         let detailEnglish: String
     }
@@ -258,39 +305,49 @@ struct AppUpdateNotice {
     let items: [Item]
 
     static let current = AppUpdateNotice(
-        version: "1.1.1",
+        version: "1.1.3",
         items: [
             Item(
-                id: "regular-followers",
-                icon: "star.bubble.fill",
-                titleJapanese: "常連AIフォロワー",
-                titleEnglish: "Regular AI Followers",
-                detailJapanese: "お気に入りのAIが、これまでの会話を覚えて返信するようになりました。",
-                detailEnglish: "Your favorite AI followers can now remember past conversations when they reply."
+                id: "design-templates",
+                highlighted: true,
+                detailJapanese: "気分に合わせて選べる「ブラック」「ホワイト」「ドット」の3つのデザインを用意しました。",
+                detailEnglish: "Choose a design to match your mood: Black, White or Dot."
             ),
             Item(
-                id: "reply-threads",
-                icon: "bubble.left.and.bubble.right.fill",
-                titleJapanese: "返信から続く会話",
-                titleEnglish: "Continue the Conversation",
-                detailJapanese: "AIからの返信に一度だけ返事をして、その先の会話を楽しめます。",
-                detailEnglish: "Reply once to an AI response and see the conversation continue."
+                id: "screen-design",
+                highlighted: true,
+                detailJapanese: "ホーム・投稿・統計画面のデザインをリニューアルしました。",
+                detailEnglish: "The Home, Post and Stats screens have a fresh new look."
             ),
             Item(
-                id: "english",
-                icon: "globe",
-                titleJapanese: "英語表示に対応",
-                titleEnglish: "English Support",
-                detailJapanese: "端末の言語に合わせて表示し、設定からいつでも切り替えられます。",
-                detailEnglish: "The app follows your device language, and you can switch it anytime from Settings."
+                id: "regular-impressions",
+                highlighted: true,
+                detailJapanese: "「常連から見たあなた」機能を追加しました。会話を重ねると、あなたの魅力を紹介する文章が見られます。",
+                detailEnglish: "Added How Your Regular Sees You. As you chat, discover a description of your qualities."
             ),
             Item(
-                id: "visual-and-support",
-                icon: "sparkles",
-                titleJapanese: "新しいビジュアルとお問い合わせ",
-                titleEnglish: "New Visuals and Support",
-                detailJapanese: "光がつながる背景演出と、設定のお問い合わせ窓口を追加しました。",
-                detailEnglish: "Enjoy the new connected-light background and a contact option in Settings."
+                id: "posting-reminders",
+                highlighted: true,
+                detailJapanese: "フォロワーたちから通知が届くようになりました。2日に1回、20時に投稿へお誘いします。設定からオン・オフを切り替えられます。",
+                detailEnglish: "Your followers can now invite you to post every other day at 8 p.m. Turn reminders on or off in Settings."
+            ),
+            Item(
+                id: "ai-avatars",
+                highlighted: false,
+                detailJapanese: "AIのアイコンが表示されにくい問題を改善しました。",
+                detailEnglish: "Improved loading of AI profile icons."
+            ),
+            Item(
+                id: "supportive-replies",
+                highlighted: false,
+                detailJapanese: "アンチ設定がオフのとき、より温かく自然な返信が届くよう改善しました。",
+                detailEnglish: "Replies are warmer and more natural when Hater replies are turned off."
+            ),
+            Item(
+                id: "background-replies",
+                highlighted: false,
+                detailJapanese: "返信を待つ間に画面をロックしても、受信処理を一定時間続けられるよう改善しました。",
+                detailEnglish: "Reply requests can now continue for a limited time after you lock the screen."
             )
         ]
     )
@@ -308,73 +365,65 @@ struct UpdateNoticeView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                ZStack(alignment: .topTrailing) {
-                    LinearGradient(
-                        colors: [Theme.deepPurple.opacity(0.95), Theme.cardBackground],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-
-                    Circle()
-                        .fill(Theme.hotPink.opacity(0.12))
-                        .frame(width: 150, height: 150)
-                        .blur(radius: 18)
-                        .offset(x: 45, y: -60)
-
-                    VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 8) {
                         Text("WHAT'S NEW  ·  v\(notice.version)")
                             .font(.system(size: 10, weight: .black, design: .monospaced))
                             .foregroundColor(Theme.lavender)
                             .tracking(1.5)
 
-                        Text(appState.text("UPME!が\nアップデートされました", "UPME! just\ngot better"))
+                        Text(appState.text("UPMEが\n新しくなりました", "UPME just\ngot better"))
                             .font(.system(size: 26, weight: .black, design: .rounded))
                             .foregroundColor(Theme.textPrimary)
                             .lineSpacing(2)
 
-                        Text(appState.text("もっと会話が続く、もっと自分らしい場所へ。", "More conversation. More of your own space."))
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(Theme.textPrimary.opacity(0.62))
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(24)
                 }
-                .frame(height: 178)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 24)
+                .padding(.top, 24)
+                .padding(.bottom, 8)
+                .background {
+                    LinearGradient(
+                        colors: [Theme.deepPurple.opacity(0.95), Theme.cardBackground],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .overlay(alignment: .topTrailing) {
+                        Circle()
+                            .fill(Theme.hotPink.opacity(0.12))
+                            .frame(width: 150, height: 150)
+                            .blur(radius: 18)
+                            .offset(x: 45, y: -60)
+                    }
+                }
                 .clipped()
 
                 ScrollView {
                     VStack(spacing: 16) {
                         ForEach(notice.items) { item in
                             HStack(alignment: .top, spacing: 14) {
-                                Image(systemName: item.icon)
-                                    .font(.system(size: 15, weight: .bold))
-                                    .foregroundColor(Theme.hotPink)
-                                    .frame(width: 36, height: 36)
-                                    .background(Theme.hotPink.opacity(0.11))
-                                    .clipShape(Circle())
-
-                                VStack(alignment: .leading, spacing: 5) {
-                                    Text(appState.text(item.titleJapanese, item.titleEnglish))
-                                        .font(.system(size: 14, weight: .bold))
-                                        .foregroundColor(Theme.textPrimary)
+                                Image(systemName: item.highlighted ? "star.fill" : "circle.fill")
+                                    .font(.system(size: item.highlighted ? 15 : 5, weight: .bold))
+                                    .foregroundStyle(item.highlighted ? Theme.hotPink : Theme.lavender)
+                                    .frame(width: 20, height: 22)
+                                    .accessibilityHidden(true)
                                     Text(appState.text(item.detailJapanese, item.detailEnglish))
-                                        .font(.system(size: 11, weight: .medium))
-                                        .foregroundColor(.gray)
+                                        .font(.system(size: 14, weight: item.highlighted ? .semibold : .regular))
+                                        .foregroundColor(Theme.textPrimary)
                                         .lineSpacing(3)
                                         .fixedSize(horizontal: false, vertical: true)
-                                }
 
                                 Spacer(minLength: 0)
                             }
                         }
                     }
                     .padding(.horizontal, 22)
-                    .padding(.vertical, 20)
+                    .padding(.top, 8)
+                    .padding(.bottom, 20)
                 }
                 .frame(maxHeight: 310)
 
                 Button(action: onClose) {
-                    Text(appState.text("アップデートを楽しむ", "Explore the Update"))
+                    Text(appState.text("はじめる", "Get started"))
                         .font(.system(size: 14, weight: .black))
                         .foregroundColor(Theme.onAccent)
                         .frame(maxWidth: .infinity)

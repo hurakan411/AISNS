@@ -1015,6 +1015,9 @@ class AppState: ObservableObject {
         onboardingReplyError = nil
         savePosts()
         syncUser(includeOnboarding: true)
+        if !isDebugOnboardingReplay, let postID = posts.first(where: \.isOnboarding)?.id {
+            Task { @MainActor in DailyReminderManager.shared.postCreated(postID: postID) }
+        }
     }
     
     func submitPost(text: String, imageData: Data? = nil) {
@@ -1025,6 +1028,7 @@ class AppState: ObservableObject {
         }
         let newPost = PostModel(content: text, imageData: imageData, likes: 0, replies: [], time: self.text("今", "Now"))
         posts.insert(newPost, at: 0)
+        Task { @MainActor in DailyReminderManager.shared.postCreated(postID: newPost.id) }
         
         let rank = currentRank
         var postProperties = UPMEAnalytics.recordNormalPost(userID: userId)

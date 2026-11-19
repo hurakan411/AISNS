@@ -1051,10 +1051,12 @@ struct SettingsView: View {
     var onReplayGuide: ((GuideScreen) -> Void)? = nil
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var storeManager: StoreManager
+    @EnvironmentObject private var reminders: DailyReminderManager
     @State private var showTerms = false
     @State private var showPrivacy = false
     #if DEBUG
     @State private var showsOnboardingReplay = false
+    @State private var showsUpdateNoticePreview = false
     #endif
 
     var body: some View {
@@ -1097,6 +1099,34 @@ struct SettingsView: View {
                     .tint(Theme.hotPink)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
+                }
+
+                settingsSection(appState.text("通知", "Notifications")) {
+                    Toggle(isOn: Binding(get: { reminders.enabled }, set: { value in
+                        Task { await reminders.setEnabled(value) }
+                    })) {
+                        settingsRow(icon: "bell", title: appState.text("投稿リマインダー", "Posting reminder"),
+                            detail: appState.text("2日に1回、投稿していない日の20時にお知らせ", "Every other day at 8 p.m., unless you've posted that day"))
+                    }
+                    .tint(Theme.hotPink)
+                    .padding(.horizontal, 16).padding(.vertical, 8)
+                    .disabled(reminders.busy)
+                    .accessibilityIdentifier("settings.dailyReminder")
+                    if reminders.permissionDenied {
+                        settingsDivider
+                        Button {
+                            if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
+                            }
+                        } label: {
+                            settingsRow(icon: "bell.slash", title: appState.text("iPhoneで通知を許可", "Allow notifications on iPhone"),
+                                detail: appState.text("iPhoneの設定でUPMEの通知を許可してください", "Allow UPME notifications in iPhone Settings"), arrow: "arrow.up.right")
+                        }
+                    }
+                    if let error = reminders.errorMessage {
+                        Text(error).font(.system(size: 12)).foregroundStyle(Theme.textPrimary)
+                            .padding(.horizontal, 16).padding(.bottom, 16)
+                    }
                 }
 
                 settingsSection(appState.text("広告・購入", "Ads & purchases")) {
@@ -1162,6 +1192,26 @@ struct SettingsView: View {
                                     detail: appState.text("現在のデータは保持されます", "Your current data is preserved"), arrow: "chevron.right")
                     }
                     .accessibilityIdentifier("settings.replayOnboarding")
+                    settingsDivider
+                    Button { showsUpdateNoticePreview = true } label: {
+                        settingsRow(icon: "sparkles", title: appState.text("アップデート内容を表示", "Preview update notice"),
+                            detail: appState.text("今回のアップデート内容を何度でも確認", "View the current update notice anytime"), arrow: "chevron.right")
+                    }
+                    .accessibilityIdentifier("settings.previewUpdateNotice")
+                    settingsDivider
+                    Button {
+                        Task { await reminders.sendTestNotification() }
+                    } label: {
+                        settingsRow(icon: "bell.badge", title: appState.text("テスト通知を送る", "Send test notification"),
+                            detail: appState.text("10秒後に通知。アプリを開いたままでも確認できます", "Arrives in 10 seconds, even while the app is open"), arrow: "chevron.right")
+                    }
+                    .disabled(reminders.busy)
+                    .accessibilityIdentifier("settings.testNotification")
+                    if let message = reminders.testNotificationMessage {
+                        Text(message).font(.system(size: 12)).foregroundStyle(Theme.textPrimary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 16).padding(.bottom, 16)
+                    }
                 }
                 #endif
             }
@@ -1178,6 +1228,12 @@ struct SettingsView: View {
         #if DEBUG
         .fullScreenCover(isPresented: $showsOnboardingReplay) {
             DebugOnboardingReplayView(source: appState)
+        }
+        .fullScreenCover(isPresented: $showsUpdateNoticePreview) {
+            UpdateNoticeView(notice: AppUpdateNotice.current) {
+                showsUpdateNoticePreview = false
+            }
+            .presentationBackground(.clear)
         }
         #endif
         .sheet(isPresented: $showTerms) {
