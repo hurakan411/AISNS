@@ -41,6 +41,11 @@ struct UPMEAISNSApp: App {
                 .onChange(of: appState.appLanguage) { _, _ in configureReminders() }
                 .onChange(of: appState.regularFollowers) { _, _ in configureReminders() }
                 .onChange(of: appState.posts.map(\.id)) { _, _ in configureReminders() }
+                .onChange(of: appState.posts.flatMap { $0.fanShares.map {
+                    "\($0.id.uuidString):\($0.readAt != nil):\($0.availableAt.timeIntervalSince1970)"
+                } }) { _, _ in
+                    configureReminders()
+                }
                 .onChange(of: appState.hasCompletedOnboarding) { _, _ in configureReminders() }
                 .onChange(of: appState.totalPosts) { _, _ in configureReminders() }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
@@ -62,6 +67,6 @@ struct UPMEAISNSApp: App {
     private func configureReminders() {
         reminders.configure(language: appState.languageCode, regulars: appState.regularFollowers,
             onboarded: appState.hasCompletedOnboarding, hasPosts: appState.totalPosts > 0,
-            latestPost: appState.posts.compactMap(\.createdAt).max())
+            latestPost: appState.posts.compactMap(\.createdAt).max(), posts: appState.posts)
     }
 }

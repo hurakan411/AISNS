@@ -132,6 +132,14 @@ struct ContentView: View {
                             SettingsView(onReplayGuide: { screen in
                                 homeGuide.requestReplay(for: screen)
                                 withAnimation { activeTab = Tab(rawValue: screen.rawValue) ?? .home }
+                            }, onDebugFanShare: {
+                                #if DEBUG
+                                guard appState.revealPendingFanSharesNow() else { return false }
+                                withAnimation { activeTab = .home }
+                                return true
+                                #else
+                                return false
+                                #endif
                             })
                         }
                         .tint(Theme.lavender)
@@ -227,8 +235,12 @@ struct ContentView: View {
             }
             hasCheckedStartupNotice = true
             openPostFromReminderIfNeeded()
+            if reminders.pendingFanShareID != nil { activeTab = .home }
         }
         .onChange(of: reminders.pendingPostOpen) { _, _ in openPostFromReminderIfNeeded() }
+        .onChange(of: reminders.pendingFanShareID) { _, shareID in
+            if shareID != nil { activeTab = .home }
+        }
         .task(id: canRequestReminderPermission) {
             guard canRequestReminderPermission else { return }
             do { try await Task.sleep(for: .seconds(1)) } catch { return }
@@ -305,7 +317,7 @@ struct AppUpdateNotice {
     let items: [Item]
 
     static let current = AppUpdateNotice(
-        version: "1.1.3",
+        version: "1.1.4",
         items: [
             Item(
                 id: "design-templates",

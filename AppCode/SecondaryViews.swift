@@ -1049,6 +1049,7 @@ struct ProfileView: View {
 
 struct SettingsView: View {
     var onReplayGuide: ((GuideScreen) -> Void)? = nil
+    var onDebugFanShare: (() -> Bool)? = nil
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var storeManager: StoreManager
     @EnvironmentObject private var reminders: DailyReminderManager
@@ -1057,6 +1058,7 @@ struct SettingsView: View {
     #if DEBUG
     @State private var showsOnboardingReplay = false
     @State private var showsUpdateNoticePreview = false
+    @State private var debugFanShareMessage: String?
     #endif
 
     var body: some View {
@@ -1187,6 +1189,25 @@ struct SettingsView: View {
 
                 #if DEBUG
                 settingsSection(appState.text("開発用・DEBUGのみ", "Developer · DEBUG only")) {
+                    Button {
+                        if onDebugFanShare?() == true {
+                            debugFanShareMessage = nil
+                        } else {
+                            debugFanShareMessage = appState.text(
+                                "表示待ちの引用がありません。引用が予定された投稿で試してください。",
+                                "No scheduled quote is waiting. Try a post with a planned quote.")
+                        }
+                    } label: {
+                        settingsRow(icon: "arrowshape.turn.up.right", title: appState.text("引用を今すぐ表示", "Show quote now"),
+                                    detail: appState.text("予定中の引用をホームに表示", "Show a scheduled quote on Home"), arrow: "chevron.right")
+                    }
+                    .accessibilityIdentifier("settings.revealFanShare")
+                    if let debugFanShareMessage {
+                        Text(debugFanShareMessage).font(.system(size: 12)).foregroundStyle(Theme.textPrimary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 16).padding(.bottom, 12)
+                    }
+                    settingsDivider
                     Button { showsOnboardingReplay = true } label: {
                         settingsRow(icon: "play.rectangle", title: appState.text("オンボーディングを再生", "Replay onboarding"),
                                     detail: appState.text("現在のデータは保持されます", "Your current data is preserved"), arrow: "chevron.right")
@@ -1391,14 +1412,14 @@ struct LegalTextView: View {
 private let termsOfServiceText = """
 UPME! | AI SNS 利用規約
 
-最終更新日: 2026年3月28日
+最終更新日: 2026年11月20日
 
 第1条（適用）
 本規約は、UPME! | AI SNS（以下「本アプリ」）の利用に関する条件を定めるものです。ユーザーは、本アプリを利用することにより、本規約に同意したものとみなされます。
 
 第2条（サービスの内容）
-本アプリは、ユーザーが投稿したテキストに対してAI（人工知能）が仮想的なフォロワーの返信を生成するエンターテインメントアプリです。
-・表示されるフォロワー、いいね数、返信はすべてAIによる架空のものであり、実在の人物・団体とは一切関係ありません。
+本アプリは、ユーザーの投稿に対してAI（人工知能）が仮想的なフォロワーの返信や引用投稿を生成するエンターテインメントアプリです。
+・表示されるフォロワー、いいね数、返信、引用投稿はすべて架空のものであり、実在の人物・団体とは一切関係ありません。
 ・本アプリ内での数値（フォロワー数、いいね数等）は本アプリ内でのみ有効であり、現実のSNSとは無関係です。
 
 第3条（禁止事項）
@@ -1427,7 +1448,7 @@ UPME! | AI SNS 利用規約
 let privacyPolicyText = """
 UPME! | AI SNS プライバシーポリシー
 
-最終更新日: 2026年8月19日
+最終更新日: 2026年11月20日
 
 1. はじめに
 UPME! | AI SNS（以下「本アプリ」）は、ユーザーのプライバシーを尊重し、個人情報の保護に努めます。本ポリシーでは、本アプリが取り扱う情報について説明します。
@@ -1450,24 +1471,24 @@ UPME! | AI SNS（以下「本アプリ」）は、ユーザーのプライバシ
 【ユーザーが入力する情報】
 ・投稿・返信テキスト（AI返信生成のためサーバーに送信されます）
 ・投稿に添付した画像（任意。選択した場合のみAI返信生成のためサーバーに送信されます）
-・プロフィール情報（ユーザー名、自己紹介文、アバター画像 — 端末内にのみ保存、サーバーへの送信はしません）
+・プロフィール情報（ユーザー名はAI返信・引用投稿の生成時にサーバーへ送信されます。自己紹介文・アバター画像は端末内にのみ保存されます）
 
 4. 情報の利用目的
-・投稿・返信テキスト・画像: AI返信を生成するために、OpenAI社のAPIへ送信されます。送信されたデータはAI処理後、本アプリのサーバーには保存されません。
+・投稿・返信テキスト・選択した画像・ユーザー名: AI返信や引用投稿を生成するために、OpenAI社のAPIへ送信されます。送信されたデータはAI処理後、本アプリのサーバーには保存されません。
 ・常連AIフォロワーの会話記憶: 過去のやり取りを踏まえた返信を生成するため、常連設定中のみ投稿とあわせてOpenAI社のAPIへ送信されます。本アプリのサーバーには保存されません。
 ・ユーザーID・進行データ: アプリの状態を管理し、端末間でのデータ同期に利用します。
 
 ・利用状況の計測情報: アプリの継続利用状況、機能ごとの利用状況、離脱箇所を把握し、サービス改善に利用します。計測にはPostHogを使用します。
 
 5. 第三者への提供
-・投稿・返信テキストおよび添付画像は、AI返信生成の目的でOpenAI社のAPIに送信されます。
+・投稿・返信テキスト、選択した画像、ユーザー名は、AI返信・引用投稿の生成の目的でOpenAI社のAPIに送信されます。
 ・常連設定中は、常連AIフォロワーの会話記憶と直近のやり取りの要約も、継続性のあるAI返信を生成する目的でOpenAI社のAPIに送信されます。
 ・OpenAI社のデータ取り扱いについては、同社のプライバシーポリシー (https://openai.com/policies/privacy-policy) をご確認ください。同社は本アプリと同等以上のプライバシー保護基準を適用しています。
 ・利用状況の計測情報は、計測サービス提供者であるPostHogへ送信されます。PostHogのデータ取り扱いについては、同社のプライバシーポリシー (https://posthog.com/privacy) をご確認ください。
 ・上記を除き、ユーザーの情報を第三者に提供・販売することはありません。
 
 6. データの保存
-・投稿データ（テキスト・返信）は端末内にのみ保存され、直近5件を超えるデータは自動的に削除されます。
+・投稿データ（テキスト・画像・返信・引用投稿）は端末内にのみ保存されます。通常は直近5件を保持しますが、後日届く引用投稿がある場合は、その投稿を一時的に追加保持します。
 ・常連AIフォロワーの設定と会話記憶は端末内にのみ保存され、プロフィール画面から常連を解除すると削除されます。
 ・サーバー（Supabase）には、ユーザーID・フォロワー数・投稿数・オンボーディングフラグのみが保存されます。
 
@@ -1488,14 +1509,14 @@ UPME! | AI SNS（以下「本アプリ」）は、ユーザーのプライバシ
 private let termsOfServiceTextEnglish = """
 UPME! | AI SNS Terms of Service
 
-Last updated: March 28, 2026
+Last updated: November 20, 2026
 
 1. Scope
 These Terms govern use of UPME! | AI SNS (the “App”). By using the App, you agree to these Terms.
 
 2. Service
-The App is an entertainment service in which artificial intelligence generates replies from fictional followers to text posted by users.
-• All followers, likes, and replies shown in the App are fictional and AI-generated. They are not connected to real people or organizations.
+The App is an entertainment service in which artificial intelligence generates replies and quote-posts from fictional followers to users' posts.
+• All followers, likes, replies, and quote-posts shown in the App are fictional. They are not connected to real people or organizations.
 • Follower counts, likes, and other values are valid only inside the App and have no relationship to real social networks.
 
 3. Prohibited Conduct
@@ -1522,7 +1543,7 @@ The operator may update these Terms when necessary. Updated Terms take effect wh
 let privacyPolicyTextEnglish = """
 UPME! | AI SNS Privacy Policy
 
-Last updated: August 19, 2026
+Last updated: November 20, 2026
 
 1. Introduction
 UPME! | AI SNS (the “App”) respects user privacy and works to protect personal information. This Policy explains the information handled by the App.
@@ -1543,21 +1564,21 @@ Usage analytics:
 User-provided information:
 • Post and reply text, sent to the server to generate AI replies.
 • Images attached to posts, sent only when selected and only to generate AI replies.
-• Profile information, including user name, biography, and avatar, is stored only on the device and is not sent to the server.
+• Your user name is sent to the server when AI replies and quote-posts are generated. Your biography and avatar are stored only on the device.
 
 4. How Information Is Used
-• Post text, reply text, and selected images are sent to the OpenAI API to generate AI replies. The App’s server does not retain this data after processing.
+• Post text, reply text, selected images, and your user name are sent to the OpenAI API to generate AI replies and quote-posts. The App’s server does not retain this data after processing.
 • While a regular AI follower is enabled, its conversation memory is sent with the post to OpenAI to create continuous replies. The App’s server does not retain this memory.
 • User ID and progress data are used to manage app state and synchronization.
 • Usage analytics are used to understand retention, feature usage, and drop-off points. PostHog provides the analytics service.
 
 5. Third Parties
-Post and reply text, selected images, and enabled regular-follower memory may be sent to OpenAI solely to generate AI replies. Usage analytics are sent to PostHog. Except for these purposes, user information is not provided or sold to third parties.
+Post and reply text, selected images, your user name, and enabled regular-follower memory may be sent to OpenAI solely to generate AI replies and quote-posts. Usage analytics are sent to PostHog. Except for these purposes, user information is not provided or sold to third parties.
 OpenAI privacy policy: https://openai.com/policies/privacy-policy
 PostHog privacy policy: https://posthog.com/privacy
 
 6. Storage
-• The five most recent posts and their replies are stored only on the device.
+• Posts, images, replies, and quote-posts are stored only on the device. Usually the five most recent posts are kept; posts with upcoming quote-posts may be retained temporarily in addition.
 • Regular-follower settings and memories are stored only on the device and are deleted when the follower is removed from the profile screen.
 • Supabase stores only the user ID, follower count, post count, and onboarding status.
 

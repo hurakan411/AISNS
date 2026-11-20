@@ -31,6 +31,15 @@ struct PlannedReminder: Codable, Equatable {
     var identifier: String { "upme.daily-reminder." + dayID }
 }
 
+struct PlannedFanShareNotification: Equatable {
+    let postID: UUID
+    let shareID: UUID
+    let date: Date
+    let author: String
+
+    var identifier: String { "upme.fan-share." + shareID.uuidString.lowercased() }
+}
+
 struct DailyReminderPlanner {
     let copy: [String: [String: [String]]]
 
@@ -102,6 +111,8 @@ final class DailyReminderManager: ObservableObject {
     @Published private(set) var busy = false
     @Published private(set) var errorMessage: String?
     @Published var pendingPostOpen = false
+    @Published var pendingFanSharePostID: UUID?
+    @Published var pendingFanShareID: UUID?
     #if DEBUG
     @Published private(set) var testNotificationMessage: String?
     #endif
@@ -111,6 +122,7 @@ final class DailyReminderManager: ObservableObject {
     private let planner: DailyReminderPlanner
     private var language = "ja"
     private var regulars: [ReminderRegular] = []
+    private var fanShares: [PlannedFanShareNotification] = []
     private var ready = false
     private var revision = 0
     private var worker: Task<Void, Never>?
@@ -140,16 +152,25 @@ final class DailyReminderManager: ObservableObject {
     }
 
     func configure(language: String, regulars: [RegularFollower], onboarded: Bool,
-                   hasPosts: Bool, latestPost: Date?) {
+                   hasPosts: Bool, latestPost: Date?, posts: [PostModel]) {
         guard !DesignPreview.isActive else { return }
         let nextRegulars = regulars.map {
             ReminderRegular(id: $0.id, name: $0.authorName,
                 characterID: ReminderRegular.characterID($0.characterId, regularID: $0.id))
         }
         let nextReady = onboarded && hasPosts
+        let nextFanShares = posts.flatMap { post in
+            // A viral post can have two quotes at the same time; send only one alert for the post.
+            post.fanShares.filter { $0.readAt == nil }.prefix(1).map { share in
+                PlannedFanShareNotification(postID: post.id, shareID: share.id,
+                                            date: share.availableAt, author: share.author.authorName)
+            }
+        }
         var changed = self.language != language || self.regulars != nextRegulars || ready != nextReady
+            || fanShares != nextFanShares
         self.language = language
         self.regulars = nextRegulars
+        fanShares = nextFanShares
         ready = nextReady
         if let latestPost, latestPost <= Date(), latestPost > (lastPost ?? .distantPast) {
             lastPost = latestPost
@@ -206,6 +227,16 @@ final class DailyReminderManager: ObservableObject {
     }
 
     func opened(_ info: [AnyHashable: Any]) {
+        if info["destination"] as? String == "fan_share",
+           let post = info["post_id"] as? String, let share = info["share_id"] as? String,
+           let postID = UUID(uuidString: post), let shareID = UUID(uuidString: share) {
+            pendingFanSharePostID = postID
+            pendingFanShareID = shareID
+            UPMEAnalytics.capture("fan_share_notification_opened", properties: [
+                "post_flow_id": postID.uuidString.lowercased()
+            ])
+            return
+        }
         pendingPostOpen = true
         #if DEBUG
         if info["debug_test"] as? Bool == true { return }
@@ -217,6 +248,17 @@ final class DailyReminderManager: ObservableObject {
         // Do not send the regular's name, notification text, or conversation history.
         UPMEAnalytics.capture("daily_reminder_opened", properties: properties)
         defaults.set(Date(), forKey: "dailyReminder.lastOpened")
+    }
+
+    func consumedFanShare() {
+        pendingFanSharePostID = nil
+        pendingFanShareID = nil
+    }
+
+    func cancelFanShareNotifications(_ identifiers: [String]) {
+        center.removePendingNotificationRequests(withIdentifiers: identifiers)
+        center.removeDeliveredNotifications(withIdentifiers: identifiers)
+        reschedule()
     }
 
     #if DEBUG
@@ -295,21 +337,47 @@ final class DailyReminderManager: ObservableObject {
         permissionDenied = settings.authorizationStatus == .denied
         let pending = await center.pendingNotificationRequests()
         guard current == revision else { return }
-        let ours = pending.filter { $0.identifier.hasPrefix(Self.prefix) }.map(\.identifier)
+        let ours = pending.filter {
+            $0.identifier.hasPrefix(Self.prefix) || $0.identifier.hasPrefix("upme.fan-share.")
+        }.map(\.identifier)
         center.removePendingNotificationRequests(withIdentifiers: ours)
         guard enabled, ready, [.authorized, .provisional, .ephemeral].contains(settings.authorizationStatus) else {
             let delivered = await center.deliveredNotifications()
-            center.removeDeliveredNotifications(withIdentifiers: delivered.map { $0.request.identifier }.filter { $0.hasPrefix(Self.prefix) })
+            center.removeDeliveredNotifications(withIdentifiers: delivered.map { $0.request.identifier }.filter {
+                $0.hasPrefix(Self.prefix) || $0.hasPrefix("upme.fan-share.")
+            })
             return
         }
         let now = Date()
+        var shareDays = Set<String>()
+        var scheduledShareCount = 0
+        let shareCalendar = DailyReminderPlanner.calendar()
+        for share in fanShares.sorted(by: { $0.date < $1.date }) where share.date > now {
+            guard current == revision else { return }
+            guard scheduledShareCount < max(0, 64 - (pending.count - ours.count)) else { break }
+            let day = shareCalendar.startOfDay(for: share.date).description
+            let content = UNMutableNotificationContent()
+            content.title = "UPME!｜\(share.author)"
+            content.body = language == "en" ? "Shared your post. See what your followers are saying."
+                : "あなたの投稿を紹介しました。フォロワーの反応を見てみよう。"
+            content.sound = .default
+            content.userInfo = ["destination": "fan_share", "post_id": share.postID.uuidString,
+                                "share_id": share.shareID.uuidString]
+            let components = shareCalendar.dateComponents([.year, .month, .day, .hour, .minute], from: share.date)
+            do {
+                try await center.add(UNNotificationRequest(identifier: share.identifier, content: content,
+                    trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false)))
+                scheduledShareCount += 1
+                shareDays.insert(day)
+            } catch { /* The in-app activity remains available without a notification. */ }
+        }
         let past = Array(history.filter { $0.date <= now }.sorted { $0.date < $1.date }.suffix(60))
         let otherCount = pending.count - ours.count
         let plan = planner.plan(now: now, cadenceAnchor: cadenceAnchor, lastPost: lastPost, regulars: regulars,
-            language: language, history: past, seed: seed, limit: min(60, max(0, 64 - otherCount)))
+            language: language, history: past, seed: seed, limit: min(60, max(0, 64 - otherCount - scheduledShareCount)))
         errorMessage = nil
         var scheduled: [PlannedReminder] = []
-        for entry in plan {
+        for entry in plan where !shareDays.contains(shareCalendar.startOfDay(for: entry.date).description) {
             guard current == revision else { return }
             let content = UNMutableNotificationContent()
             content.title = entry.title
@@ -350,12 +418,14 @@ final class ReminderApplicationDelegate: NSObject, UIApplicationDelegate, UNUser
         }
         #endif
         // A user already in the app does not need a posting reminder banner or sound.
-        completionHandler(notification.request.identifier.hasPrefix("upme.daily-reminder.") ? [] : [.banner, .sound])
+        completionHandler(notification.request.identifier.hasPrefix("upme.daily-reminder.")
+            || notification.request.identifier.hasPrefix("upme.fan-share.") ? [] : [.banner, .sound])
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
                                 withCompletionHandler completionHandler: @escaping () -> Void) {
         var isReminder = response.notification.request.identifier.hasPrefix("upme.daily-reminder.")
+            || response.notification.request.identifier.hasPrefix("upme.fan-share.")
         #if DEBUG
         isReminder = isReminder || response.notification.request.identifier.hasPrefix("upme.reminder-test.")
         #endif

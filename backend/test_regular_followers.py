@@ -328,6 +328,98 @@ class RegularFollowerApiTests(unittest.TestCase):
             self.assertLessEqual(normal["follower_gain"], maximum)
             self.assertLessEqual(normal["likes"], maximum * 7)
 
+    def test_fan_share_draw_is_independent_one_in_three_for_normal_posts(self):
+        from unittest.mock import AsyncMock
+        planned = []
+
+        async def generate(**kwargs):
+            planned.append(kwargs["fan_share_count"])
+            return [], []
+
+        with (patch.object(backend_main, "generate_ai_replies", AsyncMock(side_effect=generate)),
+              patch.object(backend_main, "build_post_reaction", return_value={"is_viral": False}),
+              patch.object(backend_main.random, "randrange", side_effect=[0, 1, 2])):
+            for _ in range(3):
+                asyncio.run(backend_main.create_post(PostRequest(
+                    user_id="synthetic", content="A walk", followers=0,
+                    supports_viral_posts=True, supports_fan_shares=True)))
+        self.assertEqual(planned, [1, 0, 0])
+
+    def test_viral_fan_shares_use_the_same_generation_call(self):
+        class GeneratedClient:
+            def __init__(self):
+                self.calls = []
+
+                async def parse(**kwargs):
+                    self.calls.append(kwargs)
+                    schema = kwargs["response_format"]
+                    count = schema.model_json_schema()["properties"]["replies"]["maxItems"]
+                    parsed = schema(replies=[ReplySchema(author_name=f"フォロワー{i}",
+                        content=f"返信{i}", is_hater=False, is_defender=False,
+                        regular_follower_id=None).model_dump() for i in range(count)], memory_updates=[],
+                        fan_shares=[backend_main.FanShareDraft(
+                            author_name=f"フォロワー{i}", content=f"引用{i}",
+                            reply_author_name=f"フォロワー{i+1}", reply_content=f"反応{i}",
+                            continuation=[f"返答{i}", f"もう一言{i}"])
+                            for i in range(2)])
+                    return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(parsed=parsed))])
+
+                self.beta = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(parse=parse)))
+
+        client = GeneratedClient()
+        with (patch.object(backend_main, "openai_client", client),
+              patch.object(backend_main, "supabase", None),
+              patch.object(backend_main, "resolve_avatar_url", return_value="https://example.test/avatar")):
+            result = asyncio.run(backend_main.create_post(PostRequest(
+                user_id="synthetic", content="今日は散歩した", followers=0,
+                is_onboarding=True, is_hater_enabled=False,
+                supports_viral_posts=True, supports_fan_shares=True)))
+        self.assertEqual(len(client.calls), 1)
+        self.assertTrue(result["reaction"]["is_viral"])
+        self.assertEqual(len(result["fan_shares"]), 2)
+        self.assertEqual(result["fan_shares"][0]["content"], "引用0")
+        self.assertEqual(result["fan_shares"][0]["continuation"], ["返答0", "もう一言0"])
+        immediate_names = {reply["author_name"] for reply in result["replies"]}
+        later_people = [person for share in result["fan_shares"]
+                        for person in (share["author"], share["reply_author"])]
+        later_names = [person["author_name"] for person in later_people]
+        self.assertEqual(len(set(later_names)), 4)
+        self.assertTrue(immediate_names.isdisjoint(later_names))
+        self.assertTrue(all(person["author_img"] for person in later_people))
+        self.assertTrue(all(person["character_id"] for person in later_people))
+
+    def test_fan_share_can_use_regular_who_did_not_reply_that_day(self):
+        class GeneratedClient:
+            async def parse(self, **kwargs):
+                schema = kwargs["response_format"]
+                parsed = schema(replies=[ReplySchema(
+                    author_name=name, content="いいね", is_hater=False,
+                    is_defender=False, regular_follower_id=None).model_dump()
+                    for name in ("あかり", "みく", "れん")], memory_updates=[],
+                    fan_shares=[backend_main.FanShareDraft(
+                        author_name="ゆき", content="引用", reply_author_name="まい", reply_content="反応",
+                        continuation=["うん、そうだね"] )])
+                return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(parsed=parsed))])
+
+            def __init__(self):
+                self.beta = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(parse=self.parse)))
+
+        regular = backend_main.RegularFollowerContext(
+            follower_id="regular-yuki", author_name="ゆき",
+            avatar_url="https://example.test/yuki.jpg", character_id="v1-09")
+        shares = []
+        with (patch.object(backend_main, "openai_client", GeneratedClient()),
+              patch.object(backend_main, "select_regular_participants", return_value=[]),
+              patch.object(backend_main, "supabase", None)):
+            replies, _ = asyncio.run(backend_main.generate_ai_replies(
+                content="今日は散歩した", followers=0, is_hater_enabled=False,
+                regular_followers=[regular], fan_share_count=1, fan_shares_out=shares))
+        self.assertEqual(len(shares), 1)
+        self.assertNotIn("ゆき", {reply["author_name"] for reply in replies})
+        self.assertEqual(shares[0]["author"]["regular_follower_id"], regular.follower_id)
+        self.assertEqual(shares[0]["author"]["author_img"], regular.avatar_url)
+        self.assertEqual(shares[0]["author"]["character_id"], regular.character_id)
+
     def test_viral_endpoint_doubles_replies_in_one_generation_including_image(self):
         for followers, count in ((0, 10), (20_000_000, 32)):
             for language in ("ja", "en"):
@@ -362,7 +454,21 @@ class RegularFollowerApiTests(unittest.TestCase):
                     user_id="test", content="post", followers=0, **options)))
             draw.assert_not_called()
             self.assertNotIn("reaction", result)
+            self.assertNotIn("fan_shares", result)
             self.assertFalse(generate.call_args.kwargs["is_viral"])
+            self.assertEqual(generate.call_args.kwargs["fan_share_count"], 0)
+
+    def test_released_viral_clients_do_not_request_fan_shares(self):
+        from unittest.mock import AsyncMock
+        generate = AsyncMock(return_value=([], []))
+        with (patch.object(backend_main, "generate_ai_replies", generate),
+              patch.object(backend_main, "build_post_reaction", return_value={"is_viral": True})):
+            result = asyncio.run(backend_main.create_post(PostRequest(
+                user_id="test", content="post", followers=0,
+                supports_viral_posts=True)))
+        self.assertIn("reaction", result)
+        self.assertNotIn("fan_shares", result)
+        self.assertEqual(generate.call_args.kwargs["fan_share_count"], 0)
 
     def test_onboarding_is_guaranteed_viral_in_a_single_batch(self):
         parsed = GenerateRepliesResponse(replies=[ReplySchema(

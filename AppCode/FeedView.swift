@@ -75,9 +75,13 @@ private enum ReplyTimelineLayout {
 
 struct FeedView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject private var reminders: DailyReminderManager
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ObservedObject var guide: HomeGuideCoordinator
     @State private var frozenGuideSelection: HomeGuideSelection?
+    @State private var notificationShare: FanShare?
+    @State private var notificationPostID: UUID?
+    @Environment(\.scenePhase) private var scenePhase
     var onGoPost: () -> Void
 
     private var liveGuideSelection: HomeGuideSelection {
@@ -149,9 +153,44 @@ struct FeedView: View {
                             .padding(.horizontal, 16)
                             .padding(.top, 16)
 
+                            if let activity = appState.newestUnreadFanShare {
+                                Button {
+                                    withAnimation(.easeInOut(duration: 0.3)) {
+                                        scroll.scrollTo(activity.postID, anchor: .top)
+                                    }
+                                } label: {
+                                    HStack(spacing: 10) {
+                                        Image(systemName: "arrowshape.turn.up.right.fill")
+                                            .foregroundStyle(Theme.hotPink)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(appState.text("新しい話題", "New activity"))
+                                                .font(.system(size: 11, weight: .bold))
+                                                .foregroundStyle(Theme.hotPink)
+                                            Text(appState.text("\(activity.author)があなたの投稿を紹介しました", "\(activity.author) shared your post"))
+                                                .font(.system(size: 13, weight: .semibold))
+                                                .foregroundStyle(Theme.textPrimary)
+                                                .lineLimit(1)
+                                        }
+                                        Spacer(minLength: 0)
+                                        Image(systemName: "chevron.down")
+                                            .font(.system(size: 11, weight: .bold))
+                                            .foregroundStyle(Theme.lavender)
+                                    }
+                                    .padding(14)
+                                    .background {
+                                        FeedCardSurface(fill: Theme.cardBackground, accent: Theme.hotPink,
+                                                        border: Theme.lavender.opacity(0.35), cornerRadius: 16)
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.horizontal, 16)
+                                .padding(.top, 12)
+                            }
+
                             VStack(spacing: 32) {
                                 ForEach(appState.posts) { post in
                                     PostCard(post: post, guideSelection: guideSelection, usesHomeStyling: true)
+                                        .id(post.id)
                                 }
                             }
                             .padding(.vertical, 20)
@@ -172,6 +211,26 @@ struct FeedView: View {
                 }
                 .refreshable {
                     appState.fetchUser()
+                    appState.refreshFanShares()
+                }
+                .onAppear { appState.refreshFanShares() }
+                .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { date in
+                    appState.refreshFanShares(at: date)
+                }
+                .onChange(of: scenePhase) { _, phase in
+                    if phase == .active { appState.refreshFanShares() }
+                }
+                .task(id: reminders.pendingFanShareID) {
+                    guard let postID = reminders.pendingFanSharePostID,
+                          let shareID = reminders.pendingFanShareID,
+                          let post = appState.posts.first(where: { $0.id == postID }),
+                          let share = post.fanShares.first(where: { $0.id == shareID }) else { return }
+                    appState.refreshFanShares()
+                    scroll.scrollTo(postID, anchor: .top)
+                    notificationPostID = postID
+                    notificationShare = share
+                    appState.markFanShareRead(postID: postID, shareID: shareID)
+                    reminders.consumedFanShare()
                 }
                 .alert("返信を送信できませんでした", isPresented: Binding(
                     get: { appState.replyErrorMessage != nil },
@@ -190,6 +249,12 @@ struct FeedView: View {
         }
         .onChange(of: guide.isPresenting) { _, presenting in
             frozenGuideSelection = presenting ? liveGuideSelection : nil
+        }
+        .sheet(item: $notificationShare) { share in
+            if let notificationPostID {
+                FanShareDetailView(postID: notificationPostID, shareID: share.id)
+                    .environmentObject(appState)
+            }
         }
     }
 }
@@ -348,6 +413,7 @@ struct PostCard: View {
     var usesHomeStyling = false
     @State private var regularFollowerAlert: RegularFollowerAlert?
     @State private var replyTarget: Reply?
+    @State private var fanShareTarget: FanShare?
 
     private var followerGain: Int? {
         guard let reaction = post.reaction else {
@@ -356,6 +422,16 @@ struct PostCard: View {
         }
         guard reaction.followersAfter == nil else { return reaction.followerGain }
         return Int(Double(reaction.followerGain) * reaction.progress(at: appState.reactionNow))
+    }
+
+    private var displayedPostTime: String {
+        guard let createdAt = post.createdAt else { return post.time }
+        let seconds = max(0, appState.fanShareNow.timeIntervalSince(createdAt))
+        if seconds < 60 { return appState.text("今", "Now") }
+        if seconds < 3_600 { return appState.text("\(Int(seconds / 60))分前", "\(Int(seconds / 60))m ago") }
+        if seconds < 86_400 { return appState.text("\(Int(seconds / 3_600))時間前", "\(Int(seconds / 3_600))h ago") }
+        if seconds < 7 * 86_400 { return appState.text("\(Int(seconds / 86_400))日前", "\(Int(seconds / 86_400))d ago") }
+        return createdAt.formatted(date: .abbreviated, time: .omitted)
     }
     
     var body: some View {
@@ -390,12 +466,28 @@ struct PostCard: View {
                         Text(appState.userName)
                             .font(.system(size: 15, weight: .bold))
                             .foregroundColor(Theme.textPrimary)
-                        Text((post.time == "今" || post.time == "Now") ? appState.text("今", "Now") : post.time)
+                        Text(displayedPostTime)
                             .font(.system(size: 11, weight: .black))
                             .foregroundColor(.gray)
                             .textCase(.uppercase)
                     }
                     Spacer()
+                    if !post.fanShares.isEmpty {
+                        Menu {
+                            Button(role: .destructive) {
+                                appState.suppressFanShares(postID: post.id)
+                            } label: {
+                                Label(appState.text("この投稿を話題にしない", "Don't share this post"),
+                                      systemImage: "eye.slash")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis")
+                                .font(.system(size: 17, weight: .bold))
+                                .foregroundStyle(Theme.lavender)
+                                .frame(width: 36, height: 36)
+                        }
+                        .accessibilityLabel(appState.text("投稿のメニュー", "Post options"))
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, appState.isViralRevealed(post) ? 0 : 20)
@@ -474,6 +566,63 @@ struct PostCard: View {
             .padding(.horizontal, 16)
             .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: appState.isViralRevealed(post))
             .sensoryFeedback(.success, trigger: appState.isViralAnimating(post)) { _, active in active && !reduceMotion }
+
+            let visibleFanShares = post.fanShares.filter { $0.isVisible(at: appState.fanShareNow) }
+            if !visibleFanShares.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 7) {
+                        Image(systemName: "arrowshape.turn.up.right.fill")
+                            .foregroundStyle(Theme.hotPink)
+                        Text(appState.text("フォロワーの間で話題に", "Shared by your followers"))
+                            .foregroundStyle(Theme.textPrimary)
+                        Spacer()
+                        if visibleFanShares.count > 1 {
+                            Text("\(visibleFanShares.count)")
+                                .foregroundStyle(Theme.lavender)
+                        }
+                    }
+                    .font(.system(size: 12, weight: .bold))
+                    .padding(.horizontal, 4)
+
+                    ForEach(visibleFanShares) { share in
+                        Button {
+                            appState.markFanShareRead(postID: post.id, shareID: share.id)
+                            fanShareTarget = share
+                        } label: {
+                            HStack(alignment: .top, spacing: 10) {
+                                AIAvatarImage(url: share.author.img)
+                                    .frame(width: 36, height: 36).clipShape(Circle())
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text(appState.text("\(share.author.authorName)が引用しました", "Shared by \(share.author.authorName)"))
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundStyle(Theme.lavender)
+                                    Text(share.content)
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundStyle(Theme.textPrimary)
+                                        .multilineTextAlignment(.leading)
+                                        .lineLimit(2)
+                                    Text(appState.text("会話を見る  →", "See the conversation  →"))
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundStyle(Theme.hotPink)
+                                }
+                                Spacer(minLength: 0)
+                                if share.readAt == nil {
+                                    Circle().fill(Theme.hotPink).frame(width: 6, height: 6)
+                                }
+                            }
+                            .padding(14)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background {
+                                FeedCardSurface(fill: Theme.cardBackground, accent: Theme.lavender,
+                                                border: Theme.lavender.opacity(0.38), cornerRadius: 18)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+            }
             
             if !post.replies.isEmpty || appState.isWaitingForReplies(to: post) {
                 VStack(spacing: 12) {
@@ -570,6 +719,181 @@ struct PostCard: View {
         .sheet(item: $replyTarget) { target in
             ReplyComposerView(post: post, target: target)
                 .environmentObject(appState)
+        }
+        .sheet(item: $fanShareTarget) { share in
+            FanShareDetailView(postID: post.id, shareID: share.id)
+                .environmentObject(appState)
+        }
+    }
+}
+
+struct FanShareDetailView: View {
+    @EnvironmentObject var appState: AppState
+    @Environment(\.dismiss) private var dismiss
+    let postID: UUID
+    let shareID: UUID
+    @State private var draft = ""
+    @State private var sendFailed = false
+
+    private var post: PostModel? { appState.posts.first { $0.id == postID } }
+    private var share: FanShare? { post?.fanShares.first { $0.id == shareID } }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                if let post, let share {
+                    VStack(alignment: .leading, spacing: 18) {
+                        Text(appState.text("フォロワーの間で", "Among your followers"))
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(Theme.hotPink)
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(appState.text("あなたの投稿", "Your post"))
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(Theme.lavender)
+                            Text(post.content)
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(Theme.textPrimary)
+                            if let data = post.imageData, let image = UIImage(data: data) {
+                                PostAttachmentImage(image: image, height: 160, cornerRadius: 14)
+                            }
+                        }
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background { FeedCardSurface(fill: Theme.cardBackground, accent: Theme.hotPink,
+                                                      border: Theme.lavender.opacity(0.35), cornerRadius: 18) }
+
+                        HStack(alignment: .top, spacing: 12) {
+                            AIAvatarImage(url: share.author.img)
+                                .frame(width: 38, height: 38).clipShape(Circle())
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(appState.text("\(share.author.authorName)が引用", "Shared by \(share.author.authorName)"))
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundStyle(Theme.hotPink)
+                                Text(share.content).font(.system(size: 15))
+                                    .foregroundStyle(Theme.textPrimary)
+                            }
+                        }
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background { FeedCardSurface(fill: Theme.cardBackground, accent: Theme.lavender,
+                                                      border: Theme.lavender.opacity(0.45), cornerRadius: 18) }
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(appState.text("フォロワー同士の会話", "Followers talking"))
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(Theme.lavender)
+                            ForEach(share.visibleConversation(at: appState.fanShareNow)) { turn in
+                                HStack(alignment: .top, spacing: 10) {
+                                    AIAvatarImage(url: turn.author.img)
+                                        .frame(width: 32, height: 32).clipShape(Circle())
+                                    VStack(alignment: .leading, spacing: 5) {
+                                        Text(turn.author.authorName)
+                                            .font(.system(size: 12, weight: .bold))
+                                            .foregroundStyle(Theme.lavender)
+                                        Text(turn.content).font(.system(size: 14))
+                                            .foregroundStyle(Theme.textPrimary)
+                                    }
+                                    Spacer(minLength: 0)
+                                }
+                                .padding(12)
+                                .background(Theme.cardBackground, in: RoundedRectangle(cornerRadius: 16))
+                                .padding(.leading, turn.author.id == share.author.id ? 0 : 20)
+                                .transition(.opacity.combined(with: .move(edge: .bottom)))
+                            }
+                            if !share.isConversationComplete(at: appState.fanShareNow) {
+                                HStack(spacing: 8) {
+                                    ProgressView().tint(Theme.lavender)
+                                    Text(appState.text("会話が続いています…", "The conversation is continuing…"))
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(Theme.lavender)
+                                }
+                                .padding(.top, 4)
+                            }
+                        }
+                        .animation(.easeOut(duration: 0.25),
+                                   value: share.visibleConversation(at: appState.fanShareNow).count)
+
+                        if let userReply = share.userReply {
+                            HStack {
+                                Spacer(minLength: 36)
+                                Text(userReply.text)
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(Theme.textPrimary)
+                                    .padding(14)
+                                    .background { FeedCardSurface(fill: Theme.cardBackground,
+                                        accent: Theme.hotPink, border: Theme.hotPink.opacity(0.4), cornerRadius: 16) }
+                            }
+                            if appState.submittingFanShareIDs.contains(shareID) {
+                                ProgressView().tint(Theme.hotPink).padding(.leading, 24)
+                            }
+                            ForEach(share.aiReplies) { reply in
+                                HStack(alignment: .top, spacing: 10) {
+                                    AIAvatarImage(url: reply.img)
+                                        .frame(width: 32, height: 32).clipShape(Circle())
+                                    VStack(alignment: .leading, spacing: 5) {
+                                        Text(reply.authorName).font(.system(size: 12, weight: .bold))
+                                            .foregroundStyle(Theme.lavender)
+                                        Text(reply.text).font(.system(size: 14))
+                                            .foregroundStyle(Theme.textPrimary)
+                                    }
+                                }
+                                .padding(.leading, 24)
+                            }
+                        }
+                    }
+                    .padding(20)
+                }
+            }
+            .background(Theme.bgDeepBlack)
+            .navigationTitle(appState.text("話題の続き", "The conversation"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(appState.text("閉じる", "Close")) { dismiss() }
+                        .foregroundStyle(Theme.lavender)
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                if share?.userReply == nil,
+                   share?.isConversationComplete(at: appState.fanShareNow) == true {
+                    VStack(alignment: .leading, spacing: 6) {
+                        if sendFailed {
+                            Text(appState.text("送信できませんでした。もう一度お試しください。", "Couldn't send. Please try again."))
+                                .font(.system(size: 12)).foregroundStyle(Theme.hotPink)
+                        }
+                        HStack(spacing: 10) {
+                            TextField(appState.text("会話に返信する", "Reply to the conversation"), text: $draft, axis: .vertical)
+                                .lineLimit(1...3)
+                                .foregroundStyle(Theme.textPrimary)
+                                .padding(12)
+                                .background(Theme.cardBackground, in: RoundedRectangle(cornerRadius: 12))
+                            Button {
+                                let message = draft
+                                sendFailed = false
+                                appState.submitFanShareReply(postID: postID, shareID: shareID, text: message) { success in
+                                    if !success {
+                                        draft = message
+                                        sendFailed = true
+                                    }
+                                }
+                                draft = ""
+                            } label: {
+                                Image(systemName: "arrow.up.circle.fill")
+                                    .font(.system(size: 30)).foregroundStyle(Theme.hotPink)
+                            }
+                            .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            .accessibilityLabel(appState.text("返信を送信", "Send reply"))
+                        }
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .background(Theme.bgDeepBlack)
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { date in
+            appState.refreshFanShares(at: date)
         }
     }
 }

@@ -291,6 +291,47 @@ struct PostReaction: Codable {
     }
 }
 
+struct FanShareTurn: Identifiable {
+    let id: Int
+    let author: Reply
+    let content: String
+}
+
+struct FanShare: Identifiable, Codable {
+    static let turnInterval: TimeInterval = 5
+
+    let id: UUID
+    let author: Reply
+    let content: String
+    let replyAuthor: Reply
+    let replyContent: String
+    // Optional so posts saved before multi-turn fan conversations still decode.
+    let continuation: [String]?
+    var availableAt: Date
+    var replyAvailableAt: Date
+    var readAt: Date? = nil
+    var userReply: Reply? = nil
+    var aiReplies: [Reply] = []
+
+    var notificationID: String { "upme.fan-share." + id.uuidString.lowercased() }
+    func isVisible(at date: Date) -> Bool { availableAt <= date }
+    func isReplyVisible(at date: Date) -> Bool { replyAvailableAt <= date }
+    func visibleConversation(at date: Date) -> [FanShareTurn] {
+        guard isReplyVisible(at: date) else { return [] }
+        var turns = [FanShareTurn(id: 0, author: replyAuthor, content: replyContent)]
+        for (index, content) in (continuation ?? []).enumerated()
+            where date >= replyAvailableAt.addingTimeInterval(Double(index + 1) * Self.turnInterval) {
+            turns.append(FanShareTurn(id: index + 1,
+                                      author: index.isMultiple(of: 2) ? author : replyAuthor,
+                                      content: content))
+        }
+        return turns
+    }
+    func isConversationComplete(at date: Date) -> Bool {
+        date >= replyAvailableAt.addingTimeInterval(Double(continuation?.count ?? 0) * Self.turnInterval)
+    }
+}
+
 struct PostModel: Identifiable, Codable {
     var id: UUID
     var isOnboarding: Bool
@@ -300,6 +341,7 @@ struct PostModel: Identifiable, Codable {
     var replies: [Reply]
     var replyThreads: [ReplyThread]
     var reaction: PostReaction?
+    var fanShares: [FanShare] = []
     let time: String
     var createdAt: Date? = nil
 
@@ -326,7 +368,7 @@ struct PostModel: Identifiable, Codable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, isOnboarding, content, imageData, likes, replies, replyThreads, reaction, time, createdAt
+        case id, isOnboarding, content, imageData, likes, replies, replyThreads, reaction, fanShares, time, createdAt
     }
 
     init(from decoder: Decoder) throws {
@@ -339,6 +381,7 @@ struct PostModel: Identifiable, Codable {
         replies = try container.decodeIfPresent([Reply].self, forKey: .replies) ?? []
         replyThreads = try container.decodeIfPresent([ReplyThread].self, forKey: .replyThreads) ?? []
         reaction = try container.decodeIfPresent(PostReaction.self, forKey: .reaction)
+        fanShares = try container.decodeIfPresent([FanShare].self, forKey: .fanShares) ?? []
         time = try container.decodeIfPresent(String.self, forKey: .time) ?? ""
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt)
     }
@@ -353,6 +396,7 @@ struct PostModel: Identifiable, Codable {
         try container.encode(replies, forKey: .replies)
         try container.encode(replyThreads, forKey: .replyThreads)
         try container.encodeIfPresent(reaction, forKey: .reaction)
+        try container.encode(fanShares, forKey: .fanShares)
         try container.encode(time, forKey: .time)
         try container.encodeIfPresent(createdAt, forKey: .createdAt)
     }
@@ -529,6 +573,9 @@ class AppState: ObservableObject {
     @Published var posts: [PostModel] = [] {
         didSet { if !isInOnboarding { savePosts() } }
     }
+
+    @Published private(set) var fanShareNow = Date()
+    @Published private(set) var submittingFanShareIDs: Set<UUID> = []
     @Published private(set) var regularFollowers: [RegularFollower] = [] {
         didSet { saveRegularFollowers() }
     }
@@ -551,6 +598,7 @@ class AppState: ObservableObject {
     
     // オンボーディング用プリフェッチ
     private var prefetchedOnboardingReplies: [Reply] = []
+    private var prefetchedOnboardingFanShares: [[String: Any]] = []
     private var onboardingPostFlowID: UUID?
     @Published private(set) var onboardingRepliesRequestInFlight = false
     private var onboardingRepliesResponseFlowID: UUID?
@@ -626,6 +674,13 @@ class AppState: ObservableObject {
             let second = Reply(authorName: text("れん", "Ren"), text: text("帰り道に寄り道する時間、いいよね。", "Those little detours on the way home are the best."), img: avatars[1], isHater: false, isDefender: false)
             regularFollowers = [RegularFollower(id: "preview-yuki", authorName: first.authorName, avatarURL: first.img, memories: [], recentInteractions: [text("今日のできごとを話しました", "Talked about your day")], createdAt: Date(), lastInteractionAt: nil)]
             posts = [PostModel(content: text("今日も一日、がんばった。", "Made it through another day."), imageData: nil, likes: 128, replies: [first, second], time: text("今", "Now")), PostModel(content: text("帰り道、ちょっと寄り道。", "A little detour on the way home."), imageData: nil, likes: 256, replies: [], time: text("昨日", "Yesterday"))]
+            if DesignPreview.argument("--ui-fan-share") == "true", !posts.isEmpty {
+                posts[0].fanShares = [FanShare(id: UUID(), author: first,
+                    content: text("今日も頑張ったって聞けて、なんだかうれしい。", "Hearing that you made it through today made me smile."),
+                    replyAuthor: second, replyContent: text("わかる。おつかれさまって言いたくなるね。", "Same. I want to say: well done."),
+                    continuation: [text("うん。そう言ってもらえると、こちらもほっとするね。", "Yeah. It's nice to hear someone say that.")],
+                    availableAt: Date().addingTimeInterval(-3600), replyAvailableAt: Date().addingTimeInterval(-1800))]
+            }
             if DesignPreview.argument("--ui-empty") == "true" { posts = []; totalPosts = 0 }
             if let path = DesignPreview.argument("--ui-post-image"),
                let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
@@ -744,6 +799,7 @@ class AppState: ObservableObject {
             index < 5 || requestingPostIDs.contains(post.id)
                 || (post.reaction != nil && post.reaction?.followersAfter == nil)
                 || (post.reaction?.followersAfter ?? 0) > followers
+                || post.fanShares.contains { $0.replyAvailableAt.addingTimeInterval(24 * 60 * 60) > Date() }
         }.map(\.element)
         if posts.count != trimmed.count { posts = trimmed }
         if let data = try? JSONEncoder().encode(trimmed) {
@@ -754,8 +810,206 @@ class AppState: ObservableObject {
     private func loadPosts() {
         if let data = try? Data(contentsOf: postsURL),
            let decoded = try? JSONDecoder().decode([PostModel].self, from: data) {
-            self.posts = decoded
+            var restored = decoded
+            for postIndex in restored.indices {
+                for shareIndex in restored[postIndex].fanShares.indices {
+                    let share = restored[postIndex].fanShares[shareIndex]
+                    // A request interrupted by process termination can be tried again.
+                    if share.userReply != nil && share.aiReplies.isEmpty {
+                        restored[postIndex].fanShares[shareIndex].userReply = nil
+                    }
+                }
+            }
+            self.posts = restored
         }
+    }
+
+    private func storeFanShares(_ drafts: [[String: Any]], postID: UUID, now: Date = Date()) {
+        guard let index = posts.firstIndex(where: { $0.id == postID }), !drafts.isEmpty else { return }
+        let calendar = Calendar.current
+        let startOfToday = calendar.startOfDay(for: posts[index].createdAt ?? now)
+        let shares: [FanShare] = drafts.prefix(2).compactMap { draft in
+            guard let authorJSON = draft["author"] as? [String: Any],
+                  let replyJSON = draft["reply_author"] as? [String: Any],
+                  let comment = draft["content"] as? String,
+                  let replyComment = draft["reply_content"] as? String,
+                  !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  !replyComment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  let day = calendar.date(byAdding: .day, value: 1, to: startOfToday),
+                  let availableAt = calendar.date(bySettingHour: 20, minute: 0, second: 0, of: day),
+                  let replyAvailableAt = calendar.date(byAdding: .second,
+                                                       value: Int(FanShare.turnInterval), to: availableAt)
+            else { return nil }
+            func author(_ data: [String: Any]) -> Reply {
+                Reply(authorName: data["author_name"] as? String ?? text("フォロワー", "Follower"),
+                      text: "", img: data["author_img"] as? String ?? "",
+                      isHater: false, isDefender: false,
+                      regularFollowerId: data["regular_follower_id"] as? String,
+                      characterId: data["character_id"] as? String)
+            }
+            let continuation = (draft["continuation"] as? [String] ?? [])
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            return FanShare(id: UUID(), author: author(authorJSON), content: comment,
+                            replyAuthor: author(replyJSON), replyContent: replyComment,
+                            continuation: Array(continuation.prefix(3)),
+                            availableAt: availableAt, replyAvailableAt: replyAvailableAt)
+        }
+        guard !shares.isEmpty else { return }
+        posts[index].fanShares = shares
+        UPMEAnalytics.capture("fan_shares_planned", properties: [
+            "post_flow_id": postID.uuidString.lowercased(),
+            "is_viral": posts[index].reaction?.isViral ?? posts[index].isOnboarding,
+            "share_count": shares.count
+        ])
+    }
+
+    func refreshFanShares(at date: Date = Date()) {
+        fanShareNow = date
+    }
+
+    #if DEBUG
+    @discardableResult
+    func revealPendingFanSharesNow() -> Bool {
+        let now = Date()
+        guard let postIndex = posts.firstIndex(where: { post in
+            post.fanShares.contains { $0.availableAt > now }
+        }) else { return false }
+        for shareIndex in posts[postIndex].fanShares.indices
+            where posts[postIndex].fanShares[shareIndex].availableAt > now {
+            posts[postIndex].fanShares[shareIndex].availableAt = now
+            posts[postIndex].fanShares[shareIndex].replyAvailableAt =
+                now.addingTimeInterval(FanShare.turnInterval)
+        }
+        refreshFanShares(at: now)
+        return true
+    }
+    #endif
+
+    var newestUnreadFanShare: (postID: UUID, shareID: UUID, author: String)? {
+        for post in posts {
+            if let share = post.fanShares.reversed().first(where: { $0.isVisible(at: fanShareNow) && $0.readAt == nil }) {
+                return (post.id, share.id, share.author.authorName)
+            }
+        }
+        return nil
+    }
+
+    func markFanShareRead(postID: UUID, shareID: UUID) {
+        guard let postIndex = posts.firstIndex(where: { $0.id == postID }),
+              let shareIndex = posts[postIndex].fanShares.firstIndex(where: { $0.id == shareID }),
+              posts[postIndex].fanShares[shareIndex].readAt == nil else { return }
+        posts[postIndex].fanShares[shareIndex].readAt = Date()
+        UPMEAnalytics.capture("fan_share_opened", properties: [
+            "post_flow_id": postID.uuidString.lowercased(),
+            "share_index": shareIndex,
+            "is_viral": posts[postIndex].reaction?.isViral ?? false
+        ])
+    }
+
+    func suppressFanShares(postID: UUID) {
+        guard let index = posts.firstIndex(where: { $0.id == postID }),
+              !posts[index].fanShares.isEmpty else { return }
+        let identifiers = posts[index].fanShares.map(\.notificationID)
+        posts[index].fanShares = []
+        Task { @MainActor in DailyReminderManager.shared.cancelFanShareNotifications(identifiers) }
+        UPMEAnalytics.capture("fan_shares_suppressed", properties: [
+            "post_flow_id": postID.uuidString.lowercased()
+        ])
+    }
+
+    func submitFanShareReply(postID: UUID, shareID: UUID, text message: String,
+                             completion: @escaping (Bool) -> Void = { _ in }) {
+        let message = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !message.isEmpty, !isSubmittingUserReply,
+              let postIndex = posts.firstIndex(where: { $0.id == postID }),
+              let shareIndex = posts[postIndex].fanShares.firstIndex(where: { $0.id == shareID }),
+              posts[postIndex].fanShares[shareIndex].userReply == nil,
+              posts[postIndex].fanShares[shareIndex].isConversationComplete(at: Date()) else {
+            completion(false)
+            return
+        }
+        let share = posts[postIndex].fanShares[shareIndex]
+        let conversation = share.visibleConversation(at: Date())
+        let authorStatements = [share.content] + conversation
+            .filter { $0.author.id == share.author.id }.map(\.content)
+        let responderStatements = conversation
+            .filter { $0.author.id == share.replyAuthor.id }.map(\.content)
+        let originalPost = posts[postIndex].content
+        guard let url = URL(string: replyApiUrl) else { completion(false); return }
+        let userReply = Reply(authorName: userName, text: message, img: "", isHater: false,
+                              isDefender: false, replyToId: share.author.id, isUserReply: true)
+        posts[postIndex].fanShares[shareIndex].userReply = userReply
+        isSubmittingUserReply = true
+        submittingFanShareIDs.insert(shareID)
+        var body: [String: Any] = [
+            "user_id": userId, "user_display_name": userName, "post_content": originalPost,
+            "ai_author_name": share.author.authorName, "ai_author_img": share.author.img,
+            "ai_reply_content": authorStatements.joined(separator: " / "), "user_reply": message,
+            "is_hater_enabled": false, "language": languageCode,
+            "regular_followers": regularFollowerPayload(),
+            "other_ai_replies": [[
+                "author_name": share.replyAuthor.authorName,
+                "content": responderStatements.joined(separator: " / "),
+                "avatar_url": share.replyAuthor.img,
+                "is_hater": false, "is_defender": false
+            ]]
+        ]
+        if let characterID = share.author.characterId { body["ai_character_id"] = characterID }
+        if let target = regularFollowers.first(where: { $0.id == share.author.regularFollowerId }) {
+            body["target_regular_follower"] = [
+                "follower_id": target.id, "author_name": target.authorName,
+                "avatar_url": target.avatarURL, "character_id": target.characterId ?? "",
+                "memories": Array(target.memories.suffix(RegularFollower.memoryLimit)),
+                "recent_interactions": Array(target.recentInteractions.suffix(RegularFollower.interactionLimit))
+            ]
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 120
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        UPMEAnalytics.capture("fan_share_user_replied", properties: ["post_flow_id": postID.uuidString.lowercased()])
+        aiReplyDataTask(with: request) { [weak self] data, _, error in
+            guard let self else { return }
+            DispatchQueue.main.async {
+                self.isSubmittingUserReply = false
+                self.submittingFanShareIDs.remove(shareID)
+                guard error == nil, let data,
+                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      json["status"] as? String == "success",
+                      let raw = json["replies"] as? [[String: Any]], !raw.isEmpty,
+                      let latestPostIndex = self.posts.firstIndex(where: { $0.id == postID }),
+                      let latestShareIndex = self.posts[latestPostIndex].fanShares.firstIndex(where: { $0.id == shareID }) else {
+                    if let latestPostIndex = self.posts.firstIndex(where: { $0.id == postID }),
+                       let latestShareIndex = self.posts[latestPostIndex].fanShares.firstIndex(where: { $0.id == shareID }) {
+                        self.posts[latestPostIndex].fanShares[latestShareIndex].userReply = nil
+                    }
+                    completion(false)
+                    return
+                }
+                let followUps = raw.compactMap { value -> Reply? in
+                    guard let content = value["content"] as? String, !content.isEmpty else { return nil }
+                    return Reply(authorName: value["author_name"] as? String ?? share.author.authorName,
+                                 text: content, img: value["author_img"] as? String ?? share.author.img,
+                                 isHater: false, isDefender: false,
+                                 regularFollowerId: value["regular_follower_id"] as? String,
+                                 replyToId: userReply.id, characterId: value["character_id"] as? String)
+                }
+                guard !followUps.isEmpty else {
+                    self.posts[latestPostIndex].fanShares[latestShareIndex].userReply = nil
+                    completion(false)
+                    return
+                }
+                self.posts[latestPostIndex].fanShares[latestShareIndex].aiReplies = followUps
+                self.applyRegularFollowerMemoryUpdates(json["memory_updates"] as? [[String: Any]] ?? [],
+                    userText: message, replies: followUps, postID: postID, occurredAt: Date(), isUserReply: true)
+                UPMEAnalytics.capture("fan_share_replies_received", properties: [
+                    "post_flow_id": postID.uuidString.lowercased(), "reply_count": followUps.count
+                ])
+                completion(true)
+            }
+        }.resume()
     }
     
     private func saveAvatar() {
@@ -917,6 +1171,7 @@ class AppState: ObservableObject {
         guard !onboardingReplayCancelled, !onboardingRepliesRequestInFlight else { return }
         prefetchedOnboardingText = text
         prefetchedOnboardingReplies = []
+        prefetchedOnboardingFanShares = []
         let postFlowID = UUID()
         onboardingPostFlowID = postFlowID
         onboardingRepliesResponseFlowID = nil
@@ -939,6 +1194,8 @@ class AppState: ObservableObject {
             // 取得に成功したプリフェッチ結果だけを再利用する。
             let replies = prefetchedOnboardingReplies
             prefetchedOnboardingReplies = []
+            storeFanShares(prefetchedOnboardingFanShares, postID: postFlowID)
+            prefetchedOnboardingFanShares = []
             beginOnboardingReaction(postID: postFlowID, replies: replies)
         } else if onboardingRepliesRequestInFlight {
             // プリフェッチが進行中。完了時のコールバックが返信表示を開始する。
@@ -964,15 +1221,19 @@ class AppState: ObservableObject {
             guard let self = self, self.onboardingPostFlowID == postFlowID else { return }
             self.onboardingRepliesRequestInFlight = false
             switch result {
-            case .success(let replies):
+            case .success(let (replies, fanShares)):
                 self.prefetchedOnboardingReplies = replies
+                self.prefetchedOnboardingFanShares = fanShares
                 self.onboardingRepliesResponseFlowID = postFlowID
                 if self.isInOnboarding && self.posts.first?.id == postFlowID {
                     self.prefetchedOnboardingReplies = []
+                    self.prefetchedOnboardingFanShares = []
+                    self.storeFanShares(fanShares, postID: postFlowID)
                     self.beginOnboardingReaction(postID: postFlowID, replies: replies)
                 }
             case .failure:
                 self.prefetchedOnboardingReplies = []
+                self.prefetchedOnboardingFanShares = []
                 self.onboardingRepliesResponseFlowID = nil
                 self.onboardingReplyError = self.text(
                     "AIの返信を取得できませんでした。もう一度試すか、このまま始められます。",
@@ -1505,7 +1766,8 @@ class AppState: ObservableObject {
             "language": languageCode,
             "regular_followers": isInOnboarding ? [] : regularFollowerPayload(),
             "recent_ai_replies": isInOnboarding ? [] : recentAIReplyTexts(from: posts, excluding: postFlowID),
-            "supports_viral_posts": canDrawViral
+            "supports_viral_posts": canDrawViral,
+            "supports_fan_shares": true
         ]
         
         if let data = imageData {
@@ -1574,6 +1836,7 @@ class AppState: ObservableObject {
                         "is_onboarding": self.isInOnboarding
                     ])
                     self.beginPostReaction(postID: postFlowID, replies: pending, response: json["reaction"] as? [String: Any])
+                    self.storeFanShares(json["fan_shares"] as? [[String: Any]] ?? [], postID: postFlowID)
                 }
             } else {
                 DispatchQueue.main.async {
@@ -1749,7 +2012,7 @@ class AppState: ObservableObject {
         postFlowID: UUID,
         retryCount: Int = 0,
         requestStartedAt: Date? = nil,
-        completion: @escaping (Result<[Reply], OnboardingReplyFetchError>) -> Void
+        completion: @escaping (Result<([Reply], [[String: Any]]), OnboardingReplyFetchError>) -> Void
     ) {
         let requestStartedAt = requestStartedAt ?? Date()
         guard !onboardingReplayCancelled else { return }
@@ -1788,6 +2051,7 @@ class AppState: ObservableObject {
             "is_hater_enabled": isHaterEnabled,
             "is_onboarding": true,    // オンボ専用プロンプト固定
             "supports_viral_posts": true,
+            "supports_fan_shares": true,
             "language": languageCode
         ]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
@@ -1838,7 +2102,8 @@ class AppState: ObservableObject {
                 "regular_reply_count": replies.filter { $0.regularFollowerId != nil }.count,
                 "is_onboarding": true
             ])
-            DispatchQueue.main.async { completion(.success(replies)) }
+            let fanShares = json["fan_shares"] as? [[String: Any]] ?? []
+            DispatchQueue.main.async { completion(.success((replies, fanShares))) }
         }
         onboardingNetworkTask = task
         task.resume()

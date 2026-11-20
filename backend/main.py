@@ -134,6 +134,7 @@ class PostRequest(BaseModel):
     recent_ai_replies: List[str] = Field(default_factory=list, max_length=8)
     # Older apps keep their existing local reward rules.
     supports_viral_posts: bool = False
+    supports_fan_shares: bool = False
 
 class ReplySchema(BaseModel):
     author_name: str
@@ -153,6 +154,14 @@ class RegularFollowerMemoryUpdateSchema(BaseModel):
 class GenerateRepliesResponse(BaseModel):
     replies: List[ReplySchema]
     memory_updates: List[RegularFollowerMemoryUpdateSchema]
+
+
+class FanShareDraft(BaseModel):
+    author_name: str
+    content: str
+    reply_author_name: str
+    reply_content: str
+    continuation: List[str] = Field(min_length=1, max_length=3)
 
 
 class SupportiveReplySchema(ReplySchema):
@@ -779,6 +788,8 @@ async def generate_ai_replies(
     user_display_name: Optional[str] = None,
     recent_ai_replies: Optional[List[str]] = None,
     is_viral: bool = False,
+    fan_share_count: int = 0,
+    fan_shares_out: Optional[List[dict]] = None,
 ) -> Tuple[List[dict], List[dict]]:
     """
     OpenAIを利用してリプライを一括生成し、レスポンス用の辞書リストを返す
@@ -792,6 +803,12 @@ async def generate_ai_replies(
     max_regular_followers = regular_follower_limit_for_rank(rank)
     active_regular_followers = select_regular_participants(
         regular_followers, max_regular_followers, is_onboarding=is_onboarding)
+    active_regular_ids = {follower.follower_id for follower in active_regular_followers}
+    available_share_regulars = [
+        follower for follower in eligible_regular_followers(
+            regular_followers, max_regular_followers, is_onboarding=is_onboarding)
+        if follower.follower_id not in active_regular_ids
+    ] if fan_share_count else []
 
     # ランクごとのパラメータ定義（上限・下限を持たせる）
     minimum, maximum, haters = POST_REPLY_RANGES[rank - 1]
@@ -1163,6 +1180,44 @@ One critic must later reconsider after seeing the other followers' reactions and
     system_prompt += build_regular_impression_instruction(language)
     system_prompt += build_regular_impression_viewpoints(active_regular_followers, language)
     system_prompt += build_supportive_tone_instruction(language, all_replies=hater_count == 0)
+    if fan_share_count:
+        share_regulars = [
+            {"name": follower.author_name,
+             "voice": (BY_ID[resolve_character_id(follower.character_id, "regular:" + follower.follower_id)].voice_en
+                       if language == "en" else
+                       BY_ID[resolve_character_id(follower.character_id, "regular:" + follower.follower_id)].voice_ja)}
+            for follower in available_share_regulars
+        ]
+        system_prompt += (
+            f"\nAlso produce exactly {fan_share_count} fan_shares. Each is a future, positive quote-post "
+            "about this user's post, followed by a short exchange between two followers. "
+            "reply_content is the other follower answering the quote. continuation contains 1–3 "
+            "more brief messages, alternating quote author, other follower, quote author. Each "
+            "message must respond to the previous one, not repeat the same praise. For vulnerable "
+            "posts, use one gentle follow-up instead of a long public discussion. Choose two "
+            "different author_name values that do NOT appear anywhere in replies. Across all "
+            "fan_shares, every author_name and reply_author_name must also be unique. You may use "
+            f"an available regular only from {json.dumps(share_regulars, ensure_ascii=False)}; "
+            "otherwise invent new follower names. The available regulars must not appear in replies. "
+            "Write naturally in the output language, in each person's voice. Do not mention an AI "
+            "name inside content or reply_content. Mention a "
+            "concrete detail from the actual post; never invent events, diagnoses, or other people's "
+            "feelings. The quote-post must not be a copy of the author's immediate reply. For a "
+            "vulnerable or private post, keep the wording discreet and kind; do not turn distress "
+            "into a spectacle. Keep content, reply_content and each continuation item under 110 characters."
+            if language == "en" else
+            f"\n追加で fan_shares をちょうど {fan_share_count} 件作成してください。各件はこの投稿を後日紹介する"
+            "前向きな引用投稿と、AI同士の短い会話です。reply_content は別のAIが引用に答える一言、"
+            "continuation は1〜3件の追加発言で、引用者→別のAI→引用者の順に交互に話す。"
+            "それぞれ直前の発言を受け、同じ褒め言葉を繰り返さない。弱音や個人的な投稿では"
+            "追加発言は1件にして、公開の場で話を大きくしない。author_name と reply_author_name は"
+            "replies に一切登場しない別々のAIにし、引用同士でも全員異なる名前にしてください。"
+            f"当日の返信に参加していない常連は {json.dumps(share_regulars, ensure_ascii=False)} から選んでよいが、"
+            "それ以外は新しいフォロワー名にする。候補の常連を replies に登場させない。"
+            "content と reply_content にAIの名前は書かない。元の返信のコピペにしない。"
+            "投稿に実際にある具体的な内容に触れ、出来事・診断・他人の気持ちを創作しない。"
+            "弱音や個人的な内容は控えめで温かい言い方にする。各文110字以内。"
+        )
 
     try:
         post_label = "User's post" if language == "en" else "ユーザーの投稿"
@@ -1184,6 +1239,11 @@ One critic must later reconsider after seeing the other followers' reactions and
             response_format = create_model(
                 f"ViralPostReplies{total_replies}", __base__=response_format,
                 replies=(List[ReplySchema if hater_count else SupportiveReplySchema], Field(min_length=total_replies, max_length=total_replies)),
+            )
+        if fan_share_count:
+            response_format = create_model(
+                f"FanShares{fan_share_count}For{total_replies}Replies", __base__=response_format,
+                fan_shares=(List[FanShareDraft], Field(min_length=fan_share_count, max_length=fan_share_count)),
             )
         completion = await openai_client.beta.chat.completions.parse(
             model=OPENAI_MODEL,
@@ -1254,6 +1314,50 @@ One critic must later reconsider after seeing the other followers' reactions and
                 "regular_follower_id": regular_id,
                 "character_id": reply_character_id(character_plan, rep.character_id, regular_id, author_name, assigned_characters),
             })
+
+        if fan_shares_out is not None and fan_share_count:
+            used_authors = {reply["author_name"] for reply in result}
+            available_regular_by_name = {
+                follower.author_name: follower for follower in available_share_regulars
+                if follower.author_name not in used_authors
+            }
+            name_pool = ENGLISH_AI_NAMES if language == "en" else JAPANESE_AI_NAMES
+            name_validator = is_english_ai_name if language == "en" else is_japanese_ai_name
+            reserved_regular_names = {follower.author_name for follower in regular_followers or []}
+            available_names = [name for name in name_pool
+                               if name not in used_authors and name not in reserved_regular_names]
+            random.shuffle(available_names)
+
+            def share_person(candidate: str) -> dict:
+                name = candidate.strip()
+                regular = available_regular_by_name.get(name) if name not in used_authors else None
+                if regular is not None:
+                    used_authors.add(name)
+                    return {"author_name": name, "author_img": resolve_avatar_url(regular.avatar_url),
+                            "regular_follower_id": regular.follower_id,
+                            "character_id": resolve_character_id(regular.character_id,
+                                                                  "regular:" + regular.follower_id)}
+                if not name_validator(name) or name not in name_pool or name in used_authors \
+                        or name in reserved_regular_names:
+                    name = next((item for item in available_names if item not in used_authors),
+                                "Anonymous" if language == "en" else "名もなき人")
+                used_authors.add(name)
+                return {"author_name": name,
+                        "author_img": resolve_avatar_url(random.choice(AVATARS)),
+                        "regular_follower_id": None,
+                        "character_id": resolve_character_id(None, "fan-share:" + name)}
+
+            for draft in getattr(parsed_data, "fan_shares", [])[:fan_share_count]:
+                quote = draft.content.strip()[:110]
+                followup = draft.reply_content.strip()[:110]
+                continuation = [text.strip()[:110] for text in draft.continuation if text.strip()][:3]
+                if not quote or not followup or not continuation:
+                    continue
+                author = share_person(draft.author_name)
+                responder = share_person(draft.reply_author_name)
+                fan_shares_out.append({"author": author, "content": quote,
+                                       "reply_author": responder, "reply_content": followup,
+                                       "continuation": continuation})
 
         memory_updates = []
         seen_update_ids: set[str] = set()
@@ -1607,6 +1711,10 @@ async def create_post(request: PostRequest):
     """
     try:
         reaction = build_post_reaction(request.followers, force_viral=request.is_onboarding) if request.supports_viral_posts else None
+        fan_share_count = 0
+        if request.supports_fan_shares:
+            fan_share_count = 2 if reaction and reaction["is_viral"] else (1 if random.randrange(3) == 0 else 0)
+        fan_shares: List[dict] = []
         replies, memory_updates = await generate_ai_replies(
             content=request.content,
             followers=request.followers,
@@ -1618,10 +1726,14 @@ async def create_post(request: PostRequest):
             user_display_name=request.user_display_name,
             recent_ai_replies=request.recent_ai_replies,
             is_viral=bool(reaction and reaction["is_viral"]),
+            fan_share_count=fan_share_count,
+            fan_shares_out=fan_shares,
         )
         result = {"status": "success", "replies": replies, "memory_updates": memory_updates}
         if reaction is not None:
             result["reaction"] = reaction
+        if request.supports_fan_shares:
+            result["fan_shares"] = fan_shares
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
