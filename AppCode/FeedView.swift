@@ -411,6 +411,7 @@ struct PostCard: View {
     let post: PostModel
     var guideSelection = HomeGuideSelection()
     var usesHomeStyling = false
+    var showsConversation = true
     @State private var regularFollowerAlert: RegularFollowerAlert?
     @State private var replyTarget: Reply?
     @State private var fanShareTarget: FanShare?
@@ -472,7 +473,7 @@ struct PostCard: View {
                             .textCase(.uppercase)
                     }
                     Spacer()
-                    if !post.fanShares.isEmpty {
+                    if showsConversation && !post.fanShares.isEmpty {
                         Menu {
                             Button(role: .destructive) {
                                 appState.suppressFanShares(postID: post.id)
@@ -568,7 +569,7 @@ struct PostCard: View {
             .sensoryFeedback(.success, trigger: appState.isViralAnimating(post)) { _, active in active && !reduceMotion }
 
             let visibleFanShares = post.fanShares.filter { $0.isVisible(at: appState.fanShareNow) }
-            if !visibleFanShares.isEmpty {
+            if showsConversation && !visibleFanShares.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack(spacing: 7) {
                         Image(systemName: "arrowshape.turn.up.right.fill")
@@ -624,7 +625,7 @@ struct PostCard: View {
                 .padding(.top, 16)
             }
             
-            if !post.replies.isEmpty || appState.isWaitingForReplies(to: post) {
+            if showsConversation && (!post.replies.isEmpty || appState.isWaitingForReplies(to: post)) {
                 VStack(spacing: 12) {
                     // 返信0件かつリクエスト中、またはまだ保留返信がある間はLoading Dots表示
                     if appState.isWaitingForReplies(to: post) {
@@ -730,6 +731,7 @@ struct PostCard: View {
 struct FanShareDetailView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let postID: UUID
     let shareID: UUID
     @State private var draft = ""
@@ -738,120 +740,152 @@ struct FanShareDetailView: View {
     private var post: PostModel? { appState.posts.first { $0.id == postID } }
     private var share: FanShare? { post?.fanShares.first { $0.id == shareID } }
 
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                if let post, let share {
-                    VStack(alignment: .leading, spacing: 18) {
-                        Text(appState.text("フォロワーの間で", "Among your followers"))
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(Theme.hotPink)
+    private func reply(for turn: FanShareTurn) -> Reply {
+        Reply(id: turn.author.id, authorName: turn.author.authorName, text: turn.content,
+              img: turn.author.img, isHater: false, isDefender: false,
+              regularFollowerId: turn.author.regularFollowerId,
+              characterId: turn.author.characterId)
+    }
 
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(appState.text("あなたの投稿", "Your post"))
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundStyle(Theme.lavender)
-                            Text(post.content)
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundStyle(Theme.textPrimary)
-                            if let data = post.imageData, let image = UIImage(data: data) {
-                                PostAttachmentImage(image: image, height: 160, cornerRadius: 14)
-                            }
-                        }
-                        .padding(16)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background { FeedCardSurface(fill: Theme.cardBackground, accent: Theme.hotPink,
-                                                      border: Theme.lavender.opacity(0.35), cornerRadius: 18) }
+    private func conversationRow(_ reply: Reply) -> some View {
+        ReplyRow(reply: reply, usesHomeStyling: true, showsTimelineNode: true,
+                 showsRegularImpression: false,
+                 isRegular: !reply.isUserReply && appState.isRegularFollower(reply),
+                 canManageRegulars: false, canReply: false, showsThreadToggle: false,
+                 isThreadExpanded: false, onReplyTap: {}, onThreadTap: {}, onRegularTap: {})
+    }
 
-                        HStack(alignment: .top, spacing: 12) {
-                            AIAvatarImage(url: share.author.img)
-                                .frame(width: 38, height: 38).clipShape(Circle())
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(appState.text("\(share.author.authorName)が引用", "Shared by \(share.author.authorName)"))
-                                    .font(.system(size: 12, weight: .bold))
-                                    .foregroundStyle(Theme.hotPink)
-                                Text(share.content).font(.system(size: 15))
-                                    .foregroundStyle(Theme.textPrimary)
-                            }
-                        }
-                        .padding(16)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background { FeedCardSurface(fill: Theme.cardBackground, accent: Theme.lavender,
-                                                      border: Theme.lavender.opacity(0.45), cornerRadius: 18) }
+    private func quoteCard(_ share: FanShare) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 6) {
+                Image(systemName: "arrowshape.turn.up.right.fill")
+                Text(appState.text("あなたの投稿を引用", "Shared your post"))
+            }
+            .font(.system(size: 11, weight: .bold))
+            .foregroundStyle(Theme.hotPink)
+            .padding(.horizontal, 20).padding(.top, 18)
 
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text(appState.text("フォロワー同士の会話", "Followers talking"))
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundStyle(Theme.lavender)
-                            ForEach(share.visibleConversation(at: appState.fanShareNow)) { turn in
-                                HStack(alignment: .top, spacing: 10) {
-                                    AIAvatarImage(url: turn.author.img)
-                                        .frame(width: 32, height: 32).clipShape(Circle())
-                                    VStack(alignment: .leading, spacing: 5) {
-                                        Text(turn.author.authorName)
-                                            .font(.system(size: 12, weight: .bold))
-                                            .foregroundStyle(Theme.lavender)
-                                        Text(turn.content).font(.system(size: 14))
-                                            .foregroundStyle(Theme.textPrimary)
-                                    }
-                                    Spacer(minLength: 0)
-                                }
-                                .padding(12)
-                                .background(Theme.cardBackground, in: RoundedRectangle(cornerRadius: 16))
-                                .padding(.leading, turn.author.id == share.author.id ? 0 : 20)
-                                .transition(.opacity.combined(with: .move(edge: .bottom)))
-                            }
-                            if !share.isConversationComplete(at: appState.fanShareNow) {
-                                HStack(spacing: 8) {
-                                    ProgressView().tint(Theme.lavender)
-                                    Text(appState.text("会話が続いています…", "The conversation is continuing…"))
-                                        .font(.system(size: 12))
-                                        .foregroundStyle(Theme.lavender)
-                                }
-                                .padding(.top, 4)
-                            }
-                        }
-                        .animation(.easeOut(duration: 0.25),
-                                   value: share.visibleConversation(at: appState.fanShareNow).count)
-
-                        if let userReply = share.userReply {
-                            HStack {
-                                Spacer(minLength: 36)
-                                Text(userReply.text)
-                                    .font(.system(size: 14))
-                                    .foregroundStyle(Theme.textPrimary)
-                                    .padding(14)
-                                    .background { FeedCardSurface(fill: Theme.cardBackground,
-                                        accent: Theme.hotPink, border: Theme.hotPink.opacity(0.4), cornerRadius: 16) }
-                            }
-                            if appState.submittingFanShareIDs.contains(shareID) {
-                                ProgressView().tint(Theme.hotPink).padding(.leading, 24)
-                            }
-                            ForEach(share.aiReplies) { reply in
-                                HStack(alignment: .top, spacing: 10) {
-                                    AIAvatarImage(url: reply.img)
-                                        .frame(width: 32, height: 32).clipShape(Circle())
-                                    VStack(alignment: .leading, spacing: 5) {
-                                        Text(reply.authorName).font(.system(size: 12, weight: .bold))
-                                            .foregroundStyle(Theme.lavender)
-                                        Text(reply.text).font(.system(size: 14))
-                                            .foregroundStyle(Theme.textPrimary)
-                                    }
-                                }
-                                .padding(.leading, 24)
-                            }
-                        }
-                    }
-                    .padding(20)
+            HStack(spacing: 12) {
+                AIAvatarImage(url: share.author.img)
+                    .modifier(FeedAvatarFrame(size: 44, stroke: Theme.purpleAccent.opacity(0.65),
+                                              accent: Theme.hotPink, lineWidth: 1, enabled: true))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("@\(share.author.authorName)")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(Theme.lavender)
+                    Text(share.availableAt.formatted(date: .abbreviated, time: .shortened))
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Theme.textPrimary.opacity(0.5))
+                }
+                Spacer()
+                if appState.isRegularFollower(share.author) {
+                    Text("REGULAR")
+                        .font(.system(size: 8, weight: .black))
+                        .foregroundStyle(Theme.lavender)
+                        .padding(.horizontal, 7).padding(.vertical, 4)
+                        .background(Theme.purpleAccent.opacity(0.22), in: Capsule())
                 }
             }
-            .background(Theme.bgDeepBlack)
-            .navigationTitle(appState.text("話題の続き", "The conversation"))
+            .padding(.horizontal, 20)
+
+            Text(share.content)
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(Theme.textPrimary)
+                .lineSpacing(6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20).padding(.bottom, 20)
+        }
+        .background {
+            FeedCardSurface(fill: Theme.cardBackground, accent: Theme.lavender,
+                            border: Theme.lavender.opacity(0.28), cornerRadius: 22)
+        }
+        .clipShape(TemplateCardClip(pixel: appState.designTemplate == .lofi, cornerRadius: 22))
+        .padding(.horizontal, 16)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                ParticleNetworkBackground().ignoresSafeArea()
+                ScrollView {
+                    if let post, let share {
+                        VStack(alignment: .leading, spacing: 0) {
+                            PostCard(post: post, usesHomeStyling: true, showsConversation: false)
+                            HStack(spacing: 8) {
+                                Image(systemName: "arrowshape.turn.up.right.fill")
+                                    .foregroundStyle(Theme.hotPink)
+                                Text(appState.text("フォロワーの間で話題に", "Shared by your followers"))
+                                    .foregroundStyle(Theme.textPrimary)
+                            }
+                            .font(.system(size: 12, weight: .bold))
+                            .padding(.horizontal, 20).padding(.top, 24).padding(.bottom, 12)
+
+                            quoteCard(share)
+
+                            VStack(spacing: 12) {
+                                ForEach(share.visibleConversation(at: appState.fanShareNow)) { turn in
+                                    conversationRow(reply(for: turn))
+                                        .transition(reduceMotion ? .opacity : .move(edge: .top).combined(with: .opacity))
+                                }
+                                if !share.isConversationComplete(at: appState.fanShareNow) {
+                                    HStack(spacing: 10) {
+                                        ProgressView().tint(Theme.hotPink)
+                                        Text(appState.text("会話が続いています…", "The conversation is continuing…"))
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundStyle(Theme.lavender)
+                                        Spacer()
+                                    }
+                                    .padding(.leading, 30).padding(.vertical, 12)
+                                }
+                                if let userReply = share.userReply {
+                                    conversationRow(userReply)
+                                    if appState.submittingFanShareIDs.contains(shareID) {
+                                        HStack {
+                                            LottieAnimationUIView(name: "Loading Pink Dots")
+                                                .frame(width: 100, height: 54)
+                                            Spacer()
+                                        }
+                                        .padding(.leading, 30)
+                                    }
+                                    ForEach(share.aiReplies) { reply in
+                                        conversationRow(reply)
+                                    }
+                                }
+                            }
+                            .padding(.top, 20)
+                            .padding(.leading, ReplyTimelineLayout.contentInset)
+                            .overlay(alignment: .topLeading) {
+                                Rectangle()
+                                    .fill(LinearGradient(colors: [Theme.hotPink.opacity(0.7),
+                                                                  Theme.hotPink.opacity(0.5),
+                                                                  Theme.purpleAccent.opacity(0.35)],
+                                                         startPoint: .top, endPoint: .bottom))
+                                    .frame(width: ReplyTimelineLayout.lineWidth)
+                                    .padding(.leading, ReplyTimelineLayout.centerX - ReplyTimelineLayout.lineWidth / 2)
+                                    .padding(.top, 24)
+                                    .allowsHitTesting(false)
+                            }
+                            .animation(reduceMotion ? nil : .easeOut(duration: 0.25),
+                                       value: share.visibleConversation(at: appState.fanShareNow).count)
+                        }
+                        .padding(.top, 16).padding(.bottom, 28)
+                    }
+                }
+            }
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Theme.bgDeepBlack.opacity(0.95), for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(appState.text("閉じる", "Close")) { dismiss() }
-                        .foregroundStyle(Theme.lavender)
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(Theme.lavender)
+                            .frame(width: 32, height: 32)
+                            .background(Theme.cardBackground, in: Circle())
+                    }
+                    .accessibilityLabel(appState.text("閉じる", "Close"))
                 }
             }
             .safeAreaInset(edge: .bottom) {
@@ -867,7 +901,11 @@ struct FanShareDetailView: View {
                                 .lineLimit(1...3)
                                 .foregroundStyle(Theme.textPrimary)
                                 .padding(12)
-                                .background(Theme.cardBackground, in: RoundedRectangle(cornerRadius: 12))
+                                .background {
+                                    FeedCardSurface(fill: Theme.cardBackground, accent: Theme.lavender,
+                                                    border: Theme.lavender.opacity(0.3), cornerRadius: 14,
+                                                    showsAccent: false)
+                                }
                             Button {
                                 let message = draft
                                 sendFailed = false
@@ -887,11 +925,15 @@ struct FanShareDetailView: View {
                         }
                     }
                     .padding(.horizontal, 16).padding(.vertical, 10)
-                    .background(Theme.bgDeepBlack)
+                    .background(Theme.bgDeepBlack.opacity(0.96))
+                    .overlay(alignment: .top) {
+                        Rectangle().fill(Theme.subtleBorder).frame(height: 1)
+                    }
                 }
             }
         }
         .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { date in
             appState.refreshFanShares(at: date)
         }
@@ -925,6 +967,7 @@ struct ReplyRow: View {
     var guideRegularImpression = false
     var usesHomeStyling = false
     var showsTimelineNode = false
+    var showsRegularImpression = true
     let isRegular: Bool
     let canManageRegulars: Bool
     let canReply: Bool
@@ -989,12 +1032,14 @@ struct ReplyRow: View {
 
     @ViewBuilder
     private func identityControl<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        if usesHomeStyling && isRegular {
+        if showsRegularImpression && usesHomeStyling && isRegular {
             Button(action: openRegularImpression, label: content)
                 .buttonStyle(RegularIdentityButtonStyle())
                 .accessibilityHint(appState.text("タップしてあなたへの印象を見る", "Tap to see their impression of you"))
-        } else {
+        } else if showsRegularImpression {
             content().onTapGesture { selectedRegular = appState.regularFollower(for: reply) }
+        } else {
+            content()
         }
     }
     
@@ -1110,7 +1155,7 @@ struct ReplyRow: View {
                         .accessibilityLabel(appState.text(isRegular ? "常連設定済み" : "常連に設定", isRegular ? "Already a regular" : "Make a regular"))
                         .homeGuideTarget(guideRegularAction && !isRegular ? .regular : nil)
                     }
-                    if usesHomeStyling && isRegular {
+                    if showsRegularImpression && usesHomeStyling && isRegular {
                         Button(action: openRegularImpression) {
                             ZStack {
                                 Image(systemName: "bubble.left")
@@ -1134,7 +1179,7 @@ struct ReplyRow: View {
                     }
                 }
                 
-                if usesHomeStyling && showsImpressionHint {
+                if showsRegularImpression && usesHomeStyling && showsImpressionHint {
                     Text(appState.text("ハートの吹き出しから、この常連があなたをどう思っているか見られます", "Tap the heart bubble to see how this regular sees you"))
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(Theme.lavender)
@@ -1142,7 +1187,7 @@ struct ReplyRow: View {
                         .background(Theme.deepPurple, in: RoundedRectangle(cornerRadius: 10))
                         .onTapGesture { showsImpressionHint = false }
                 }
-                if isRegular && !usesHomeStyling {
+                if showsRegularImpression && isRegular && !usesHomeStyling {
                     Button {
                         selectedRegular = appState.regularFollower(for: reply)
                     } label: {
@@ -1216,7 +1261,7 @@ struct ReplyRow: View {
         }
         .preference(key: HomeGuideModalPreference.self, value: selectedRegular != nil)
         .onAppear {
-            if usesHomeStyling && isRegular && !hasSeenImpressionHint {
+            if showsRegularImpression && usesHomeStyling && isRegular && !hasSeenImpressionHint {
                 hasSeenImpressionHint = true
                 showsImpressionHint = true
             }

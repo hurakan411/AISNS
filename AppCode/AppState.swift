@@ -828,17 +828,21 @@ class AppState: ObservableObject {
         guard let index = posts.firstIndex(where: { $0.id == postID }), !drafts.isEmpty else { return }
         let calendar = Calendar.current
         let startOfToday = calendar.startOfDay(for: posts[index].createdAt ?? now)
+        // One reveal time per post keeps a viral pair together and needs only one notification.
+        let revealMinute = Int.random(in: (8 * 60)..<(24 * 60))
+        guard let nextDay = calendar.date(byAdding: .day, value: 1, to: startOfToday),
+              let availableAt = calendar.date(bySettingHour: revealMinute / 60,
+                                              minute: revealMinute % 60, second: 0, of: nextDay),
+              let replyAvailableAt = calendar.date(byAdding: .second,
+                                                   value: Int(FanShare.turnInterval), to: availableAt)
+        else { return }
         let shares: [FanShare] = drafts.prefix(2).compactMap { draft in
             guard let authorJSON = draft["author"] as? [String: Any],
                   let replyJSON = draft["reply_author"] as? [String: Any],
                   let comment = draft["content"] as? String,
                   let replyComment = draft["reply_content"] as? String,
                   !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                  !replyComment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                  let day = calendar.date(byAdding: .day, value: 1, to: startOfToday),
-                  let availableAt = calendar.date(bySettingHour: 20, minute: 0, second: 0, of: day),
-                  let replyAvailableAt = calendar.date(byAdding: .second,
-                                                       value: Int(FanShare.turnInterval), to: availableAt)
+                  !replyComment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             else { return nil }
             func author(_ data: [String: Any]) -> Reply {
                 Reply(authorName: data["author_name"] as? String ?? text("フォロワー", "Follower"),
@@ -911,8 +915,11 @@ class AppState: ObservableObject {
         guard let index = posts.firstIndex(where: { $0.id == postID }),
               !posts[index].fanShares.isEmpty else { return }
         let identifiers = posts[index].fanShares.map(\.notificationID)
+        let quoteDates = posts[index].fanShares.map(\.availableAt)
         posts[index].fanShares = []
-        Task { @MainActor in DailyReminderManager.shared.cancelFanShareNotifications(identifiers) }
+        Task { @MainActor in
+            DailyReminderManager.shared.cancelFanShareNotifications(identifiers, quoteDates: quoteDates)
+        }
         UPMEAnalytics.capture("fan_shares_suppressed", properties: [
             "post_flow_id": postID.uuidString.lowercased()
         ])

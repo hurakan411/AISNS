@@ -436,32 +436,19 @@ def resolve_avatar_url(seed_url: str) -> str:
 
 def build_length_plan_shuffled(n: int) -> List[str]:
     """
-    短文を中心に、短文:中文:長文 = 6:3:1 を目安にラベルを割り当てる。
+    短文:中文:長文 = 5:3:2 を目安に、端数を配分してラベルを割り当てる。
     """
     if n <= 0:
         return []
-    n_short = max(0, round(n * 0.6))
-    n_long = max(0, round(n * 0.1))
-    n_mid = n - n_short - n_long
-    while n_mid < 0:
-        if n_short > 0:
-            n_short -= 1
-            n_mid += 1
-        elif n_long > 0:
-            n_long -= 1
-            n_mid += 1
-        else:
-            break
-    while n_short + n_mid + n_long < n:
-        n_mid += 1
-    while n_short + n_mid + n_long > n:
-        if n_mid > 0:
-            n_mid -= 1
-        elif n_short > 0:
-            n_short -= 1
-        else:
-            n_long -= 1
-    labels = ["短文"] * n_short + ["中文"] * n_mid + ["長文"] * n_long
+    names = ("短文", "中文", "長文")
+    weights = (5, 3, 2)
+    counts = [n * weight // 10 for weight in weights]
+    # Small reply batches cannot match the ratio exactly; give leftover slots to
+    # the largest fractional parts. Prefer medium on a tie to keep variety.
+    order = sorted(range(3), key=lambda i: (-(n * weights[i] % 10), (1, 0, 2)[i]))
+    for i in order[:n - sum(counts)]:
+        counts[i] += 1
+    labels = [name for name, count in zip(names, counts) for _ in range(count)]
     random.shuffle(labels)
     return labels
 
@@ -836,7 +823,7 @@ async def generate_ai_replies(
             for i, label in enumerate(length_labels, start=1)
         )
         length_and_tone = f"""[LENGTH GUIDANCE]
-The {total_replies} replies have already been assigned short, medium, and long labels in an approximate 6:3:1 ratio and shuffled. Most comments should be quick reactions, not miniature essays.
+The {total_replies} replies have already been assigned short, medium, and long labels in an approximate 5:3:2 ratio and shuffled. Keep comments conversational, not miniature essays.
 Use the assigned range as a guide and respect its upper limit. A shorter reply is welcome when the post offers little detail; never pad a reaction to meet a minimum.
 
 {length_plan_lines}
@@ -848,7 +835,7 @@ The labels control length only. Every reply must still reference the user's actu
             for i, label in enumerate(length_labels, start=1)
         )
         length_and_tone = f"""【文字数の目安】
-全{total_replies}件の返信について、**短文:中文:長文 = 6:3:1 の目安**でラベルを割り当て、順序はランダムにシャッフル済みです。大半は気軽なひとことでよく、小さな解説文を並べないでください。
+全{total_replies}件の返信について、**短文:中文:長文 = 5:3:2 の目安**でラベルを割り当て、順序はランダムにシャッフル済みです。会話らしく自然に返し、小さな解説文を並べないでください。
 下の文字数帯は目安とし、上限は守ってください。情報の少ない投稿では下限より短い自然な返信で構いません。最低文字数のための水増しはしないでください。
 
 {length_plan_lines}

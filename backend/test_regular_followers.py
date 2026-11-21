@@ -1,4 +1,5 @@
 import asyncio
+from collections import Counter
 import json
 import os
 import random
@@ -18,6 +19,7 @@ from main import (
     ReplySchema,
     build_reply_style_instruction,
     build_reply_diversity_instruction,
+    build_length_plan_shuffled,
     build_recent_reply_context,
     build_user_name_instruction,
     localize_generated_author_names,
@@ -48,6 +50,19 @@ class RegularFollowerApiTests(unittest.TestCase):
         participation = patch.object(backend_main, "REGULAR_REPLY_PARTICIPATION_PROBABILITY", 1.0)
         participation.start()
         self.addCleanup(participation.stop)
+
+    def test_reply_length_mix_is_five_three_two(self):
+        self.assertEqual(Counter(build_length_plan_shuffled(10)),
+                         {"短文": 5, "中文": 3, "長文": 2})
+        self.assertEqual(Counter(build_length_plan_shuffled(3)),
+                         {"短文": 1, "中文": 1, "長文": 1})
+        self.assertEqual(Counter(build_length_plan_shuffled(5)),
+                         {"短文": 2, "中文": 2, "長文": 1})
+        for count in range(1, 33):
+            labels = build_length_plan_shuffled(count)
+            self.assertEqual(len(labels), count)
+            for label, weight in (("短文", 5), ("中文", 3), ("長文", 2)):
+                self.assertLessEqual(abs(labels.count(label) - count * weight / 10), 1)
 
     def test_single_face_profile_length_and_legacy_summary_contract(self):
         japanese = backend_main.build_regular_impression_instruction("ja")
@@ -515,6 +530,7 @@ class RegularFollowerApiTests(unittest.TestCase):
         self.assertEqual(len(result["replies"]), 32)
         prompt = capture.calls[0]["messages"][0]["content"]
         self.assertIn("32", prompt)
+        self.assertIn("短文:中文:長文 = 5:3:2", prompt)
         self.assertIn("アンチ→擁護→改心の3段展開", prompt)
         self.assertEqual(capture.calls[0]["response_format"].model_json_schema()["properties"]["replies"]["maxItems"], 32)
 
@@ -893,6 +909,7 @@ class RegularFollowerApiTests(unittest.TestCase):
         system_prompt = messages[0]["content"]
         user_text = messages[1]["content"][0]["text"]
         self.assertIn("OUTPUT LANGUAGE — HIGHEST PRIORITY", system_prompt)
+        self.assertIn("approximate 5:3:2 ratio", system_prompt)
         self.assertIn("English-language social timeline", system_prompt)
         self.assertIn('profile name is "Mina"', system_prompt)
         self.assertIn("Exactly one suitable", system_prompt)

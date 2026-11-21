@@ -1107,8 +1107,8 @@ struct SettingsView: View {
                     Toggle(isOn: Binding(get: { reminders.enabled }, set: { value in
                         Task { await reminders.setEnabled(value) }
                     })) {
-                        settingsRow(icon: "bell", title: appState.text("投稿リマインダー", "Posting reminder"),
-                            detail: appState.text("2日に1回、投稿していない日の20時にお知らせ", "Every other day at 8 p.m., unless you've posted that day"))
+                        settingsRow(icon: "bell", title: appState.text("通知を受け取る", "Notifications"),
+                            detail: appState.text("投稿リマインダーと、フォロワーによる引用をお知らせ", "Posting reminders and quotes from followers"))
                     }
                     .tint(Theme.hotPink)
                     .padding(.horizontal, 16).padding(.vertical, 8)

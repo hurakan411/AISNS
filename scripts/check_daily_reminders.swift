@@ -58,10 +58,20 @@ precondition(plan() == entries) // Deterministic per install/day across restarts
 precondition(ReminderRegular.characterID("v1-17", regularID: "yuki") == "v1-17")
 precondition(ReminderRegular.characterID(nil, regularID: "yuki") == ReminderRegular.characterID("unknown", regularID: "yuki"))
 
+// A quote takes priority for its whole local day, even when it appeared before the 20:00 reminder.
+let quoteMorning = date("2026-11-21T08:30:00+09:00")
+let planAfterQuote = plan(at: date("2026-11-21T19:00:00+09:00"))
+precondition(planAfterQuote.first!.dayID == "2026-11-21")
+let withoutQuoteDay = DailyReminderPlanner.excludingQuoteDays(planAfterQuote,
+    quoteDates: [quoteMorning], calendar: calendar)
+precondition(withoutQuoteDay.first!.dayID == "2026-11-23")
+precondition(DailyReminderPlanner.excludingQuoteDays(planAfterQuote,
+    quoteDates: [date("2026-11-22T08:30:00+09:00")], calendar: calendar) == planAfterQuote)
+
 // Local 20:00 remains 20:00 through daylight-saving transitions.
 let newYork = DailyReminderPlanner.calendar(timeZone: TimeZone(identifier: "America/New_York")!)
 let dst = planner.plan(now: date("2027-03-12T12:00:00-05:00"), cadenceAnchor: date("2027-03-10T12:00:00-05:00"), lastPost: nil, regulars: regulars,
     language: "en", history: [], seed: "dst", calendar: newYork, limit: 5)
 precondition(dst.allSatisfy { newYork.component(.hour, from: $0.date) == 20 })
 precondition(zip(dst, dst.dropFirst()).contains { $1.date.timeIntervalSince($0.date) == 47 * 3600 })
-print("Reminder checks passed: 600 messages, 20:00, fixed two-day cadence, post suppression, rotation, restart, English, DST")
+print("Reminder checks passed: 600 messages, 20:00, fixed two-day cadence, post/quote-day suppression, rotation, restart, English, DST")

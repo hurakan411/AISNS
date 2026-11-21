@@ -49,6 +49,12 @@ struct DailyReminderPlanner {
         return calendar
     }
 
+    static func excludingQuoteDays(_ reminders: [PlannedReminder], quoteDates: [Date],
+                                   calendar: Calendar = Self.calendar()) -> [PlannedReminder] {
+        let quoteDays = Set(quoteDates.map { calendar.startOfDay(for: $0) })
+        return reminders.filter { !quoteDays.contains(calendar.startOfDay(for: $0.date)) }
+    }
+
     func plan(now: Date, cadenceAnchor: Date, lastPost: Date?, regulars: [ReminderRegular],
               language: String, history: [PlannedReminder], seed: String,
               calendar: Calendar = Self.calendar(), limit: Int = 60) -> [PlannedReminder] {
@@ -123,6 +129,8 @@ final class DailyReminderManager: ObservableObject {
     private var language = "ja"
     private var regulars: [ReminderRegular] = []
     private var fanShares: [PlannedFanShareNotification] = []
+    private var fanShareDates: [Date] = []
+    private var dismissedQuoteDay: Date?
     private var ready = false
     private var revision = 0
     private var worker: Task<Void, Never>?
@@ -137,6 +145,7 @@ final class DailyReminderManager: ObservableObject {
         enabled = defaults.object(forKey: "dailyReminder.enabled") as? Bool ?? true
         cadenceAnchor = defaults.object(forKey: "dailyReminder.cadenceAnchor") as? Date ?? Date()
         lastPost = defaults.object(forKey: "dailyReminder.lastPost") as? Date
+        dismissedQuoteDay = defaults.object(forKey: "dailyReminder.dismissedQuoteDay") as? Date
         seed = defaults.string(forKey: "dailyReminder.seed") ?? UUID().uuidString
         if !DesignPreview.isActive { defaults.set(seed, forKey: "dailyReminder.seed") }
         history = (defaults.data(forKey: "dailyReminder.history").flatMap {
@@ -166,11 +175,14 @@ final class DailyReminderManager: ObservableObject {
                                             date: share.availableAt, author: share.author.authorName)
             }
         }
+        // Keep the day blocked after a quote arrives or is read, not just while its alert is pending.
+        let nextFanShareDates = posts.flatMap { $0.fanShares.map(\.availableAt) }
         var changed = self.language != language || self.regulars != nextRegulars || ready != nextReady
-            || fanShares != nextFanShares
+            || fanShares != nextFanShares || fanShareDates != nextFanShareDates
         self.language = language
         self.regulars = nextRegulars
         fanShares = nextFanShares
+        fanShareDates = nextFanShareDates
         ready = nextReady
         if let latestPost, latestPost <= Date(), latestPost > (lastPost ?? .distantPast) {
             lastPost = latestPost
@@ -255,7 +267,13 @@ final class DailyReminderManager: ObservableObject {
         pendingFanShareID = nil
     }
 
-    func cancelFanShareNotifications(_ identifiers: [String]) {
+    func cancelFanShareNotifications(_ identifiers: [String], quoteDates: [Date] = []) {
+        let now = Date()
+        let calendar = DailyReminderPlanner.calendar()
+        if quoteDates.contains(where: { $0 <= now && calendar.isDate($0, inSameDayAs: now) }) {
+            dismissedQuoteDay = calendar.startOfDay(for: now)
+            defaults.set(dismissedQuoteDay, forKey: "dailyReminder.dismissedQuoteDay")
+        }
         center.removePendingNotificationRequests(withIdentifiers: identifiers)
         center.removeDeliveredNotifications(withIdentifiers: identifiers)
         reschedule()
@@ -349,13 +367,11 @@ final class DailyReminderManager: ObservableObject {
             return
         }
         let now = Date()
-        var shareDays = Set<String>()
         var scheduledShareCount = 0
         let shareCalendar = DailyReminderPlanner.calendar()
         for share in fanShares.sorted(by: { $0.date < $1.date }) where share.date > now {
             guard current == revision else { return }
             guard scheduledShareCount < max(0, 64 - (pending.count - ours.count)) else { break }
-            let day = shareCalendar.startOfDay(for: share.date).description
             let content = UNMutableNotificationContent()
             content.title = "UPME!｜\(share.author)"
             content.body = language == "en" ? "Shared your post. See what your followers are saying."
@@ -368,7 +384,6 @@ final class DailyReminderManager: ObservableObject {
                 try await center.add(UNNotificationRequest(identifier: share.identifier, content: content,
                     trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false)))
                 scheduledShareCount += 1
-                shareDays.insert(day)
             } catch { /* The in-app activity remains available without a notification. */ }
         }
         let past = Array(history.filter { $0.date <= now }.sorted { $0.date < $1.date }.suffix(60))
@@ -377,7 +392,9 @@ final class DailyReminderManager: ObservableObject {
             language: language, history: past, seed: seed, limit: min(60, max(0, 64 - otherCount - scheduledShareCount)))
         errorMessage = nil
         var scheduled: [PlannedReminder] = []
-        for entry in plan where !shareDays.contains(shareCalendar.startOfDay(for: entry.date).description) {
+        for entry in DailyReminderPlanner.excludingQuoteDays(plan, quoteDates: fanShareDates
+                                                             + [dismissedQuoteDay].compactMap { $0 },
+                                                             calendar: shareCalendar) {
             guard current == revision else { return }
             let content = UNMutableNotificationContent()
             content.title = entry.title
@@ -417,9 +434,9 @@ final class ReminderApplicationDelegate: NSObject, UIApplicationDelegate, UNUser
             return
         }
         #endif
-        // A user already in the app does not need a posting reminder banner or sound.
+        // Posting reminders stay quiet in-app; new follower quotes still deserve a banner.
         completionHandler(notification.request.identifier.hasPrefix("upme.daily-reminder.")
-            || notification.request.identifier.hasPrefix("upme.fan-share.") ? [] : [.banner, .sound])
+            ? [] : [.banner, .sound])
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,

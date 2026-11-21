@@ -1,5 +1,7 @@
 # Reply diversity (2026-11-12)
 
+Update (2026-11-21): The current short/medium/long allocation is 5:3:2. The 6:3:1 ratio below describes the earlier configuration reviewed on 2026-11-12; character and word ranges are unchanged.
+
 ## Findings and changes
 
 The prompt already prohibited semantic duplicates, but mostly differentiated followers by age/job.
