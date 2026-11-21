@@ -135,6 +135,7 @@ class PostRequest(BaseModel):
     # Older apps keep their existing local reward rules.
     supports_viral_posts: bool = False
     supports_fan_shares: bool = False
+    force_fan_shares: bool = False
 
 class ReplySchema(BaseModel):
     author_name: str
@@ -1713,7 +1714,9 @@ async def create_post(request: PostRequest):
         reaction = build_post_reaction(request.followers, force_viral=request.is_onboarding) if request.supports_viral_posts else None
         fan_share_count = 0
         if request.supports_fan_shares:
-            fan_share_count = 2 if reaction and reaction["is_viral"] else (1 if random.randrange(3) == 0 else 0)
+            fan_share_count = 2 if reaction and reaction["is_viral"] else (
+                1 if request.force_fan_shares or random.randrange(3) == 0 else 0
+            )
         fan_shares: List[dict] = []
         replies, memory_updates = await generate_ai_replies(
             content=request.content,

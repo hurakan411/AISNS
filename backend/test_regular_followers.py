@@ -345,6 +345,31 @@ class RegularFollowerApiTests(unittest.TestCase):
                     supports_viral_posts=True, supports_fan_shares=True)))
         self.assertEqual(planned, [1, 0, 0])
 
+    def test_debug_request_always_plans_fan_shares_without_extra_generation_call(self):
+        from unittest.mock import AsyncMock
+        generate = AsyncMock(return_value=([], []))
+        with (patch.object(backend_main, "generate_ai_replies", generate),
+              patch.object(backend_main, "build_post_reaction", return_value={"is_viral": False}),
+              patch.object(backend_main.random, "randrange") as draw):
+            result = asyncio.run(backend_main.create_post(PostRequest(
+                user_id="synthetic", content="A walk", followers=0,
+                supports_viral_posts=True, supports_fan_shares=True,
+                force_fan_shares=True)))
+        self.assertIn("fan_shares", result)
+        self.assertEqual(generate.await_count, 1)
+        self.assertEqual(generate.call_args.kwargs["fan_share_count"], 1)
+        draw.assert_not_called()
+
+    def test_force_flag_cannot_enable_fan_shares_for_older_clients(self):
+        from unittest.mock import AsyncMock
+        generate = AsyncMock(return_value=([], []))
+        with patch.object(backend_main, "generate_ai_replies", generate):
+            result = asyncio.run(backend_main.create_post(PostRequest(
+                user_id="synthetic", content="A walk", followers=0,
+                force_fan_shares=True)))
+        self.assertNotIn("fan_shares", result)
+        self.assertEqual(generate.call_args.kwargs["fan_share_count"], 0)
+
     def test_viral_fan_shares_use_the_same_generation_call(self):
         class GeneratedClient:
             def __init__(self):

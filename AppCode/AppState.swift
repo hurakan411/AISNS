@@ -1769,6 +1769,9 @@ class AppState: ObservableObject {
             "supports_viral_posts": canDrawViral,
             "supports_fan_shares": true
         ]
+        #if DEBUG
+        body["force_fan_shares"] = true
+        #endif
         
         if let data = imageData {
             body["image_base64"] = data.base64EncodedString()
@@ -2043,7 +2046,7 @@ class AppState: ObservableObject {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 180
         
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "user_id": userId,
             "user_display_name": userName,
             "content": content,
@@ -2054,6 +2057,9 @@ class AppState: ObservableObject {
             "supports_fan_shares": true,
             "language": languageCode
         ]
+        #if DEBUG
+        body["force_fan_shares"] = true
+        #endif
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         
         let task = aiReplyDataTask(with: request) { [weak self] data, response, error in
